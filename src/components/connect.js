@@ -1,6 +1,5 @@
 import 'whatwg-fetch'
 import React, { Component } from 'react'
-import shallowEqual from '../utils/shallowEqual'
 import isPlainObject from '../utils/isPlainObject'
 import hoistStatics from 'hoist-non-react-statics'
 import invariant from 'invariant'
@@ -32,9 +31,9 @@ export default function connect(mapPropsToRequests, options = {}) {
 
     const requests = {}
     Object.keys(urlsOrRequests).forEach(prop => {
-      const urlOrRequest = urlsOrRequests[prop];
+      const urlOrRequest = urlsOrRequests[prop]
       if (typeof urlOrRequest === 'string') {
-        requests[prop] = new window.Request(urlOrRequest, {credentials: 'same-origin'})
+        requests[prop] = new window.Request(urlOrRequest, { credentials: 'same-origin' })
       } else if (urlOrRequest instanceof window.Request) {
         requests[prop] = urlOrRequest
       } else {
@@ -42,7 +41,6 @@ export default function connect(mapPropsToRequests, options = {}) {
       }
     })
 
-    console.log("react-refetch fn=computeRequests requests=", requests)
     return requests
   }
 
@@ -68,26 +66,18 @@ export default function connect(mapPropsToRequests, options = {}) {
       constructor(props, context) {
         super(props, context)
         this.version = version
-        this.state = {requests: {}, data: {}}
+        this.state = { requests: {}, data: {} }
       }
 
       componentWillMount() {
-        console.log('react-refetch fn=componentWillMount')
         this.refreshData()
       }
 
       componentWillReceiveProps(nextProps) {
-        console.log('react-refetch fn=componentWillReceiveProps')
         this.refreshData(nextProps)
       }
 
-      shouldComponentUpdate(_, nextState) {
-        // TODO
-        return true
-      }
-
       render() {
-        console.log('react-refetch fn=render')
         const ref = withRef ? 'wrappedInstance' : null
         return (
           <WrappedComponent { ...this.state.data } { ...this.props } ref={ref}/>
@@ -108,10 +98,9 @@ export default function connect(mapPropsToRequests, options = {}) {
         Object.keys(nextRequests).forEach((prop) => {
           const prev = this.state.requests[prop]
           const next = nextRequests[prop]
-          const comp = ['url', 'method']
+          const comp = [ 'url', 'method' ]
           const same = prev && next && comp.every(c => prev[c] === next[c])
 
-          console.log(`react-refetch fn=refreshData prop=${prop} same-request=${!!same}`, next)
           if (!same) {
             this.refreshDatum(prop, next)
           }
@@ -153,7 +142,6 @@ export default function connect(mapPropsToRequests, options = {}) {
       }
 
       setPromiseState(prop, request, promiseState) {
-        console.log(`react-refetch fn=setPromiseState prop=${prop}`, promiseState)
         this.setState((prevState) => ({
           requests: Object.assign(
             prevState.requests, {
@@ -185,4 +173,4 @@ export default function connect(mapPropsToRequests, options = {}) {
 
     return hoistStatics(RefetchConnect, WrappedComponent)
   }
-};
+}
