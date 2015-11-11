@@ -9,7 +9,7 @@ Instead, it *returns* a new, connected component class, for you to use.
 
 #### Arguments
 
-* [`mapPropsToRequests(props): urlProps`] \(*Function*): If specified, the component will fetch data from the URLs. Any time props update, `mapPropsToRequests` will be called. Its result must be a plain object mapping prop keys to  URLs, or for more advanced cases an array of arguments for `window.fetch`. If the values changed, they will be passed as arguments to `window.fetch` and the synchronous state of the resulting promise will be serialized and merged into the component’s props. If you omit it, the component will not be connected to any URLs. 
+* [`mapPropsToRequests(props): urlProps`] \(*Function*): If specified, the component will fetch data from the URLs. Any time props update, `mapPropsToRequests` will be called. Its result must be a plain object mapping prop keys to URL strings or `window.Request` objects. If the values changed, they will be passed to `window.fetch` and the synchronous state of the resulting promise will be serialized and merged into the component’s props. If you omit it, the component will not be connected to any URLs. 
 
 * [`options`] *(Object)* If specified, further customizes the behavior of the connector.
   * [`withRef = false`] *(Boolean)*: If true, stores a ref to the wrapped component instance and makes it available via `getWrappedInstance()` method. *Defaults to `false`.*
@@ -44,26 +44,26 @@ Returns the wrapped component instance. Only available if you pass `{ withRef: t
     // create a dumb component that receives data as props
     class Profile extends React.Component {
       static propTypes = {
-        user: PropTypes.object
-        likes: PropTypes.object
+        userFetch: PropTypes.object
+        likesFetch: PropTypes.object
       }
       render() {
         // render the different promise states of user
-        if (user.pending) {
+        if (userFetch.pending) {
           return <LoadingAnimation/>
-        } else if (user.rejected) {
-          return <Error error={user.reason}/>
-        } else if (user.fulfilled) {
-          return <User data={user.value}/>
+        } else if (userFetch.rejected) {
+          return <Error error={userFetch.reason}/>
+        } else if (userFetch.fulfilled) {
+          return <User data={userFetch.value}/>
         }
-        // similar for `likes`
+        // similar for `likesFetch`
       }
     }
     
     // declare the URLs for fetching the data assigned to keys and connect the component.
     export default connect((props) => {
      return {
-       user:  `/users/${props.params.userId}`
-       likes: `/likes/${props.params.userId}/likes`
+       userFetch:  `/users/${props.params.userId}`
+       likesFetch: `/likes/${props.params.userId}/likes`
      }
     })(Profile)
