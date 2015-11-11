@@ -9,17 +9,9 @@ var reactExternal = {
   amd: 'react'
 }
 
-var reduxExternal = {
-  root: 'Redux',
-  commonjs2: 'redux',
-  commonjs: 'redux',
-  amd: 'redux'
-}
-
 module.exports = {
   externals: {
-    'react': reactExternal,
-    'redux': reduxExternal
+    'react': reactExternal
   },
   module: {
     loaders: [
@@ -27,7 +19,7 @@ module.exports = {
     ]
   },
   output: {
-    library: 'ReactRedux',
+    library: 'ReactData',
     libraryTarget: 'umd'
   },
   resolve: {
