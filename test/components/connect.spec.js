@@ -1,6 +1,5 @@
 import expect from 'expect'
-import React, { createClass, Children, PropTypes, Component } from 'react'
-import ReactDOM from 'react-dom'
+import React, { createClass, Component } from 'react'
 import TestUtils from 'react-addons-test-utils'
 import { connect } from '../../src/index'
 
@@ -17,7 +16,7 @@ describe('React', () => {
     it('should props and promise state to the given component', () => {
       const props = ({
         foo: 'bar',
-        baz: 42,
+        baz: 42
       })
 
       @connect(({ foo, baz }) => ({ testFetch: `/${foo}/${baz}` }))
@@ -142,7 +141,7 @@ describe('React', () => {
         return <Passthrough/>
       }
 
-      @connect(({foo}) => ({ testFetch: `/resource/${foo}` }))
+      @connect(({ foo }) => ({ testFetch: `/resource/${foo}` }))
       class WithProps extends Component {
         render() {
           return render(this.props)
@@ -173,7 +172,6 @@ describe('React', () => {
         <OuterComponent ref={c => outerComponent = c} />
       )
 
-      const stub = TestUtils.findRenderedComponentWithType(outerComponent, Passthrough)
       expect(spy.calls.length).toBe(1)
       outerComponent.setFoo('BAR')
       expect(spy.calls.length).toBe(2)
