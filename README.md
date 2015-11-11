@@ -21,8 +21,8 @@ This assumes that you’re using [npm](http://npmjs.com/) package manager with a
 
 ## Documentation
 
-- [API](docs/api.md#api)
-    - [`connect([mapPropsToRequests])`](doc/sapi.md#connectmappropstorequests)
+- [API](https://github.com/heroku/react-refetch/blob/master/docs/api.md)
+    - [`connect([mapPropsToRequests])`](https://github.com/heroku/react-refetch/blob/master/docs/api.md#connectmappropstorequests)
 
 ## License
 
