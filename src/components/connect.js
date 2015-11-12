@@ -118,7 +118,7 @@ export default function connect(mapPropsToRequests, options = {}) {
           .then(value => {
             this.setPromiseState(prop, request, new PromiseState({
               fulfilled: true,
-              value: value,
+              value: value
             }))
           })
           .catch(error => {
