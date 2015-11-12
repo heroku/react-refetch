@@ -15,7 +15,7 @@ For example, if you have a component called `Profile` that has a `userId` prop, 
     connect(props => {
      return {
        userFetch:  `/users/${props.userId}`
-       likesFetch: `/likes/${props.userId}/likes`
+       likesFetch: `/users/${props.userId}/likes`
      }
     })(Profile)
  
