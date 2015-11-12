@@ -1,7 +1,7 @@
 import expect from 'expect'
 import React, { createClass, Component } from 'react'
 import TestUtils from 'react-addons-test-utils'
-import { connect } from '../../src/index'
+import { connect, PromiseState } from '../../src/index'
 
 describe('React', () => {
   describe('connect', () => {
@@ -40,6 +40,7 @@ describe('React', () => {
       expect(stub.props.foo).toEqual('bar')
       expect(stub.props.baz).toEqual(42)
       expect(stub.props.testFetch).toEqual({ fulfilled: false, pending: true, reason: null, rejected: false, settled: false, value: null })
+      expect(stub.props.testFetch.constructor).toEqual(PromiseState)
       expect(() =>
         TestUtils.findRenderedComponentWithType(container, Container)
       ).toNotThrow()

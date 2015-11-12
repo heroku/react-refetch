@@ -16,7 +16,7 @@ Instead, it *returns* a new, connected component class, for you to use.
 
 #### Returns
 
-A React component class that injects the synchronous state of the resulting data promises into your component according to the specified options. The promises will be injected as objects with the following properties:
+A React component class that injects the synchronous state of the resulting data promises into your component as a `PromiseState` object with the following properties:
 
   *  - pending: true if data is still being loaded
   *  - fulfilled: true if data was loaded successfully
@@ -44,8 +44,11 @@ Returns the wrapped component instance. Only available if you pass `{ withRef: t
     // create a dumb component that receives data as props
     class Profile extends React.Component {
       static propTypes = {
-        userFetch: PropTypes.object
-        likesFetch: PropTypes.object
+        params: PropTypes.shape({
+          userId: PropTypes.string.isRequired,
+        }).isRequired,
+        userFetch: PropTypes.instanceOf(PromiseState)
+        likesFetch: PropTypes.instanceOf(PromiseState)
       }
       render() {
         // render the different promise states of user

@@ -1,6 +1,6 @@
 {
   "name": "react-refetch",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "React bindings for URL data",
   "main": "./lib/index.js",
   "scripts": {

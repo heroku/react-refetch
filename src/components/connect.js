@@ -1,6 +1,7 @@
 import 'whatwg-fetch'
 import React, { Component } from 'react'
 import isPlainObject from '../utils/isPlainObject'
+import PromiseState from '../PromiseState'
 import hoistStatics from 'hoist-non-react-statics'
 import invariant from 'invariant'
 
@@ -108,36 +109,23 @@ export default function connect(mapPropsToRequests, options = {}) {
       }
 
       refreshDatum(prop, request) {
-        this.setPromiseState(prop, request, {
-          'pending': true,
-          'fulfilled': false,
-          'rejected': false,
-          'settled': false,
-          'value': null,
-          'reason': null
-        })
+        this.setPromiseState(prop, request, new PromiseState({
+          pending: true
+        }))
 
         window.fetch(request)
           .then(handleResponse)
           .then(value => {
-            this.setPromiseState(prop, request, {
-              'pending': false,
-              'fulfilled': true,
-              'rejected': false,
-              'settled': true,
-              'value': value,
-              'reason': null
-            })
+            this.setPromiseState(prop, request, new PromiseState({
+              fulfilled: true,
+              value: value,
+            }))
           })
           .catch(error => {
-            this.setPromiseState(prop, request, {
-              'pending': false,
-              'fulfilled': false,
-              'rejected': true,
-              'settled': false,
-              'value': null,
-              'reason': error
-            })
+            this.setPromiseState(prop, request, new PromiseState({
+              rejected: true,
+              reason: error
+            }))
           })
       }
 
