@@ -22,7 +22,7 @@ SOFTWARE.
 
 ---
 
-License for portions of React Redux project from which this was derived project:
+License for portions of React Redux project from which this was derived:
 
 The MIT License (MIT)
 

@@ -1,6 +1,6 @@
 ## API
 
-### `connect([mapPropsToRequests])`
+### `connect([mapPropsToRequestsToProps])`
 
 Connects a React component to data from one or more URLs.
 
@@ -9,7 +9,7 @@ Instead, it *returns* a new, connected component class, for you to use.
 
 #### Arguments
 
-* [`mapPropsToRequests(props): urlProps`] \(*Function*): If specified, the component will fetch data from the URLs. Any time props update, `mapPropsToRequests` will be called. Its result must be a plain object mapping prop keys to URL strings or `window.Request` objects. If the values changed, they will be passed to `window.fetch` and the synchronous state of the resulting promise will be serialized and merged into the component’s props. If you omit it, the component will not be connected to any URLs. 
+* [`mapPropsToRequestsToProps(props): urlProps`] \(*Function*): If specified, the component will fetch data from the URLs. Any time props update, `mapPropsToRequestsToProps` will be called. Its result must be a plain object mapping prop keys to URL strings or `window.Request` objects. If the values changed, they will be passed to `window.fetch` and the synchronous state of the resulting promise will be serialized and merged into the component’s props. If you omit it, the component will not be connected to any URLs. 
 
 * [`options`] *(Object)* If specified, further customizes the behavior of the connector.
   * [`withRef = false`] *(Boolean)*: If true, stores a ref to the wrapped component instance and makes it available via `getWrappedInstance()` method. *Defaults to `false`.*
@@ -41,7 +41,7 @@ Returns the wrapped component instance. Only available if you pass `{ withRef: t
 
 #### Example
 
-    // create a dumb component that receives data as props
+    // create a component that receives data as props
     class Profile extends React.Component {
       static propTypes = {
         params: PropTypes.shape({
@@ -51,6 +51,8 @@ Returns the wrapped component instance. Only available if you pass `{ withRef: t
         likesFetch: PropTypes.instanceOf(PromiseState)
       }
       render() {
+        const { userFetch, likesFetch } = this.props 
+      
         // render the different promise states of user
         if (userFetch.pending) {
           return <LoadingAnimation/>
@@ -64,7 +66,7 @@ Returns the wrapped component instance. Only available if you pass `{ withRef: t
     }
     
     // declare the URLs for fetching the data assigned to keys and connect the component.
-    export default connect((props) => {
+    export default connect(props => {
      return {
        userFetch:  `/users/${props.params.userId}`
        likesFetch: `/likes/${props.params.userId}/likes`

@@ -86,7 +86,7 @@ describe('React', () => {
       expect('x' in propsAfter).toEqual(false, 'x prop must be removed')
     })
 
-    it('should invoke mapPropsToRequests every time props are changed', () => {
+    it('should invoke mapPropsToRequestsToProps every time props are changed', () => {
       let propsPassedIn
       let invocationCount = 0
 
@@ -182,10 +182,10 @@ describe('React', () => {
       expect(spy.calls.length).toBe(4)
     })
 
-    it('should throw an error if mapPropsToRequests returns anything but a plain object', () => {
-      function makeContainer(mapPropsToRequests) {
+    it('should throw an error if mapPropsToRequestsToProps returns anything but a plain object', () => {
+      function makeContainer(mapPropsToRequestsToProps) {
         return React.createElement(
-          connect(mapPropsToRequests)(
+          connect(mapPropsToRequestsToProps)(
             class Container extends Component {
               render() {
                 return <Passthrough />
@@ -201,19 +201,19 @@ describe('React', () => {
         TestUtils.renderIntoDocument(
           makeContainer(() => 1)
         )
-      }).toThrow(/mapPropsToRequests/)
+      }).toThrow(/mapPropsToRequestsToProps/)
 
       expect(() => {
         TestUtils.renderIntoDocument(
             makeContainer(() => 'hey')
         )
-      }).toThrow(/mapPropsToRequests/)
+      }).toThrow(/mapPropsToRequestsToProps/)
 
       expect(() => {
         TestUtils.renderIntoDocument(
             makeContainer(() => new AwesomeMap())
         )
-      }).toThrow(/mapPropsToRequests/)
+      }).toThrow(/mapPropsToRequestsToProps/)
     })
 
     it('should set the displayName correctly', () => {

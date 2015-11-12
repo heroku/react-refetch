@@ -5,7 +5,7 @@ import PromiseState from '../PromiseState'
 import hoistStatics from 'hoist-non-react-statics'
 import invariant from 'invariant'
 
-const defaultMapPropsToRequests = () => ({})
+const defaultMapPropsToRequestsToProps = () => ({})
 
 function getDisplayName(WrappedComponent) {
   return WrappedComponent.displayName || WrappedComponent.name || 'Component'
@@ -14,19 +14,19 @@ function getDisplayName(WrappedComponent) {
 // Helps track hot reloading.
 let nextVersion = 0
 
-export default function connect(mapPropsToRequests, options = {}) {
-  const finalMapPropsToRequests = mapPropsToRequests || defaultMapPropsToRequests
+export default function connect(mapPropsToRequestsToProps, options = {}) {
+  const finalMapPropsToRequestsToProps = mapPropsToRequestsToProps || defaultMapPropsToRequestsToProps
   const { withRef = false } = options
 
   // Helps track hot reloading.
   const version = nextVersion++
 
   function computeRequests(props) {
-    const urlsOrRequests = finalMapPropsToRequests(props) || {}
+    const urlsOrRequests = finalMapPropsToRequestsToProps(props) || {}
 
     invariant(
       isPlainObject(urlsOrRequests),
-      '`mapPropsToRequests` must return an object. Instead received %s.',
+      '`mapPropsToRequestsToProps` must return an object. Instead received %s.',
       urlsOrRequests
     )
 
