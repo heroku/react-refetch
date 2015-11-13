@@ -5,7 +5,14 @@ import { connect, PromiseState } from '../../src/index'
 
 describe('React', () => {
   describe('connect', () => {
-    // TODO: mock fetch responses
+
+    before(() => {
+      window.fetch = () => {
+        return new Promise((resolve) => {
+          resolve(new window.Response('{}', { status: 200 }))
+        })
+      }
+    })
 
     class Passthrough extends Component {
       render() {
@@ -33,7 +40,7 @@ describe('React', () => {
       const stub = TestUtils.findRenderedComponentWithType(container, Passthrough)
       expect(stub.props.foo).toEqual('bar')
       expect(stub.props.baz).toEqual(42)
-      expect(stub.props.testFetch).toEqual({ fulfilled: false, pending: true, reason: null, rejected: false, settled: false, value: null })
+      expect(stub.props.testFetch).toEqual({ fulfilled: false, pending: true, refreshing: false, reason: null, rejected: false, settled: false, value: null })
       expect(stub.props.testFetch.constructor).toEqual(PromiseState)
       expect(() =>
         TestUtils.findRenderedComponentWithType(container, Container)
@@ -59,7 +66,7 @@ describe('React', () => {
     })
 
     it('should use provided Request with empty options if custom Request is provided', () => {
-      @connect(() => ({ testFetch: new window.Request('/example', { method: 'POST' })}))
+      @connect(() => ({ testFetch: new window.Request('/example', { method: 'POST' }) }))
       class Container extends Component {
         render() {
           return <Passthrough {...this.props} />
@@ -78,7 +85,7 @@ describe('React', () => {
     })
 
     it('should create default Request with provided options if custom options are provided', () => {
-      @connect(() => ({ testFetch: [`/example`, { anOption: true, anotherOption: 'blue' }] }))
+      @connect(() => ({ testFetch: [ `/example`, { anOption: true, anotherOption: 'blue' } ] }))
       class Container extends Component {
         render() {
           return <Passthrough {...this.props} />
@@ -99,7 +106,7 @@ describe('React', () => {
     })
 
     it('should use provided Request with provided options if custom Request and options are provided', () => {
-      @connect(() => ({ testFetch: [new window.Request(`/example`), { anOption: true, anotherOption: 'blue' }] }))
+      @connect(() => ({ testFetch: [ new window.Request(`/example`), { anOption: true, anotherOption: 'blue' } ] }))
       class Container extends Component {
         render() {
           return <Passthrough {...this.props} />
@@ -117,6 +124,33 @@ describe('React', () => {
       expect(decorated.state.mappings.testFetch.request.credentials).toEqual('omit')
       expect(decorated.state.mappings.testFetch.anOption).toEqual(true)
       expect(decorated.state.mappings.testFetch.anotherOption).toEqual('blue')
+    })
+
+    it('should set refreshTimeouts when refreshInterval is provided', (done) => {
+      @connect(() => ({ testFetch: [ `/example`, { refreshInterval: 10000 } ] }))
+      class Container extends Component {
+        render() {
+          return <Passthrough {...this.props} />
+        }
+      }
+
+      const container = TestUtils.renderIntoDocument(
+        <Container />
+      )
+
+      const decoratedPending = TestUtils.findRenderedComponentWithType(container, Container)
+      expect(Object.keys(decoratedPending.state.mappings.testFetch).length).toEqual(2)
+      expect(decoratedPending.state.mappings.testFetch.request.method).toEqual('GET')
+      expect(decoratedPending.state.mappings.testFetch.request.url).toEqual('/example')
+      expect(decoratedPending.state.mappings.testFetch.request.credentials).toEqual('same-origin')
+      expect(decoratedPending.state.mappings.testFetch.refreshInterval).toEqual(10000)
+
+      setImmediate(() => {
+        const decoratedFulfilled = TestUtils.findRenderedComponentWithType(container, Container)
+        expect(decoratedFulfilled.state.refreshTimeouts.testFetch).toBeTruthy()
+        clearTimeout(decoratedFulfilled.state.refreshTimeouts.testFetch)
+        done()
+      })
     })
 
     it('should remove undefined props', () => {

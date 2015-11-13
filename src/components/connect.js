@@ -1,6 +1,7 @@
 import 'whatwg-fetch'
 import React, { Component } from 'react'
 import isPlainObject from '../utils/isPlainObject'
+import deepValue from '../utils/deepValue'
 import PromiseState from '../PromiseState'
 import hoistStatics from 'hoist-non-react-statics'
 import invariant from 'invariant'
@@ -84,15 +85,19 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
       constructor(props, context) {
         super(props, context)
         this.version = version
-        this.state = { mappings: {}, intervals: {}, data: {} }
+        this.state = { mappings: {}, data: {}, refreshTimeouts: {} }
       }
 
       componentWillMount() {
-        this.refreshData()
+        this.refetchData()
       }
 
       componentWillReceiveProps(nextProps) {
-        this.refreshData(nextProps)
+        this.refetchData(nextProps)
+      }
+
+      componentWillUnmount() {
+        this.clearAllRefreshTimeouts()
       }
 
       render() {
@@ -111,42 +116,54 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
         return this.refs.wrappedInstance
       }
 
-      refreshData(props = this.props) {
+      refetchData(props = this.props) {
         const nextMappings = computeMappings(props)
         Object.keys(nextMappings).forEach(prop => {
           const prev = this.state.mappings[prop]
           const next = nextMappings[prop]
-          const comp = [ 'url', 'method' ]
-          const same = prev && next && prev.request && next.request && comp.every(c => prev.request[c] === next.request[c])
+          const comp = [ 'request.url', 'request.method', 'refreshInterval' ]
+          const same = comp.every(c => deepValue(prev, c) === deepValue(next, c))
 
           if (!same) {
-            this.refreshDatum(prop, next)
+            this.refetchDatum(prop, next)
           }
         })
       }
 
-      refreshDatum(prop, mapping) {
-        this.setPromiseState(prop, mapping, new PromiseState({
-          pending: true
-        }))
+      refetchDatum(prop, mapping, refreshing) {
+        if (this.state.refreshTimeouts[prop]) {
+          window.clearTimeout(this.state.refreshTimeouts[prop])
+        }
 
-        window.fetch(mapping.request)
+        this.setAtomicState(prop, mapping, new PromiseState({
+          pending: !refreshing,
+          refreshing: refreshing,
+          value: refreshing ? this.state.data[prop].value : null
+        }), null)
+
+        window.fetch(mapping.request.clone())
           .then(handleResponse)
           .then(value => {
-            this.setPromiseState(prop, mapping, new PromiseState({
+            let refreshTimeout = null
+            if (mapping.refreshInterval > 0) {
+              refreshTimeout = window.setTimeout(() => {
+                this.refetchDatum(prop, mapping, true)
+              }, mapping.refreshInterval)
+            }
+            this.setAtomicState(prop, mapping, new PromiseState({
               fulfilled: true,
               value: value
-            }))
+            }), refreshTimeout)
           })
           .catch(error => {
-            this.setPromiseState(prop, mapping, new PromiseState({
+            this.setAtomicState(prop, mapping, new PromiseState({
               rejected: true,
               reason: error
-            }))
+            }), null)
           })
       }
 
-      setPromiseState(prop, mapping, promiseState) {
+      setAtomicState(prop, mapping, promiseState, refreshTimeout) {
         this.setState((prevState) => ({
           mappings: Object.assign(
             prevState.mappings, {
@@ -155,8 +172,18 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
           data: Object.assign(
             prevState.data, {
               [prop]: promiseState
+            }),
+          refreshTimeouts: Object.assign(
+            prevState.refreshTimeouts, {
+              [prop]: refreshTimeout
             })
         }))
+      }
+
+      clearAllRefreshTimeouts() {
+        Object.keys(this.state.refreshTimeouts).forEach((prop) => {
+          clearTimeout(this.state.refreshTimeouts[prop])
+        })
       }
     }
 
@@ -171,8 +198,8 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
 
         // We are hot reloading!
         this.version = version
-
-        this.refreshData()
+        this.clearAllRefreshTimeouts()
+        this.refetchData()
       }
     }
 
