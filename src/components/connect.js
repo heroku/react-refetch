@@ -21,28 +21,45 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
   // Helps track hot reloading.
   const version = nextVersion++
 
-  function computeRequests(props) {
-    const urlsOrRequests = finalMapPropsToRequestsToProps(props) || {}
+  function computeMappings(props) {
+    const rawMappings = finalMapPropsToRequestsToProps(props) || {}
 
     invariant(
-      isPlainObject(urlsOrRequests),
+      isPlainObject(rawMappings),
       '`mapPropsToRequestsToProps` must return an object. Instead received %s.',
-      urlsOrRequests
+      rawMappings
     )
 
-    const requests = {}
-    Object.keys(urlsOrRequests).forEach(prop => {
-      const urlOrRequest = urlsOrRequests[prop]
-      if (typeof urlOrRequest === 'string') {
-        requests[prop] = new window.Request(urlOrRequest, { credentials: 'same-origin' })
-      } else if (urlOrRequest instanceof window.Request) {
-        requests[prop] = urlOrRequest
-      } else {
-        invariant(false, 'Value of `%s` must be either a string or Request. Instead received %s', prop, urlOrRequest)
-      }
+    const mappings = {}
+    Object.keys(rawMappings).forEach(prop => {
+      mappings[prop] = coerceMapping(prop, rawMappings[prop])
     })
+    return mappings
+  }
 
-    return requests
+  function coerceMapping(prop, mapping) {
+    if (Array.isArray(mapping)) {
+      return Object.assign({ request: coerceRequest(prop, mapping[0]) }, coerceOpts(prop, mapping[1]))
+    } else {
+      return { request: coerceRequest(prop, mapping) }
+    }
+  }
+
+  function coerceRequest(prop, stringOrRequest) {
+    if (typeof stringOrRequest === 'string') {
+      return new window.Request(stringOrRequest, { credentials: 'same-origin' })
+    } else if (stringOrRequest instanceof window.Request) {
+      return stringOrRequest
+    } else {
+      invariant(false, 'Value of first argument of `%s` must be either a string or Request. Instead received %s', prop, stringOrRequest)
+    }
+  }
+
+  function coerceOpts(prop, opts) {
+    if (opts && !isPlainObject(opts)) {
+      invariant(false, 'Value of second argument of `%s` must be a plain object. Instead received %s', prop, opts)
+    }
+    return opts || {}
   }
 
   function handleResponse(response) {
@@ -67,7 +84,7 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
       constructor(props, context) {
         super(props, context)
         this.version = version
-        this.state = { requests: {}, data: {} }
+        this.state = { mappings: {}, intervals: {}, data: {} }
       }
 
       componentWillMount() {
@@ -95,12 +112,12 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
       }
 
       refreshData(props = this.props) {
-        const nextRequests = computeRequests(props)
-        Object.keys(nextRequests).forEach((prop) => {
-          const prev = this.state.requests[prop]
-          const next = nextRequests[prop]
+        const nextMappings = computeMappings(props)
+        Object.keys(nextMappings).forEach(prop => {
+          const prev = this.state.mappings[prop]
+          const next = nextMappings[prop]
           const comp = [ 'url', 'method' ]
-          const same = prev && next && comp.every(c => prev[c] === next[c])
+          const same = prev && next && prev.request && next.request && comp.every(c => prev.request[c] === next.request[c])
 
           if (!same) {
             this.refreshDatum(prop, next)
@@ -108,32 +125,32 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
         })
       }
 
-      refreshDatum(prop, request) {
-        this.setPromiseState(prop, request, new PromiseState({
+      refreshDatum(prop, mapping) {
+        this.setPromiseState(prop, mapping, new PromiseState({
           pending: true
         }))
 
-        window.fetch(request)
+        window.fetch(mapping.request)
           .then(handleResponse)
           .then(value => {
-            this.setPromiseState(prop, request, new PromiseState({
+            this.setPromiseState(prop, mapping, new PromiseState({
               fulfilled: true,
               value: value
             }))
           })
           .catch(error => {
-            this.setPromiseState(prop, request, new PromiseState({
+            this.setPromiseState(prop, mapping, new PromiseState({
               rejected: true,
               reason: error
             }))
           })
       }
 
-      setPromiseState(prop, request, promiseState) {
+      setPromiseState(prop, mapping, promiseState) {
         this.setState((prevState) => ({
-          requests: Object.assign(
-            prevState.requests, {
-              [prop]: request
+          mappings: Object.assign(
+            prevState.mappings, {
+              [prop]: mapping
             }),
           data: Object.assign(
             prevState.data, {

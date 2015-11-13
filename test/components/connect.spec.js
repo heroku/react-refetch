@@ -30,12 +30,6 @@ describe('React', () => {
         <Container {...props} />
       )
 
-      const decorated = TestUtils.findRenderedComponentWithType(container, Container)
-      expect(decorated.state.requests.testFetch.method).toEqual('GET')
-      expect(decorated.state.requests.testFetch.url).toEqual('/bar/42')
-      expect(decorated.state.requests.testFetch.credentials).toEqual('same-origin')
-      expect(decorated.state.data.testFetch).toEqual({ fulfilled: false, pending: true, reason: null, rejected: false, settled: false, value: null })
-
       const stub = TestUtils.findRenderedComponentWithType(container, Passthrough)
       expect(stub.props.foo).toEqual('bar')
       expect(stub.props.baz).toEqual(42)
@@ -44,6 +38,85 @@ describe('React', () => {
       expect(() =>
         TestUtils.findRenderedComponentWithType(container, Container)
       ).toNotThrow()
+    })
+
+    it('should create default Request and empty options if just URL is provided', () => {
+      @connect(() => ({ testFetch: `/example` }))
+      class Container extends Component {
+        render() {
+          return <Passthrough {...this.props} />
+        }
+      }
+
+      const container = TestUtils.renderIntoDocument(
+        <Container />
+      )
+
+      const decorated = TestUtils.findRenderedComponentWithType(container, Container)
+      expect(decorated.state.mappings.testFetch.request.method).toEqual('GET')
+      expect(decorated.state.mappings.testFetch.request.url).toEqual('/example')
+      expect(decorated.state.mappings.testFetch.request.credentials).toEqual('same-origin')
+    })
+
+    it('should use provided Request with empty options if custom Request is provided', () => {
+      @connect(() => ({ testFetch: new window.Request('/example', { method: 'POST' })}))
+      class Container extends Component {
+        render() {
+          return <Passthrough {...this.props} />
+        }
+      }
+
+      const container = TestUtils.renderIntoDocument(
+        <Container />
+      )
+
+      const decorated = TestUtils.findRenderedComponentWithType(container, Container)
+      expect(Object.keys(decorated.state.mappings.testFetch).length).toEqual(1)
+      expect(decorated.state.mappings.testFetch.request.method).toEqual('POST')
+      expect(decorated.state.mappings.testFetch.request.url).toEqual('/example')
+      expect(decorated.state.mappings.testFetch.request.credentials).toEqual('omit')
+    })
+
+    it('should create default Request with provided options if custom options are provided', () => {
+      @connect(() => ({ testFetch: [`/example`, { anOption: true, anotherOption: 'blue' }] }))
+      class Container extends Component {
+        render() {
+          return <Passthrough {...this.props} />
+        }
+      }
+
+      const container = TestUtils.renderIntoDocument(
+        <Container />
+      )
+
+      const decorated = TestUtils.findRenderedComponentWithType(container, Container)
+      expect(Object.keys(decorated.state.mappings.testFetch).length).toEqual(3)
+      expect(decorated.state.mappings.testFetch.request.method).toEqual('GET')
+      expect(decorated.state.mappings.testFetch.request.url).toEqual('/example')
+      expect(decorated.state.mappings.testFetch.request.credentials).toEqual('same-origin')
+      expect(decorated.state.mappings.testFetch.anOption).toEqual(true)
+      expect(decorated.state.mappings.testFetch.anotherOption).toEqual('blue')
+    })
+
+    it('should use provided Request with provided options if custom Request and options are provided', () => {
+      @connect(() => ({ testFetch: [new window.Request(`/example`), { anOption: true, anotherOption: 'blue' }] }))
+      class Container extends Component {
+        render() {
+          return <Passthrough {...this.props} />
+        }
+      }
+
+      const container = TestUtils.renderIntoDocument(
+        <Container />
+      )
+
+      const decorated = TestUtils.findRenderedComponentWithType(container, Container)
+      expect(Object.keys(decorated.state.mappings.testFetch).length).toEqual(3)
+      expect(decorated.state.mappings.testFetch.request.method).toEqual('GET')
+      expect(decorated.state.mappings.testFetch.request.url).toEqual('/example')
+      expect(decorated.state.mappings.testFetch.request.credentials).toEqual('omit')
+      expect(decorated.state.mappings.testFetch.anOption).toEqual(true)
+      expect(decorated.state.mappings.testFetch.anotherOption).toEqual('blue')
     })
 
     it('should remove undefined props', () => {
