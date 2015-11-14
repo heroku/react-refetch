@@ -14,8 +14,8 @@ For example, if you have a component called `Profile` that has a `userId` prop, 
 
     connect(props => {
      return {
-       userFetch:  `/users/${props.userId}`
-       likesFetch: `/users/${props.userId}/likes`
+       userFetch:  `/users/${props.userId}`,
+       likesFetch: `/likes/${props.userId}/likes`
      }
     })(Profile)
  
@@ -37,7 +37,7 @@ When the component mounts, the URLs will be calculated, fetched, and the result 
 
 When new props are received, the URLs are re-calculated, and if they changed, the data is refetched and passed into the component as new `PromiseState`s. When refetching, the `PromiseState` will be `pending` and the `value` will be `null`.
 
-If the`refreshInterval` option is provided with a URL, the data will be refreshed at the provided interval in milliseconds. In this example, `likesFetch` will be refreshed every minute:
+If the `refreshInterval` option is provided with a URL, the data will be refreshed at the provided interval in milliseconds. In this example, `likesFetch` will be refreshed every minute:
 
     connect(props => {
      return {
