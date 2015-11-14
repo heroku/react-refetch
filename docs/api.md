@@ -20,9 +20,9 @@ A React component class that injects the synchronous state of the resulting data
 
   *  - pending: true if data is still being loaded for the first time
   *  - refreshing: true if data was successfully loaded and is being refreshed
-  *  - fulfilled: true if data was loaded successfully and is not being refreshed
+  *  - fulfilled: true if data was loaded successfully
   *  - rejected: true if data was loaded unsuccessfully
-  *  - settled: true if data was load completed, if successfully or unsuccessfully
+  *  - settled: true if the data load completed, if successfully or unsuccessfully
   *  - value: value of successfully loaded data; otherwise, null
   *  - reason: error of unsuccessfully loaded data; otherwise, null
 

@@ -2,6 +2,7 @@ import 'whatwg-fetch'
 import React, { Component } from 'react'
 import isPlainObject from '../utils/isPlainObject'
 import deepValue from '../utils/deepValue'
+import shallowEqual from '../utils/shallowEqual'
 import PromiseState from '../PromiseState'
 import hoistStatics from 'hoist-non-react-statics'
 import invariant from 'invariant'
@@ -121,11 +122,11 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
         Object.keys(nextMappings).forEach(prop => {
           const prev = this.state.mappings[prop]
           const next = nextMappings[prop]
-          const comp = [ 'request.url', 'request.method', 'refreshInterval' ]
-          const same = comp.every(c => deepValue(prev, c) === deepValue(next, c))
+          const comp = [ 'request.url', 'request.method', 'request.headers' ]
+          const same = comp.every(c => shallowEqual(deepValue(prev, c), deepValue(next, c)))
 
           if (!same) {
-            this.refetchDatum(prop, next)
+            this.refetchDatum(prop, next, false)
           }
         })
       }
@@ -138,12 +139,17 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
         this.setAtomicState(prop, mapping, new PromiseState({
           pending: !refreshing,
           refreshing: refreshing,
+          fulfilled: refreshing,
           value: refreshing ? this.state.data[prop].value : null
         }), null)
 
-        window.fetch(mapping.request.clone())
+        // pre-clone twice to avoid race in promise
+        const request = mapping.request.clone()
+        mapping.request = request.clone()
+
+        window.fetch(request)
           .then(handleResponse)
-          .then(value => {
+          .then(response => {
             let refreshTimeout = null
             if (mapping.refreshInterval > 0) {
               refreshTimeout = window.setTimeout(() => {
@@ -152,7 +158,7 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
             }
             this.setAtomicState(prop, mapping, new PromiseState({
               fulfilled: true,
-              value: value
+              value: response
             }), refreshTimeout)
           })
           .catch(error => {

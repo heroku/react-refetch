@@ -6,8 +6,10 @@ import { connect, PromiseState } from '../../src/index'
 describe('React', () => {
   describe('connect', () => {
 
+    const fetchSpy = expect.createSpy(() => ({}))
     before(() => {
       window.fetch = () => {
+        fetchSpy
         return new Promise((resolve) => {
           resolve(new window.Response('{}', { status: 200 }))
         })
@@ -20,7 +22,7 @@ describe('React', () => {
       }
     }
 
-    it('should props and promise state to the given component', () => {
+    it('should props and promise state to the given component', (done) => {
       const props = ({
         foo: 'bar',
         baz: 42
@@ -37,14 +39,24 @@ describe('React', () => {
         <Container {...props} />
       )
 
-      const stub = TestUtils.findRenderedComponentWithType(container, Passthrough)
-      expect(stub.props.foo).toEqual('bar')
-      expect(stub.props.baz).toEqual(42)
-      expect(stub.props.testFetch).toEqual({ fulfilled: false, pending: true, refreshing: false, reason: null, rejected: false, settled: false, value: null })
-      expect(stub.props.testFetch.constructor).toEqual(PromiseState)
+      const stubPending = TestUtils.findRenderedComponentWithType(container, Passthrough)
+      expect(stubPending.props.foo).toEqual('bar')
+      expect(stubPending.props.baz).toEqual(42)
+      expect(stubPending.props.testFetch).toEqual({
+        fulfilled: false, pending: true, refreshing: false, reason: null, rejected: false, settled: false, value: null
+      })
+      expect(stubPending.props.testFetch.constructor).toEqual(PromiseState)
       expect(() =>
         TestUtils.findRenderedComponentWithType(container, Container)
       ).toNotThrow()
+
+      setImmediate(() => {
+        const stubFulfilled = TestUtils.findRenderedComponentWithType(container, Passthrough)
+        expect(stubFulfilled.props.testFetch).toEqual({
+          fulfilled: true, pending: false, refreshing: false, reason: null, rejected: false, settled: true, value: {}
+        })
+        done()
+      })
     })
 
     it('should create default Request and empty options if just URL is provided', () => {
@@ -126,8 +138,10 @@ describe('React', () => {
       expect(decorated.state.mappings.testFetch.anotherOption).toEqual('blue')
     })
 
-    it('should set refreshTimeouts when refreshInterval is provided', (done) => {
-      @connect(() => ({ testFetch: [ `/example`, { refreshInterval: 10000 } ] }))
+    it('should refresh when refreshInterval is provided', (done) => {
+      const interval = 100000 // set sufficently far out to not happen during test
+
+      @connect(() => ({ testFetch: [ `/example`, { refreshInterval: interval } ] }))
       class Container extends Component {
         render() {
           return <Passthrough {...this.props} />
@@ -138,17 +152,64 @@ describe('React', () => {
         <Container />
       )
 
-      const decoratedPending = TestUtils.findRenderedComponentWithType(container, Container)
-      expect(Object.keys(decoratedPending.state.mappings.testFetch).length).toEqual(2)
-      expect(decoratedPending.state.mappings.testFetch.request.method).toEqual('GET')
-      expect(decoratedPending.state.mappings.testFetch.request.url).toEqual('/example')
-      expect(decoratedPending.state.mappings.testFetch.request.credentials).toEqual('same-origin')
-      expect(decoratedPending.state.mappings.testFetch.refreshInterval).toEqual(10000)
+      const pending = TestUtils.findRenderedComponentWithType(container, Container)
+      expect(pending.state.data.testFetch).toEqual({
+        fulfilled: false, pending: true, reason: null, refreshing: false, rejected: false, settled: false, value: null
+      })
+      expect(pending.state.mappings.testFetch.refreshInterval).toEqual(interval)
+      expect(pending.state.refreshTimeouts.testFetch).toEqual(null)
+
+      setImmediate(() => {
+        const fulfilled = TestUtils.findRenderedComponentWithType(container, Container)
+        expect(fulfilled.state.data.testFetch).toEqual({
+          fulfilled: true, pending: false, reason: null, refreshing: false, rejected: false, settled: true, value: {}
+        })
+        expect(fulfilled.state.mappings.testFetch.refreshInterval).toEqual(interval)
+        const refreshTimeout = fulfilled.state.refreshTimeouts.testFetch
+        expect(refreshTimeout).toBeTruthy()
+
+        // force refresh and cancel scheduled refresh
+        refreshTimeout._onTimeout()
+        clearTimeout(refreshTimeout)
+
+        const refreshing = TestUtils.findRenderedComponentWithType(container, Container)
+        expect(refreshing.state.data.testFetch).toEqual({
+          fulfilled: true, pending: false, reason: null, refreshing: true, rejected: false, settled: true, value: {}
+        })
+        expect(refreshing.state.mappings.testFetch.refreshInterval).toEqual(interval)
+        expect(refreshing.state.refreshTimeouts.testFetch).toEqual(null)
+
+        setImmediate(() => {
+          const fulfilledAgain = TestUtils.findRenderedComponentWithType(container, Container)
+          expect(fulfilledAgain.state.data.testFetch).toEqual({
+            fulfilled: true, pending: false, reason: null, refreshing: false, rejected: false, settled: true, value: {}
+          })
+          expect(fulfilledAgain.state.mappings.testFetch.refreshInterval).toEqual(interval)
+          const refreshTimeout = fulfilledAgain.state.refreshTimeouts.testFetch
+          expect(refreshTimeout).toBeTruthy()
+          clearTimeout(refreshTimeout)
+
+          done()
+        })
+      })
+    })
+
+    it('should not set refreshTimeouts when refreshInterval is not provided', (done) => {
+      @connect(() => ({ testFetch: `/example` }))
+      class Container extends Component {
+        render() {
+          return <Passthrough {...this.props} />
+        }
+      }
+
+      const container = TestUtils.renderIntoDocument(
+        <Container />
+      )
 
       setImmediate(() => {
         const decoratedFulfilled = TestUtils.findRenderedComponentWithType(container, Container)
-        expect(decoratedFulfilled.state.refreshTimeouts.testFetch).toBeTruthy()
-        clearTimeout(decoratedFulfilled.state.refreshTimeouts.testFetch)
+        expect(decoratedFulfilled.state.data.testFetch.fulfilled).toEqual(true)
+        expect(decoratedFulfilled.state.refreshTimeouts.testFetch).toEqual(null)
         done()
       })
     })
