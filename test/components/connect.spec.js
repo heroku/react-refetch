@@ -6,10 +6,10 @@ import { connect, PromiseState } from '../../src/index'
 describe('React', () => {
   describe('connect', () => {
 
-    const fetchSpy = expect.createSpy(() => ({}))
+    const fetchSpies = []
     before(() => {
       window.fetch = () => {
-        fetchSpy
+        fetchSpies.forEach((spy) => spy())
         return new Promise((resolve) => {
           resolve(new window.Response('{}', { status: 200 }))
         })
@@ -303,10 +303,13 @@ describe('React', () => {
       })
     })
 
-    it('should shallowly compare the Requests to prevent unnecessary updates', () => {
-      const spy = expect.createSpy(() => ({}))
+    it('should shallowly compare the Requests to prevent unnecessary fetches', (done) => {
+      const fetchSpy = expect.createSpy(() => ({}))
+      fetchSpies.push(fetchSpy)
+
+      const renderSpy = expect.createSpy(() => ({}))
       function render() {
-        spy()
+        renderSpy()
         return <Passthrough/>
       }
 
@@ -341,13 +344,32 @@ describe('React', () => {
         <OuterComponent ref={c => outerComponent = c} />
       )
 
-      expect(spy.calls.length).toBe(1)
-      outerComponent.setFoo('BAR')
-      expect(spy.calls.length).toBe(2)
-      outerComponent.setFoo('BAR')
-      expect(spy.calls.length).toBe(3) // TODO: don't need to update here
-      outerComponent.setFoo('BAZ')
-      expect(spy.calls.length).toBe(4)
+      expect(renderSpy.calls.length).toBe(1)
+      setImmediate(() => {
+        expect(fetchSpy.calls.length).toBe(1)
+
+        outerComponent.setFoo('BAR')
+        expect(renderSpy.calls.length).toBe(3)
+        setImmediate(() => {
+          expect(fetchSpy.calls.length).toBe(2)
+
+          // set BAR again, but will not be refetched
+          // TODO: no need to re-render here
+          outerComponent.setFoo('BAR')
+          expect(renderSpy.calls.length).toBe(5)
+          setImmediate(() => {
+            expect(fetchSpy.calls.length).toBe(2)
+
+            outerComponent.setFoo('BAZ')
+            expect(renderSpy.calls.length).toBe(6)
+            setImmediate(() => {
+              expect(fetchSpy.calls.length).toBe(3)
+
+              done()
+            })
+          })
+        })
+      })
     })
 
     it('should throw an error if mapPropsToRequestsToProps returns anything but a plain object', () => {

@@ -2,7 +2,6 @@ import 'whatwg-fetch'
 import React, { Component } from 'react'
 import isPlainObject from '../utils/isPlainObject'
 import deepValue from '../utils/deepValue'
-import shallowEqual from '../utils/shallowEqual'
 import PromiseState from '../PromiseState'
 import hoistStatics from 'hoist-non-react-statics'
 import invariant from 'invariant'
@@ -122,8 +121,8 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
         Object.keys(nextMappings).forEach(prop => {
           const prev = this.state.mappings[prop]
           const next = nextMappings[prop]
-          const comp = [ 'request.url', 'request.method', 'request.headers' ]
-          const same = comp.every(c => shallowEqual(deepValue(prev, c), deepValue(next, c)))
+          const comp = [ 'request.url', 'request.method' ]
+          const same = comp.every(c => deepValue(prev, c) === deepValue(next, c))
 
           if (!same) {
             this.refetchDatum(prop, next, false)
