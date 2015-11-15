@@ -126,6 +126,8 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
 
           if (!same) {
             this.refetchDatum(prop, next, false)
+          } else if (prev.refreshInterval !== next.refreshInterval) {
+            this.refetchDatum(prop, next, true)
           }
         })
       }
