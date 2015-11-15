@@ -59,6 +59,28 @@ describe('React', () => {
       })
     })
 
+    it('should set startedAt', (done) => {
+      @connect(({ foo, baz }) => ({ testFetch: `/example` }))
+      class Container extends Component {
+        render() {
+          return <Passthrough {...this.props} />
+        }
+      }
+
+      const container = TestUtils.renderIntoDocument(
+        <Container />
+      )
+
+      const pending = TestUtils.findRenderedComponentWithType(container, Container)
+      var startedAt = pending.state.startedAts.testFetch
+      expect(startedAt.getTime()).toBeLessThan(new Date().getTime())
+      setImmediate(() => {
+        const fulfilled = TestUtils.findRenderedComponentWithType(container, Container)
+        expect(fulfilled.state.startedAts.testFetch).toEqual(startedAt)
+        done()
+      })
+    })
+
     it('should create default Request and empty options if just URL is provided', () => {
       @connect(() => ({ testFetch: `/example` }))
       class Container extends Component {

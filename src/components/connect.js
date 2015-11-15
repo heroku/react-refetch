@@ -85,7 +85,7 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
       constructor(props, context) {
         super(props, context)
         this.version = version
-        this.state = { mappings: {}, data: {}, refreshTimeouts: {} }
+        this.state = { mappings: {}, startedAts: {}, data: {}, refreshTimeouts: {} }
       }
 
       componentWillMount() {
@@ -131,11 +131,13 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
       }
 
       refetchDatum(prop, mapping, refreshing) {
+        const startedAt = new Date()
+
         if (this.state.refreshTimeouts[prop]) {
           window.clearTimeout(this.state.refreshTimeouts[prop])
         }
 
-        this.setAtomicState(prop, mapping, new PromiseState({
+        this.setAtomicState(prop, startedAt, mapping, new PromiseState({
           pending: !refreshing,
           refreshing: refreshing,
           fulfilled: refreshing,
@@ -155,34 +157,45 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
                 this.refetchDatum(prop, mapping, true)
               }, mapping.refreshInterval)
             }
-            this.setAtomicState(prop, mapping, new PromiseState({
+            this.setAtomicState(prop, startedAt, mapping, new PromiseState({
               fulfilled: true,
               value: response
             }), refreshTimeout)
           })
           .catch(error => {
-            this.setAtomicState(prop, mapping, new PromiseState({
+            this.setAtomicState(prop, startedAt, mapping, new PromiseState({
               rejected: true,
               reason: error
             }), null)
           })
       }
 
-      setAtomicState(prop, mapping, promiseState, refreshTimeout) {
-        this.setState((prevState) => ({
-          mappings: Object.assign(
-            prevState.mappings, {
-              [prop]: mapping
-            }),
-          data: Object.assign(
-            prevState.data, {
-              [prop]: promiseState
-            }),
-          refreshTimeouts: Object.assign(
-            prevState.refreshTimeouts, {
-              [prop]: refreshTimeout
-            })
-        }))
+      setAtomicState(prop, startedAt, mapping, promiseState, refreshTimeout) {
+        this.setState((prevState) => {
+          if (startedAt < prevState.startedAts[prop]) {
+            return {}
+          }
+
+          return {
+            startedAts: Object.assign(
+              prevState.startedAts, {
+                [prop]: startedAt
+              }),
+            mappings: Object.assign(
+              prevState.mappings, {
+                [prop]: mapping
+              }),
+            data: Object.assign(
+              prevState.data, {
+                [prop]: promiseState
+              }),
+            refreshTimeouts: Object.assign(
+              prevState.refreshTimeouts, {
+                [prop]: refreshTimeout
+              })
+          }
+
+        })
       }
 
       clearAllRefreshTimeouts() {
