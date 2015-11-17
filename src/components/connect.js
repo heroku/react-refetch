@@ -2,6 +2,7 @@ import 'whatwg-fetch'
 import React, { Component } from 'react'
 import isPlainObject from '../utils/isPlainObject'
 import deepValue from '../utils/deepValue'
+import shallowEqual from '../utils/shallowEqual'
 import PromiseState from '../PromiseState'
 import hoistStatics from 'hoist-non-react-statics'
 import invariant from 'invariant'
@@ -22,6 +23,15 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
   // Helps track hot reloading.
   const version = nextVersion++
 
+  function mappingToRequest(m) {
+    return new window.Request(m.url, {
+      method: m.method || 'GET',
+      headers: m.headers || {},
+      body: m.body || null,
+      credentials: m.credentials || 'same-origin'
+    })
+  }
+
   function coerceMappings(rawMappings) {
     invariant(
       isPlainObject(rawMappings),
@@ -39,28 +49,18 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
   function coerceMapping(prop, mapping) {
     if (Function.prototype.isPrototypeOf(mapping)) {
       return mapping
+    } else if (typeof mapping === 'string') {
+      return { url: mapping }
+    } else if (isPlainObject(mapping)) {
+      invariant(mapping.url, 'Mapping for `%s` of type Object must have `url` attribute.', prop)
+      return mapping
     } else if (Array.isArray(mapping)) {
-      return Object.assign({ request: coerceRequest(prop, mapping[0]) }, coerceOpts(prop, mapping[1]))
+      invariant(false, 'Mapping as array no longer supported. Use a plain object instead with the first element as the `url` attribute.')
+    } else if (mapping instanceof window.Request) {
+      invariant(false, 'Request object no longer supported. Use a plain object instead with first argument as the `url` attribute.')
     } else {
-      return { request: coerceRequest(prop, mapping) }
+      invariant(false, 'Mapping for `%s` must be either a string or a plain object. Instead received %s', prop, mapping)
     }
-  }
-
-  function coerceRequest(prop, stringOrRequest) {
-    if (typeof stringOrRequest === 'string') {
-      return new window.Request(stringOrRequest, { credentials: 'same-origin' })
-    } else if (stringOrRequest instanceof window.Request) {
-      return stringOrRequest
-    } else {
-      invariant(false, 'Value of first argument of `%s` must be either a string or Request. Instead received %s', prop, stringOrRequest)
-    }
-  }
-
-  function coerceOpts(prop, opts) {
-    if (opts && !isPlainObject(opts)) {
-      invariant(false, 'Value of second argument of `%s` must be a plain object. Instead received %s', prop, opts)
-    }
-    return opts || {}
   }
 
   function handleResponse(response) {
@@ -133,8 +133,8 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
           }
 
           const prev = this.state.mappings[prop]
-          const comp = [ 'request.url', 'request.method' ]
-          const same = comp.every(c => deepValue(prev, c) === deepValue(mapping, c))
+          const comp = [ 'url', 'method', 'headers' ]
+          const same = comp.every(c => shallowEqual(deepValue(prev, c), deepValue(mapping, c)))
 
           if (!same) {
             this.refetchDatum(prop, mapping, false)
@@ -158,11 +158,7 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
           value: refreshing ? this.state.data[prop].value : null
         }), null)
 
-        // pre-clone twice to avoid race in promise
-        const request = mapping.request.clone()
-        mapping.request = request.clone()
-
-        window.fetch(request)
+        window.fetch(mappingToRequest(mapping))
           .then(handleResponse)
           .then(response => {
             let refreshTimeout = null
