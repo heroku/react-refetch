@@ -32,6 +32,12 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
     })
   }
 
+  function didMappingChange(prev, next) {
+    return ![ 'url', 'method', 'headers', 'body' ].every((c) => {
+      return shallowEqual(deepValue(prev, c), deepValue(next, c))
+    })
+  }
+
   function coerceMappings(rawMappings) {
     invariant(
       isPlainObject(rawMappings),
@@ -132,19 +138,13 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
             return
           }
 
-          const prev = this.state.mappings[prop]
-          const comp = [ 'url', 'method', 'headers' ]
-          const same = comp.every(c => shallowEqual(deepValue(prev, c), deepValue(mapping, c)))
-
-          if (!same) {
-            this.refetchDatum(prop, mapping, false)
-          } else if (prev.refreshInterval !== mapping.refreshInterval) {
-            this.refetchDatum(prop, mapping, true)
+          if (mapping.force || mapping.refreshing || didMappingChange(this.state.mappings[prop], mapping)) {
+            this.refetchDatum(prop, mapping)
           }
         })
       }
 
-      refetchDatum(prop, mapping, refreshing) {
+      refetchDatum(prop, mapping) {
         const startedAt = new Date()
 
         if (this.state.refreshTimeouts[prop]) {
@@ -152,10 +152,10 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
         }
 
         this.setAtomicState(prop, startedAt, mapping, new PromiseState({
-          pending: !refreshing,
-          refreshing: refreshing,
-          fulfilled: refreshing,
-          value: refreshing ? this.state.data[prop].value : null
+          pending: !mapping.refreshing,
+          refreshing: !!mapping.refreshing,
+          fulfilled: !!mapping.refreshing,
+          value: mapping.refreshing ? this.state.data[prop].value : null
         }), null)
 
         window.fetch(mappingToRequest(mapping))
@@ -164,7 +164,7 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
             let refreshTimeout = null
             if (mapping.refreshInterval > 0) {
               refreshTimeout = window.setTimeout(() => {
-                this.refetchDatum(prop, mapping, true)
+                this.refetchDatum(prop, Object.assign({}, mapping, { refreshing: true }))
               }, mapping.refreshInterval)
             }
             this.setAtomicState(prop, startedAt, mapping, new PromiseState({
