@@ -22,9 +22,7 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
   // Helps track hot reloading.
   const version = nextVersion++
 
-  function computeMappings(props) {
-    const rawMappings = finalMapPropsToRequestsToProps(props) || {}
-
+  function coerceMappings(rawMappings) {
     invariant(
       isPlainObject(rawMappings),
       '`mapPropsToRequestsToProps` must return an object. Instead received %s.',
@@ -39,7 +37,9 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
   }
 
   function coerceMapping(prop, mapping) {
-    if (Array.isArray(mapping)) {
+    if (Function.prototype.isPrototypeOf(mapping)) {
+      return mapping
+    } else if (Array.isArray(mapping)) {
       return Object.assign({ request: coerceRequest(prop, mapping[0]) }, coerceOpts(prop, mapping[1]))
     } else {
       return { request: coerceRequest(prop, mapping) }
@@ -89,11 +89,11 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
       }
 
       componentWillMount() {
-        this.refetchData()
+        this.refetchDataFromProps()
       }
 
       componentWillReceiveProps(nextProps) {
-        this.refetchData(nextProps)
+        this.refetchDataFromProps(nextProps)
       }
 
       componentWillUnmount() {
@@ -116,18 +116,30 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
         return this.refs.wrappedInstance
       }
 
-      refetchData(props = this.props) {
-        const nextMappings = computeMappings(props)
-        Object.keys(nextMappings).forEach(prop => {
+      refetchDataFromProps(props = this.props) {
+        this.refetchDataFromMappings(finalMapPropsToRequestsToProps(props) || {})
+      }
+
+      refetchDataFromMappings(mappings) {
+        mappings = coerceMappings(mappings)
+        Object.keys(mappings).forEach(prop => {
+          const mapping = mappings[prop]
+
+          if (Function.prototype.isPrototypeOf(mapping)) {
+            this.setAtomicState(prop, new Date(), mapping, (...args) => {
+              this.refetchDataFromMappings(mapping(...args || {}))
+            })
+            return
+          }
+
           const prev = this.state.mappings[prop]
-          const next = nextMappings[prop]
           const comp = [ 'request.url', 'request.method' ]
-          const same = comp.every(c => deepValue(prev, c) === deepValue(next, c))
+          const same = comp.every(c => deepValue(prev, c) === deepValue(mapping, c))
 
           if (!same) {
-            this.refetchDatum(prop, next, false)
-          } else if (prev.refreshInterval !== next.refreshInterval) {
-            this.refetchDatum(prop, next, true)
+            this.refetchDatum(prop, mapping, false)
+          } else if (prev.refreshInterval !== mapping.refreshInterval) {
+            this.refetchDatum(prop, mapping, true)
           }
         })
       }
@@ -172,7 +184,7 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
           })
       }
 
-      setAtomicState(prop, startedAt, mapping, promiseState, refreshTimeout) {
+      setAtomicState(prop, startedAt, mapping, datum, refreshTimeout) {
         this.setState((prevState) => {
           if (startedAt < prevState.startedAts[prop]) {
             return {}
@@ -189,7 +201,7 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
               }),
             data: Object.assign(
               prevState.data, {
-                [prop]: promiseState
+                [prop]: datum
               }),
             refreshTimeouts: Object.assign(
               prevState.refreshTimeouts, {
@@ -219,7 +231,7 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
         // We are hot reloading!
         this.version = version
         this.clearAllRefreshTimeouts()
-        this.refetchData()
+        this.refetchDataFromProps()
       }
     }
 
