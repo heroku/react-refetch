@@ -23,21 +23,6 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
   // Helps track hot reloading.
   const version = nextVersion++
 
-  function mappingToRequest(m) {
-    return new window.Request(m.url, {
-      method: m.method || 'GET',
-      headers: m.headers || {},
-      body: m.body || null,
-      credentials: m.credentials || 'same-origin'
-    })
-  }
-
-  function didMappingChange(prev, next) {
-    return ![ 'url', 'method', 'headers', 'body' ].every((c) => {
-      return shallowEqual(deepValue(prev, c), deepValue(next, c))
-    })
-  }
-
   function coerceMappings(rawMappings) {
     invariant(
       isPlainObject(rawMappings),
@@ -67,6 +52,24 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
     } else {
       invariant(false, 'Mapping for `%s` must be either a string or a plain object. Instead received %s', prop, mapping)
     }
+  }
+
+  function didMappingChange(prev, next) {
+    return ![ 'url', 'method', 'headers', 'body' ].every((c) => {
+      return shallowEqual(deepValue(prev, c), deepValue(next, c))
+    })
+  }
+
+  function buildRequest(mapping) {
+    return new window.Request(mapping.url, {
+      method: mapping.method || 'GET',
+      headers: Object.assign({
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      }, mapping.headers),
+      credentials: mapping.credentials || 'same-origin',
+      body: mapping.body
+    })
   }
 
   function handleResponse(response) {
@@ -158,7 +161,7 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
           value: mapping.refreshing ? this.state.data[prop].value : null
         }), null)
 
-        window.fetch(mappingToRequest(mapping))
+        window.fetch(buildRequest(mapping))
           .then(handleResponse)
           .then(response => {
             let refreshTimeout = null
