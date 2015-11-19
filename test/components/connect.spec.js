@@ -11,7 +11,7 @@ describe('React', () => {
       window.fetch = () => {
         fetchSpies.forEach((spy) => spy())
         return new Promise((resolve) => {
-          resolve(new window.Response('{}', { status: 200 }))
+          resolve(new window.Response(JSON.stringify({ T: 't' }), { status: 200, headers: { A: 'a', B: 'b' } }))
         })
       }
     })
@@ -22,7 +22,7 @@ describe('React', () => {
       }
     }
 
-    it('should props and promise state to the given component', (done) => {
+    it('should should props and promise state to the given component', (done) => {
       const props = ({
         foo: 'bar',
         baz: 42
@@ -47,16 +47,16 @@ describe('React', () => {
       const stubPending = TestUtils.findRenderedComponentWithType(container, Passthrough)
       expect(stubPending.props.foo).toEqual('bar')
       expect(stubPending.props.baz).toEqual(42)
-      expect(stubPending.props.testFetch).toEqual({
-        fulfilled: false, pending: true, refreshing: false, reason: null, rejected: false, settled: false, value: null
+      expect(stubPending.props.testFetch).toIncludeKeyValues({
+        fulfilled: false, pending: true, refreshing: false, reason: null, rejected: false, settled: false, value: null, meta: {}
       })
       expect(stubPending.props.testFetch.constructor).toEqual(PromiseState)
 
-      expect(typeof stubPending.props.testFunc).toEqual('function')
+      expect(stubPending.props.testFunc).toBeA('function')
       expect(stubPending.props.deferredFetch).toEqual(null)
       stubPending.props.testFunc('A', 'B')
-      expect(stubPending.props.deferredFetch).toEqual({
-        fulfilled: false, pending: true, refreshing: false, reason: null, rejected: false, settled: false, value: null
+      expect(stubPending.props.deferredFetch).toIncludeKeyValues({
+        fulfilled: false, pending: true, refreshing: false, reason: null, rejected: false, settled: false, value: null, meta: {}
       })
 
       expect(() =>
@@ -65,9 +65,13 @@ describe('React', () => {
 
       setImmediate(() => {
         const stubFulfilled = TestUtils.findRenderedComponentWithType(container, Passthrough)
-        expect(stubFulfilled.props.testFetch).toEqual({
-          fulfilled: true, pending: false, refreshing: false, reason: null, rejected: false, settled: true, value: {}
+        expect(stubFulfilled.props.testFetch).toIncludeKeyValues({
+          fulfilled: true, pending: false, refreshing: false, reason: null, rejected: false, settled: true, value: { T: 't' }
         })
+        expect(stubFulfilled.props.testFetch.meta.request.headers.get('Accept')).toEqual('application/json')
+        expect(stubFulfilled.props.testFetch.meta.response.headers.get('A')).toEqual('a')
+        expect(stubFulfilled.props.testFetch.meta.response.status).toEqual(200)
+        expect(stubFulfilled.props.testFetch.meta.response.bodyUsed).toEqual(true)
         done()
       })
     })
@@ -169,14 +173,14 @@ describe('React', () => {
       )
 
       const decorated = TestUtils.findRenderedComponentWithType(container, Container)
-      expect(typeof decorated.state.mappings.testFunc).toEqual('function')
-      expect(typeof decorated.state.data.testFunc).toEqual('function')
+      expect(decorated.state.mappings.testFunc).toBeA('function')
+      expect(decorated.state.data.testFunc).toBeA('function')
       expect(decorated.state.data.deferredFetch).toEqual(null)
 
       decorated.state.data.testFunc('A', 'B')
 
       expect(decorated.state.mappings.deferredFetch.url).toEqual('/bar/42/deferred/A/B')
-      expect(decorated.state.data.deferredFetch).toEqual(
+      expect(decorated.state.data.deferredFetch).toIncludeKeyValues(
         { fulfilled: false, pending: true, reason: null, refreshing: false, rejected: false, settled: false, value: null }
       )
     })
@@ -205,15 +209,15 @@ describe('React', () => {
 
       const decorated = TestUtils.findRenderedComponentWithType(container, Container)
       expect(decorated.state.mappings.testFetch.url).toEqual('/bar/42/immediate')
-      expect(decorated.state.data.testFetch).toEqual(
+      expect(decorated.state.data.testFetch).toIncludeKeyValues(
         { fulfilled: false, pending: true, reason: null, refreshing: false, rejected: false, settled: false, value: null }
       )
-      expect(typeof decorated.state.data.testUpdate).toEqual('function')
+      expect(decorated.state.data.testUpdate).toBeA('function')
 
       decorated.state.data.testUpdate('A', 'B')
 
       expect(decorated.state.mappings.testFetch.url).toEqual('/bar/42/deferred/A/B')
-      expect(decorated.state.data.testFetch).toEqual(
+      expect(decorated.state.data.testFetch).toIncludeKeyValues(
         { fulfilled: false, pending: true, reason: null, refreshing: false, rejected: false, settled: false, value: null }
       )
     })
@@ -233,7 +237,7 @@ describe('React', () => {
       )
 
       const pending = TestUtils.findRenderedComponentWithType(container, Container)
-      expect(pending.state.data.testFetch).toEqual({
+      expect(pending.state.data.testFetch).toIncludeKeyValues({
         fulfilled: false, pending: true, reason: null, refreshing: false, rejected: false, settled: false, value: null
       })
       expect(pending.state.mappings.testFetch.refreshInterval).toEqual(interval)
@@ -241,8 +245,8 @@ describe('React', () => {
 
       setImmediate(() => {
         const fulfilled = TestUtils.findRenderedComponentWithType(container, Container)
-        expect(fulfilled.state.data.testFetch).toEqual({
-          fulfilled: true, pending: false, reason: null, refreshing: false, rejected: false, settled: true, value: {}
+        expect(fulfilled.state.data.testFetch).toIncludeKeyValues({
+          fulfilled: true, pending: false, reason: null, refreshing: false, rejected: false, settled: true, value: { T: 't' }
         })
         expect(fulfilled.state.mappings.testFetch.refreshInterval).toEqual(interval)
         const refreshTimeout = fulfilled.state.refreshTimeouts.testFetch
@@ -253,16 +257,16 @@ describe('React', () => {
         clearTimeout(refreshTimeout)
 
         const refreshing = TestUtils.findRenderedComponentWithType(container, Container)
-        expect(refreshing.state.data.testFetch).toEqual({
-          fulfilled: true, pending: false, reason: null, refreshing: true, rejected: false, settled: true, value: {}
+        expect(refreshing.state.data.testFetch).toIncludeKeyValues({
+          fulfilled: true, pending: false, reason: null, refreshing: true, rejected: false, settled: true, value: { T: 't' }
         })
         expect(refreshing.state.mappings.testFetch.refreshInterval).toEqual(interval)
         expect(refreshing.state.refreshTimeouts.testFetch).toEqual(null)
 
         setImmediate(() => {
           const fulfilledAgain = TestUtils.findRenderedComponentWithType(container, Container)
-          expect(fulfilledAgain.state.data.testFetch).toEqual({
-            fulfilled: true, pending: false, reason: null, refreshing: false, rejected: false, settled: true, value: {}
+          expect(fulfilledAgain.state.data.testFetch).toIncludeKeyValues({
+            fulfilled: true, pending: false, reason: null, refreshing: false, rejected: false, settled: true, value: { T: 't' }
           })
           expect(fulfilledAgain.state.mappings.testFetch.refreshInterval).toEqual(interval)
           const refreshTimeout = fulfilledAgain.state.refreshTimeouts.testFetch

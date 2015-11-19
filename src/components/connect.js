@@ -73,10 +73,11 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
   }
 
   function handleResponse(response) {
-    if (response.status >= 200 && response.status < 300) {
-      return response.json()
+    const json = response.json() // TODO: support other response types
+    if (response.status >= 200 && response.status < 300) { // TODO: support custom acceptable statuses
+      return json
     } else {
-      return response.json().then((errorJson) => {
+      return json.then((errorJson) => {
         const { id, error, message } = errorJson
         if (error) {
           throw new Error(error, id)
@@ -154,33 +155,41 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
           window.clearTimeout(this.state.refreshTimeouts[prop])
         }
 
+        const request = buildRequest(mapping)
+        const meta = { request: request }
+
         this.setAtomicState(prop, startedAt, mapping, new PromiseState({
           pending: !mapping.refreshing,
           refreshing: !!mapping.refreshing,
           fulfilled: !!mapping.refreshing,
-          value: mapping.refreshing ? this.state.data[prop].value : null
+          value: mapping.refreshing ? this.state.data[prop].value : null,
+          meta: meta
         }), null)
 
-        window.fetch(buildRequest(mapping))
-          .then(handleResponse)
-          .then(response => {
+        window.fetch(request).then(response => {
+          meta.response = response
+
+          return Promise.resolve(response).then(handleResponse).then(value => {
             let refreshTimeout = null
             if (mapping.refreshInterval > 0) {
               refreshTimeout = window.setTimeout(() => {
                 this.refetchDatum(prop, Object.assign({}, mapping, { refreshing: true }))
               }, mapping.refreshInterval)
             }
+
             this.setAtomicState(prop, startedAt, mapping, new PromiseState({
               fulfilled: true,
-              value: response
+              value: value,
+              meta: meta
             }), refreshTimeout)
-          })
-          .catch(error => {
+          }).catch(reason => {
             this.setAtomicState(prop, startedAt, mapping, new PromiseState({
               rejected: true,
-              reason: error
+              reason: reason,
+              meta: meta
             }), null)
           })
+        })
       }
 
       setAtomicState(prop, startedAt, mapping, datum, refreshTimeout) {
