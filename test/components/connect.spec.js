@@ -28,7 +28,12 @@ describe('React', () => {
         baz: 42
       })
 
-      @connect(({ foo, baz }) => ({ testFetch: `/${foo}/${baz}` }))
+      @connect(({ foo, baz }) => ({
+        testFetch: `/${foo}/${baz}`,
+        testFunc: (arg1, arg2) => ({
+          deferredFetch: `/${foo}/${baz}/deferred/${arg1}/${arg2}`
+        })
+      }))
       class Container extends Component {
         render() {
           return <Passthrough {...this.props} />
@@ -46,6 +51,14 @@ describe('React', () => {
         fulfilled: false, pending: true, refreshing: false, reason: null, rejected: false, settled: false, value: null
       })
       expect(stubPending.props.testFetch.constructor).toEqual(PromiseState)
+
+      expect(typeof stubPending.props.testFunc).toEqual('function')
+      expect(stubPending.props.deferredFetch).toEqual(null)
+      stubPending.props.testFunc('A', 'B')
+      expect(stubPending.props.deferredFetch).toEqual({
+        fulfilled: false, pending: true, refreshing: false, reason: null, rejected: false, settled: false, value: null
+      })
+
       expect(() =>
         TestUtils.findRenderedComponentWithType(container, Container)
       ).toNotThrow()
@@ -81,7 +94,7 @@ describe('React', () => {
       })
     })
 
-    it('should create default Request and empty options if just URL is provided', () => {
+    it('should create default mapping and empty options if just URL is provided', () => {
       @connect(() => ({ testFetch: `/example` }))
       class Container extends Component {
         render() {
@@ -94,13 +107,11 @@ describe('React', () => {
       )
 
       const decorated = TestUtils.findRenderedComponentWithType(container, Container)
-      expect(decorated.state.mappings.testFetch.request.method).toEqual('GET')
-      expect(decorated.state.mappings.testFetch.request.url).toEqual('/example')
-      expect(decorated.state.mappings.testFetch.request.credentials).toEqual('same-origin')
+      expect(decorated.state.mappings.testFetch.url).toEqual('/example')
     })
 
-    it('should use provided Request with empty options if custom Request is provided', () => {
-      @connect(() => ({ testFetch: new window.Request('/example', { method: 'POST' }) }))
+    it('should use provided mapping object', () => {
+      @connect(() => ({ testFetch: { url: '/example', method: 'POST' } }))
       class Container extends Component {
         render() {
           return <Passthrough {...this.props} />
@@ -112,14 +123,13 @@ describe('React', () => {
       )
 
       const decorated = TestUtils.findRenderedComponentWithType(container, Container)
-      expect(Object.keys(decorated.state.mappings.testFetch).length).toEqual(1)
-      expect(decorated.state.mappings.testFetch.request.method).toEqual('POST')
-      expect(decorated.state.mappings.testFetch.request.url).toEqual('/example')
-      expect(decorated.state.mappings.testFetch.request.credentials).toEqual('omit')
+      expect(Object.keys(decorated.state.mappings.testFetch).length).toEqual(2)
+      expect(decorated.state.mappings.testFetch.method).toEqual('POST')
+      expect(decorated.state.mappings.testFetch.url).toEqual('/example')
     })
 
     it('should create default Request with provided options if custom options are provided', () => {
-      @connect(() => ({ testFetch: [ `/example`, { anOption: true, anotherOption: 'blue' } ] }))
+      @connect(() => ({ testFetch: { url: `/example`, anOption: true, anotherOption: 'blue' } }))
       class Container extends Component {
         render() {
           return <Passthrough {...this.props} />
@@ -132,15 +142,22 @@ describe('React', () => {
 
       const decorated = TestUtils.findRenderedComponentWithType(container, Container)
       expect(Object.keys(decorated.state.mappings.testFetch).length).toEqual(3)
-      expect(decorated.state.mappings.testFetch.request.method).toEqual('GET')
-      expect(decorated.state.mappings.testFetch.request.url).toEqual('/example')
-      expect(decorated.state.mappings.testFetch.request.credentials).toEqual('same-origin')
+      expect(decorated.state.mappings.testFetch.url).toEqual('/example')
       expect(decorated.state.mappings.testFetch.anOption).toEqual(true)
       expect(decorated.state.mappings.testFetch.anotherOption).toEqual('blue')
     })
 
-    it('should use provided Request with provided options if custom Request and options are provided', () => {
-      @connect(() => ({ testFetch: [ new window.Request(`/example`), { anOption: true, anotherOption: 'blue' } ] }))
+    it('should allow functional mappings', () => {
+      const props = ({
+        foo: 'bar',
+        baz: 42
+      })
+
+      @connect(({ foo, baz }) => ({
+        testFunc: (arg1, arg2) => ({
+          deferredFetch: `/${foo}/${baz}/deferred/${arg1}/${arg2}`
+        })
+      }))
       class Container extends Component {
         render() {
           return <Passthrough {...this.props} />
@@ -148,22 +165,63 @@ describe('React', () => {
       }
 
       const container = TestUtils.renderIntoDocument(
-        <Container />
+        <Container {...props} />
       )
 
       const decorated = TestUtils.findRenderedComponentWithType(container, Container)
-      expect(Object.keys(decorated.state.mappings.testFetch).length).toEqual(3)
-      expect(decorated.state.mappings.testFetch.request.method).toEqual('GET')
-      expect(decorated.state.mappings.testFetch.request.url).toEqual('/example')
-      expect(decorated.state.mappings.testFetch.request.credentials).toEqual('omit')
-      expect(decorated.state.mappings.testFetch.anOption).toEqual(true)
-      expect(decorated.state.mappings.testFetch.anotherOption).toEqual('blue')
+      expect(typeof decorated.state.mappings.testFunc).toEqual('function')
+      expect(typeof decorated.state.data.testFunc).toEqual('function')
+      expect(decorated.state.data.deferredFetch).toEqual(null)
+
+      decorated.state.data.testFunc('A', 'B')
+
+      expect(decorated.state.mappings.deferredFetch.url).toEqual('/bar/42/deferred/A/B')
+      expect(decorated.state.data.deferredFetch).toEqual(
+        { fulfilled: false, pending: true, reason: null, refreshing: false, rejected: false, settled: false, value: null }
+      )
+    })
+
+    it('should allow functional mappings to overwrite existing prop', () => {
+      const props = ({
+        foo: 'bar',
+        baz: 42
+      })
+
+      @connect(({ foo, baz }) => ({
+        testFetch: `/${foo}/${baz}/immediate`,
+        testUpdate: (arg1, arg2) => ({
+          testFetch: `/${foo}/${baz}/deferred/${arg1}/${arg2}`
+        })
+      }))
+      class Container extends Component {
+        render() {
+          return <Passthrough {...this.props} />
+        }
+      }
+
+      const container = TestUtils.renderIntoDocument(
+        <Container {...props} />
+      )
+
+      const decorated = TestUtils.findRenderedComponentWithType(container, Container)
+      expect(decorated.state.mappings.testFetch.url).toEqual('/bar/42/immediate')
+      expect(decorated.state.data.testFetch).toEqual(
+        { fulfilled: false, pending: true, reason: null, refreshing: false, rejected: false, settled: false, value: null }
+      )
+      expect(typeof decorated.state.data.testUpdate).toEqual('function')
+
+      decorated.state.data.testUpdate('A', 'B')
+
+      expect(decorated.state.mappings.testFetch.url).toEqual('/bar/42/deferred/A/B')
+      expect(decorated.state.data.testFetch).toEqual(
+        { fulfilled: false, pending: true, reason: null, refreshing: false, rejected: false, settled: false, value: null }
+      )
     })
 
     it('should refresh when refreshInterval is provided', (done) => {
       const interval = 100000 // set sufficently far out to not happen during test
 
-      @connect(() => ({ testFetch: [ `/example`, { refreshInterval: interval } ] }))
+      @connect(() => ({ testFetch: { url: `/example`, refreshInterval: interval } }))
       class Container extends Component {
         render() {
           return <Passthrough {...this.props} />
