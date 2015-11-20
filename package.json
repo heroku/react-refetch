@@ -54,8 +54,6 @@
     "webpack": "^1.11.0"
   },
   "dependencies": {
-    "eslint": "^1.10.0",
-    "eslint-config-rackt": "^1.1.1",
     "hoist-non-react-statics": "^1.0.3",
     "invariant": "^2.0.0"
   },
