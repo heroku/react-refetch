@@ -2,5 +2,5 @@ language: node_js
 node_js:
   - "iojs-2"
 script:
-  - npm run lint
+  # - npm run lint # TODO: reenable after eslint is fixed on travis. see https://github.com/rackt/react-redux/issues/199
   - npm test
