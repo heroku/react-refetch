@@ -142,7 +142,7 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
             return
           }
 
-          if (mapping.force || mapping.refreshing || didMappingChange(this.state.mappings[prop], mapping)) {
+          if (mapping.force || didMappingChange(this.state.mappings[prop], mapping)) {
             this.refetchDatum(prop, mapping)
           }
         })
@@ -173,7 +173,7 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
             let refreshTimeout = null
             if (mapping.refreshInterval > 0) {
               refreshTimeout = window.setTimeout(() => {
-                this.refetchDatum(prop, Object.assign({}, mapping, { refreshing: true }))
+                this.refetchDatum(prop, Object.assign({}, mapping, { refreshing: true, force: true }))
               }, mapping.refreshInterval)
             }
 
