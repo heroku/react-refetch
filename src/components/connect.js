@@ -155,14 +155,15 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
           window.clearTimeout(this.state.refreshTimeouts[prop])
         }
 
+        const previouslyFulfilled = this.state.data[prop] && this.state.data[prop].fulfilled
         const request = buildRequest(mapping)
         const meta = { request: request }
 
         this.setAtomicState(prop, startedAt, mapping, new PromiseState({
-          pending: !mapping.refreshing,
+          pending: !previouslyFulfilled || !mapping.refreshing,
           refreshing: !!mapping.refreshing,
-          fulfilled: !!mapping.refreshing,
-          value: mapping.refreshing && this.state.data[prop] ? this.state.data[prop].value : null,
+          fulfilled: previouslyFulfilled && !!mapping.refreshing,
+          value: previouslyFulfilled && mapping.refreshing ? this.state.data[prop].value : null,
           meta: meta
         }), null)
 
