@@ -162,7 +162,7 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
           pending: !mapping.refreshing,
           refreshing: !!mapping.refreshing,
           fulfilled: !!mapping.refreshing,
-          value: mapping.refreshing ? this.state.data[prop].value : null,
+          value: mapping.refreshing && this.state.data[prop] ? this.state.data[prop].value : null,
           meta: meta
         }), null)
 
