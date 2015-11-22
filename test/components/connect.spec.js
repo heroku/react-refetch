@@ -152,28 +152,9 @@ describe('React', () => {
       )
 
       const decorated = TestUtils.findRenderedComponentWithType(container, Container)
-      expect(Object.keys(decorated.state.mappings.testFetch).length).toEqual(2)
+      expect(Object.keys(decorated.state.mappings.testFetch).length).toEqual(3)
       expect(decorated.state.mappings.testFetch.method).toEqual('POST')
       expect(decorated.state.mappings.testFetch.url).toEqual('/example')
-    })
-
-    it('should create default Request with provided options if custom options are provided', () => {
-      @connect(() => ({ testFetch: { url: `/example`, anOption: true, anotherOption: 'blue' } }))
-      class Container extends Component {
-        render() {
-          return <Passthrough {...this.props} />
-        }
-      }
-
-      const container = TestUtils.renderIntoDocument(
-        <Container />
-      )
-
-      const decorated = TestUtils.findRenderedComponentWithType(container, Container)
-      expect(Object.keys(decorated.state.mappings.testFetch).length).toEqual(3)
-      expect(decorated.state.mappings.testFetch.url).toEqual('/example')
-      expect(decorated.state.mappings.testFetch.anOption).toEqual(true)
-      expect(decorated.state.mappings.testFetch.anotherOption).toEqual('blue')
     })
 
     it('should allow functional mappings', () => {
@@ -412,7 +393,7 @@ describe('React', () => {
       })
     })
 
-    it('should shallowly compare the Requests to prevent unnecessary fetches', (done) => {
+    it('should shallowly compare the requests to prevent unnecessary fetches', (done) => {
       const fetchSpy = expect.createSpy(() => ({}))
       fetchSpies.push(fetchSpy)
 
@@ -472,6 +453,89 @@ describe('React', () => {
             outerComponent.setFoo('BAZ')
             expect(renderSpy.calls.length).toBe(6)
             setImmediate(() => {
+              expect(fetchSpy.calls.length).toBe(3)
+
+              done()
+            })
+          })
+        })
+      })
+    })
+
+    it('should use provided equals to compare the requests if provided', (done) => {
+      const fetchSpy = expect.createSpy(() => ({}))
+      fetchSpies.push(fetchSpy)
+
+      const renderSpy = expect.createSpy(() => ({}))
+      function render() {
+        renderSpy()
+        return <Passthrough/>
+      }
+
+      const equalsSpy = expect.createSpy(() => ({}))
+      @connect(({ foo }) => ({
+        testFetch: {
+          url: '/resource-without-foo',
+          custom: foo,
+          equals: function (that) {
+            equalsSpy()
+            return this.custom === that.custom
+          }
+        }
+      }))
+      class WithProps extends Component {
+        render() {
+          return render(this.props)
+        }
+      }
+
+      class OuterComponent extends Component {
+        constructor() {
+          super()
+          this.state = { foo: 'FOO' }
+        }
+
+        setFoo(foo) {
+          this.setState({ foo })
+        }
+
+        render() {
+          return (
+            <div>
+              <WithProps {...this.state} />
+            </div>
+          )
+        }
+      }
+
+      let outerComponent
+      TestUtils.renderIntoDocument(
+        <OuterComponent ref={c => outerComponent = c} />
+      )
+
+      expect(renderSpy.calls.length).toBe(1)
+      setImmediate(() => {
+        expect(equalsSpy.calls.length).toBe(1)
+        expect(fetchSpy.calls.length).toBe(1)
+
+        outerComponent.setFoo('BAR')
+        expect(renderSpy.calls.length).toBe(3)
+        setImmediate(() => {
+          expect(equalsSpy.calls.length).toBe(2)
+          expect(fetchSpy.calls.length).toBe(2)
+
+          // set BAR again, but will not be refetched
+          // TODO: no need to re-render here
+          outerComponent.setFoo('BAR')
+          expect(renderSpy.calls.length).toBe(5)
+          setImmediate(() => {
+            expect(equalsSpy.calls.length).toBe(3)
+            expect(fetchSpy.calls.length).toBe(2)
+
+            outerComponent.setFoo('BAZ')
+            expect(renderSpy.calls.length).toBe(6)
+            setImmediate(() => {
+              expect(equalsSpy.calls.length).toBe(4)
               expect(fetchSpy.calls.length).toBe(3)
 
               done()

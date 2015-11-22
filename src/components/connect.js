@@ -40,23 +40,30 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
   function coerceMapping(prop, mapping) {
     if (Function.prototype.isPrototypeOf(mapping)) {
       return mapping
-    } else if (typeof mapping === 'string') {
-      return { url: mapping }
-    } else if (isPlainObject(mapping)) {
-      invariant(mapping.url, 'Mapping for `%s` of type Object must have `url` attribute.', prop)
-      return mapping
-    } else if (Array.isArray(mapping)) {
-      invariant(false, 'Mapping as array no longer supported. Use a plain object instead with the first element as the `url` attribute.')
-    } else if (mapping instanceof window.Request) {
-      invariant(false, 'Request object no longer supported. Use a plain object instead with first argument as the `url` attribute.')
-    } else {
-      invariant(false, 'Mapping for `%s` must be either a string or a plain object. Instead received %s', prop, mapping)
     }
+
+    if (typeof mapping === 'string') {
+      mapping = { url: mapping }
+    }
+
+    invariant(isPlainObject(mapping), 'Request for `%s` must be either a string or a plain object. Instead received %s', prop, mapping)
+    invariant(mapping.url, 'Request object for `%s` must have `url` attribute.', prop)
+
+    if (mapping.equals === undefined) {
+      mapping.equals = function (that) {
+        return [ 'url', 'method', 'headers', 'body' ].every((c) => {
+          return shallowEqual(deepValue(this, c), deepValue(that, c))
+        })
+      }.bind(mapping)
+    }
+    invariant(Function.prototype.isPrototypeOf(mapping.equals), 'Request equals must be a function')
+
+    return mapping
   }
 
-  function didMappingChange(prev, next) {
-    return ![ 'url', 'method', 'headers', 'body' ].every((c) => {
-      return shallowEqual(deepValue(prev, c), deepValue(next, c))
+  function defaultEquals(that) {
+    return [ 'url', 'method', 'headers', 'body' ].every((c) => {
+      return shallowEqual(deepValue(this, c), deepValue(that, c))
     })
   }
 
@@ -142,7 +149,7 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
             return
           }
 
-          if (mapping.force || didMappingChange(this.state.mappings[prop], mapping)) {
+          if (mapping.force || !mapping.equals(this.state.mappings[prop] || {})) {
             this.refetchDatum(prop, mapping)
           }
         })
