@@ -50,11 +50,7 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
     invariant(mapping.url, 'Request object for `%s` must have `url` attribute.', prop)
 
     if (mapping.equals === undefined) {
-      mapping.equals = function (that) {
-        return [ 'url', 'method', 'headers', 'body' ].every((c) => {
-          return shallowEqual(deepValue(this, c), deepValue(that, c))
-        })
-      }.bind(mapping)
+      mapping.equals = defaultEquals.bind(mapping)
     }
     invariant(Function.prototype.isPrototypeOf(mapping.equals), 'Request equals must be a function')
 
