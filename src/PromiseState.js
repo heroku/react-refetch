@@ -11,7 +11,7 @@ export default class PromiseState {
       fulfilled: iterable.every(ps => ps.fulfilled),
       rejected: iterable.some(ps => ps.rejected),
       value: iterable.map(ps => ps.value),
-      reason: iterable.map(ps => ps.reason),
+      reason: (iterable.find(ps => ps.reason) || {}).reason,
       meta: iterable.map(ps => ps.meta)
     })
   }

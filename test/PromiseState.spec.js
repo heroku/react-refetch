@@ -48,9 +48,15 @@ describe('PromiseState', () => {
 
     it('reason', () => {
       expect(PromiseState.all([
-        new PromiseState({ reason: 'A' }),
-        new PromiseState({ reason: 'B' })
-      ]).reason).toEqual([ 'A', 'B' ])
+        new PromiseState({ reason: null }),
+        new PromiseState({ reason: 'B' }),
+        new PromiseState({ reason: 'C' })
+      ]).reason).toEqual('B')
+
+      expect(PromiseState.all([
+        new PromiseState({ reason: null }),
+        new PromiseState({ reason: null })
+      ]).reason).toEqual(null)
     })
 
     it('meta', () => {
