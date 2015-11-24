@@ -28,16 +28,7 @@ Requests specified as functions are not fetched immediately when props are recei
 
 #### Returns
 
-A React component class that injects the synchronous state of the resulting data promises into the component as `PromiseState` objects with the following properties:
-
-  - `pending`: true if data is still being loaded for the first time
-  - `refreshing`: true if data was successfully loaded and is being refreshed
-  - `fulfilled`: true if data was loaded successfully
-  - `rejected`: true if data was loaded unsuccessfully
-  - `settled`: true if the data load completed, if successfully or unsuccessfully
-  - `value`: value of successfully loaded data; otherwise, null
-  - `reason`: error of unsuccessfully loaded data; otherwise, null
-  - `meta`: arbitrary metadata not tied to a particular state. Contains raw HTTP request or response for access to status and headers. 
+A React component class that injects the synchronous state of the resulting data promises into the component as [`PromiseState`](#promisestate) objects with the following properties:
 
 For any requests specified as functions, bound functions are injected into the component. When called, new `PromiseState` objects are injected as props.
 
@@ -55,66 +46,23 @@ All the original static methods of the component are hoisted.
 
 Returns the wrapped component instance. Only available if you pass `{ withRef: true }` as part of the `connect()`’s second `options` argument.
 
-#### Example
+### `PromiseState`
 
-    // create a component that receives data as props
-    class Profile extends React.Component {
-      static propTypes = {
-        params: PropTypes.shape({
-          userId: PropTypes.string.isRequired,
-        }).isRequired,
-        userFetch: PropTypes.instanceOf(PromiseState).isRequired
-        likesFetch: PropTypes.instanceOf(PromiseState).isRequired
-        updateStatus: PropTypes.func.isRequired
-        updateStatusResponse: PropTypes.instanceOf(PromiseState) // will not be set until after `updateStatus()` is called
-      }
-      
-      render() {
-        const { userFetch, likesFetch } = this.props 
-      
-        // render the different promise states of user
-        if (userFetch.pending) {
-          return <LoadingAnimation/>
-        } else if (userFetch.rejected) {
-          return <Error error={userFetch.reason}/>
-        } else if (userFetch.fulfilled) {
-          return <User data={userFetch.value}/>
-        }
-        
-        // similar for `likesFetch`
-        
-        // call `updateState()` on button click
-        <button onClick={() => { this.props.updateStatus("Hello World")} }>Update Status</button>
-        
-        if (updateStatusResponse) {
-          // render the different promise states, but will be `null` until `updateState()` is called
-        }
-      }
-    }
-    
-    // declare the requests for fetching the data, assign them props, and connect to the component.
-    export default connect((props) => {
-      return {
-        // simple GET from a URL injected as `userFetch` prop
-        // if `userId` changes, data will be refetched
-        userFetch: `/users/${props.params.userId}`,                             
-        
-        // similar to `userFetch`, but using object syntax 
-        // specifies a refresh interval to poll for new data
-        likesFetch: { 
-          url: `/likes/${props.userId}/likes`, 
-          refreshInterval: 60000 
-        },
-        
-        // declaring a request as a function
-        // not immediately fetched, but rather bound to the `userId` prop and injected as `updateStatus` prop
-        // when `updateStatus` is called, the `status` is posted and the response is injected as `updateStatusResponse` prop.
-        updateStatus: (status) => {
-            updateStatusResponse: {
-                url: `/users/${props.params.userId}/status`,
-                method: 'POST',
-                body: status
-            }
-        }
-      }
-    })(Profile)
+A synchronous representation of a [`Promise`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise) with the following properties:
+
+  - `pending`: true if data is still being loaded for the first time
+  - `refreshing`: true if data was successfully loaded and is being refreshed
+  - `fulfilled`: true if data was loaded successfully
+  - `rejected`: true if data was loaded unsuccessfully
+  - `settled`: true if the data load completed, if successfully or unsuccessfully
+  - `value`: value of successfully loaded data; otherwise, null
+  - `reason`: error of unsuccessfully loaded data; otherwise, null
+  - `meta`: arbitrary metadata not tied to a particular state. Contains raw HTTP request or response for access to status and headers. 
+
+Properties should be treated as read-only and immutable. If the `Promise` enters a new state, a new `PromiseState` object is created.
+
+##### Static Methods
+
+##### `all(iterable<PromiseState>): PromiseState`
+
+Similar to [`PromiseState.all()`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/all), this method composes an iterable, such as an `Array`, of `PromiseState`s into a single `PromiseState`. The combined `PromiseState` will only be `fulfilled` when all the `PromiseState`s are `fulfilled` and the `value` will be an iterable of the composite values. If any of the `PromiseState`s are `rejected`, the `reason` of the first rejected `PromiseState` will be set.

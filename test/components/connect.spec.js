@@ -462,7 +462,7 @@ describe('React', () => {
       })
     })
 
-    it('should use provided comparison the requests if provided', (done) => {
+    it('should compare requests using provided comparison if provided', (done) => {
       const fetchSpy = expect.createSpy(() => ({}))
       fetchSpies.push(fetchSpy)
 

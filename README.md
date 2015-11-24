@@ -8,20 +8,30 @@ React bindings for URL data.
 [![build status](https://img.shields.io/travis/heroku/react-refetch/master.svg?style=flat-square)](https://travis-ci.org/heroku/react-refetch) [![npm version](https://img.shields.io/npm/v/react-refetch.svg?style=flat-square)](https://www.npmjs.com/package/react-refetch)
 [![npm downloads](https://img.shields.io/npm/dm/react-refetch.svg?style=flat-square)](https://www.npmjs.com/package/react-refetch)
 
+## Installation
+
+Requires **React 0.14 or later.**
+
+```
+npm install --save react-refetch
+```
+
+This assumes that you’re using [npm](http://npmjs.com/) package manager with a module bundler like [Webpack](http://webpack.github.io) or [Browserify](http://browserify.org/) to consume [CommonJS modules](http://webpack.github.io/docs/commonjs.html).
+
 ## Motivation
 
-This project was inspired by (and forked from) [react-redux](https://github.com/rackt/react-redux). Redux/Flux is a wonderful library/pattern for applications that need to maintain complicated client-side state; however, if your application is mostly fetching and rendering read-only data from a server, it can over-complicate the architecture to fetch data in actions, reduce it into the store, only to select it back out again. The other approach of fetching data [inside](https://facebook.github.io/react/tips/initial-ajax.html) the component and dumping it in local state is also messy and makes components smarter and more mutable than they need to be. This module allows you to wrap a component in a `connect()` decorator like react-redux, but instead of mapping state to props, this let's you map props to URLs to props. This lets you keep your components completely stateless, describe data sources in a declarative manner, and delegate the complexities of data fetching to this library. Advanced options are also supported to lazy load data, poll for new data, and post data to the server.
+This project was inspired by (and forked from) [react-redux](https://github.com/rackt/react-redux). Redux/Flux is a wonderful library/pattern for applications that need to maintain complicated client-side state; however, if your application is mostly fetching and rendering read-only data from a server, it can over-complicate the architecture to fetch data in actions, reduce it into the store, only to select it back out again. The other approach of fetching data [inside](https://facebook.github.io/react/tips/initial-ajax.html) the component and dumping it in local state is also messy and makes components smarter and more mutable than they need to be. This module allows you to wrap a component in a `connect()` decorator like react-redux, but instead of mapping state to props, this let's you map props to URLs to props. This lets you keep your components completely stateless, describe data sources in a declarative manner, and delegate the complexities of data fetching to this module. Advanced options are also supported to lazy load data, poll for new data, and post data to the server.
 
 ## Example
 
-If you have a component called `Profile` that has a `userId` prop, you can wrap it in `connect()` to map `userId` to one or more URLs and assigned to new props called `userFetch` and `likesFetch`:
+If you have a component called `Profile` that has a `userId` prop, you can wrap it in `connect()` to map `userId` to one or more requests and assign them to new props called `userFetch` and `likesFetch`:
 
     connect((props) => ({
       userFetch:  `/users/${props.userId}`,
       likesFetch: `/users/${props.userId}/likes`
     }))(Profile)
  
-When the component mounts, the URLs will be calculated, fetched, and the result will be passed into the component as the props specified. The result is represented as a `PromiseState`, which is a synchronous representation of the fetch `Promise`. It will either be `pending`, `fulfilled`, or `rejected`. This makes it simple to reason about the fetch state at the point in time the component is rendered:
+When the component mounts, the requests will be calculated, fetched, and the result will be passed into the component as the props specified. The result is represented as a `PromiseState`, which is a synchronous representation of the fetch [`Promise`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise). It will either be `pending`, `fulfilled`, or `rejected`. This makes it simple to reason about the fetch state at the point in time the component is rendered:
 
     render() {
       const { userFetch, likesFetch } = this.props 
@@ -37,9 +47,29 @@ When the component mounts, the URLs will be calculated, fetched, and the result 
       // similar for `likesFetch`
     }
 
+See the [composing responses](#composing-responses) to see how to handle `userFetch` and `likesFetch` together.
+
 ## Refetching
 
-When new props are received, the URLs are re-calculated, and if they changed, the data is *refetched* and passed into the component as new `PromiseState`s. When refetching (not to be confused with *refreshing* explained below), the `PromiseState` will be reset to `pending` with the `value` set to `null`.
+When new props are received, the requests are re-calculated, and if they changed, the data is *refetched* and passed into the component as new `PromiseState`s. When refetching (not to be confused with *refreshing* explained below), the `PromiseState` will be reset to `pending` with the `value` set to `null`.
+
+By default, the requests are compared using their URL, headers, and body; however, if you want to use a custom value for the comparison, set the `comparison` attribute on the request. This can be helpful when the request should or should not be refetched in response to a prop change that is not in the request itself. A common situation where this occurs is when two different requests should be refetched together even though one of the requests does not actually include the prop. For example:
+
+    connect((props) => ({
+      usersFetch:  `/users?status=${props.status}&page=${props.page}`,
+      userStatsFetch: { url: `/users/stats`, comparison: `${props.status}:${props.page}` }
+    }))(UsersList)
+
+In this example, `usersFetch` is refetched every time `props.status` or `props.page` changes because they changes its URL. However, `userStatsFetch` does not contain these props in its URL, so would not normally be refetched, but because we added `comparison: ${props.status}:${props.page}`, it will be refetched along with `usersFetch`. In general, you should only rely on changes to the requests themselves to control when data is refetched, but this technique can be helpful when finer-grained control is needed.
+ 
+If you always want data to be refetched when any new props are received, set the `force: true` option on the request. This will take precedence over any custom `comparison` and the default request comparison. For example:
+
+    connect((props) => ({
+      usersFetch:  `/users?status=${props.status}&page=${props.page}`,
+      userStatsFetch: { url: `/users/stats`, force: true }
+    }))(UsersList)
+
+Setting `force: true` should be avoid if at all possible because it could result in extraneous data fetching and rendering of the component. Try to use the default comparison or custom `comparison` option instead. 
 
 ## Automatic Refreshing
 
@@ -121,21 +151,110 @@ The two examples above can be combined to post data to the server and refresh an
        })
     }))(Profile)
 
-     
-## Installation
+## Composing Responses
 
-Requires **React 0.14 or later.**
+If a component needs data from more than one URL, the `PromiseState`s can be combined with [`PromiseState.all()`](https://github.com/heroku/react-refetch/blob/master/docs/api.md#promisestate) to be `pending` until all the `PromiseState`s have been fulfilled. For example:
 
-```
-npm install --save react-refetch
-```
+      render() {
+        const { userFetch, likesFetch } = this.props 
+        
+        // compose multiple PromiseStates together to wait on them as a whole 
+        const allFetches = PromiseState.all([userFetch, likesFetch])
+      
+        // render the different promise states
+        if (allFetches.pending) {
+          return <LoadingAnimation/>
+        } else if (allFetches.rejected) {
+          return <Error error={allFetches.reason}/>
+        } else if (allFetches.fulfilled) {
+          // decompose the PromiseState back into individual
+          const [user, likes] = allFetches.value
+          return (
+            <div>
+                <User data={user}/>
+                <Likes data={likes}/>
+            </div>
+          )
+        }
 
-This assumes that you’re using [npm](http://npmjs.com/) package manager with a module bundler like [Webpack](http://webpack.github.io) or [Browserify](http://browserify.org/) to consume [CommonJS modules](http://webpack.github.io/docs/commonjs.html).
+## Complete Example
 
-## Documentation
+This is a complex example demonstrating various feature at once:
 
-- [API](https://github.com/heroku/react-refetch/blob/master/docs/api.md)
-    - [`connect([mapPropsToRequestsToProps])`](https://github.com/heroku/react-refetch/blob/master/docs/api.md#connectmappropstorequeststoprops)
+    // create a component that receives data as props
+    class Profile extends React.Component {
+      static propTypes = {
+        params: PropTypes.shape({
+          userId: PropTypes.string.isRequired,
+        }).isRequired,
+        userFetch: PropTypes.instanceOf(PromiseState).isRequired
+        likesFetch: PropTypes.instanceOf(PromiseState).isRequired
+        updateStatus: PropTypes.func.isRequired
+        updateStatusResponse: PropTypes.instanceOf(PromiseState) // will not be set until after `updateStatus()` is called
+      }
+      
+      render() {
+        const { userFetch, likesFetch } = this.props 
+        
+        // compose multiple PromiseStates together to wait on them as a whole 
+        const allFetches = PromiseState.all([userFetch, likesFetch])
+      
+        // render the different promise states
+        if (allFetches.pending) {
+          return <LoadingAnimation/>
+        } else if (allFetches.rejected) {
+          return <Error error={allFetches.reason}/>
+        } else if (allFetches.fulfilled) {
+          // decompose the PromiseState back into individual
+          const [user, likes] = allFetches.value
+          return (
+            <div>
+                <User data={user}/>
+                <Likes data={likes}/>
+            </div>
+          )
+        }
+        
+        // call `updateState()` on button click
+        <button onClick={() => { this.props.updateStatus("Hello World")} }>Update Status</button>
+        
+        if (updateStatusResponse) {
+          // render the different promise states, but will be `null` until `updateState()` is called
+        }
+      }
+    }
+    
+    // declare the requests for fetching the data, assign them props, and connect to the component.
+    export default connect((props) => {
+      return {
+        // simple GET from a URL injected as `userFetch` prop
+        // if `userId` changes, data will be refetched
+        userFetch: `/users/${props.params.userId}`,                             
+        
+        // similar to `userFetch`, but using object syntax 
+        // specifies a refresh interval to poll for new data
+        likesFetch: { 
+          url: `/users/${props.userId}/likes`, 
+          refreshInterval: 60000 
+        },
+        
+        // declaring a request as a function
+        // not immediately fetched, but rather bound to the `userId` prop and injected as `updateStatus` prop
+        // when `updateStatus` is called, the `status` is posted and the response is injected as `updateStatusResponse` prop.
+        updateStatus: (status) => {
+            updateStatusResponse: {
+                url: `/users/${props.params.userId}/status`,
+                method: 'POST',
+                body: status
+            }
+        }
+      }
+    })(Profile)
+
+## API Documentation
+
+- [`connect([mapPropsToRequestsToProps])`](https://github.com/heroku/react-refetch/blob/master/docs/api.md#connectmappropstorequeststoprops-options)
+- [`PromiseState(iterable)`](https://github.com/heroku/react-refetch/blob/master/docs/api.md#promisestate)
 
 ## License
 
