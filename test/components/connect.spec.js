@@ -462,7 +462,7 @@ describe('React', () => {
       })
     })
 
-    it('should use provided equals to compare the requests if provided', (done) => {
+    it('should use provided comparison the requests if provided', (done) => {
       const fetchSpy = expect.createSpy(() => ({}))
       fetchSpies.push(fetchSpy)
 
@@ -472,15 +472,10 @@ describe('React', () => {
         return <Passthrough/>
       }
 
-      const equalsSpy = expect.createSpy(() => ({}))
       @connect(({ foo }) => ({
         testFetch: {
           url: '/resource-without-foo',
-          custom: foo,
-          equals: function (that) {
-            equalsSpy()
-            return this.custom === that.custom
-          }
+          comparison: foo
         }
       }))
       class WithProps extends Component {
@@ -515,13 +510,11 @@ describe('React', () => {
 
       expect(renderSpy.calls.length).toBe(1)
       setImmediate(() => {
-        expect(equalsSpy.calls.length).toBe(1)
         expect(fetchSpy.calls.length).toBe(1)
 
         outerComponent.setFoo('BAR')
         expect(renderSpy.calls.length).toBe(3)
         setImmediate(() => {
-          expect(equalsSpy.calls.length).toBe(2)
           expect(fetchSpy.calls.length).toBe(2)
 
           // set BAR again, but will not be refetched
@@ -529,13 +522,11 @@ describe('React', () => {
           outerComponent.setFoo('BAR')
           expect(renderSpy.calls.length).toBe(5)
           setImmediate(() => {
-            expect(equalsSpy.calls.length).toBe(3)
             expect(fetchSpy.calls.length).toBe(2)
 
             outerComponent.setFoo('BAZ')
             expect(renderSpy.calls.length).toBe(6)
             setImmediate(() => {
-              expect(equalsSpy.calls.length).toBe(4)
               expect(fetchSpy.calls.length).toBe(3)
 
               done()

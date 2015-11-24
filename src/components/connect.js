@@ -49,18 +49,17 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
     invariant(isPlainObject(mapping), 'Request for `%s` must be either a string or a plain object. Instead received %s', prop, mapping)
     invariant(mapping.url, 'Request object for `%s` must have `url` attribute.', prop)
 
-    if (mapping.equals === undefined) {
-      mapping.equals = defaultEquals.bind(mapping)
-    }
-    invariant(Function.prototype.isPrototypeOf(mapping.equals), 'Request equals must be a function')
+    mapping.equals = function (that) {
+      if (this.comparison !== undefined) {
+        return this.comparison === that.comparison
+      }
+
+      return [ 'url', 'method', 'headers', 'body' ].every((c) => {
+        return shallowEqual(deepValue(this, c), deepValue(that, c))
+      })
+    }.bind(mapping)
 
     return mapping
-  }
-
-  function defaultEquals(that) {
-    return [ 'url', 'method', 'headers', 'body' ].every((c) => {
-      return shallowEqual(deepValue(this, c), deepValue(that, c))
-    })
   }
 
   function buildRequest(mapping) {
