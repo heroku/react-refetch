@@ -53,7 +53,7 @@ See the [composing responses](#composing-responses) to see how to handle `userFe
 
 When new props are received, the requests are re-calculated, and if they changed, the data is *refetched* and passed into the component as new `PromiseState`s. When refetching (not to be confused with *refreshing* explained below), the `PromiseState` will be reset to `pending` with the `value` set to `null`.
 
-By default, the requests are compared using their URL, headers, and body; however, if you want to use a custom value for the comparison, set the `comparison` attribute on the request. This can be helpful when the request should or should not be refetched in response to a prop change that is not in the request itself. A common situation where this occurs is when two different requests should be refetched together even though one of the requests does not actually include the prop. For example:
+By default, the requests are compared using their URL, headers, and body; however, if you want to use a custom value for the comparison, set the `comparison` attribute on the request. This can be helpful when the request should or should not be refetched in response to a prop change that is not in the request itself. A common situation where this occurs is when two different requests should be refetched together even though one of the requests does not actually include the prop. Note, this is using the request object syntax for `userStatsFetch` instead of just a plain URL string. This syntax allows for more advanced options. See the API documentation for details:
 
     connect((props) => ({
       usersFetch:  `/users?status=${props.status}&page=${props.page}`,
