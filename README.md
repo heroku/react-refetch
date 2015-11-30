@@ -177,6 +177,26 @@ If a component needs data from more than one URL, the `PromiseState`s can be com
           )
         }
 
+## Accessing Headers & Metadata
+
+Both request and response headers and other metadata are accessible. Custom request headers can be set on the request as an object:
+
+    connect((props) => ({
+      userFetch: {
+        url: `/users/${props.userId}`,
+        headers: {
+            FOO: 'foo',
+            BAR: 'bar',
+        }
+       }
+    }))(Profile)
+    
+The raw [`Request`](https://developer.mozilla.org/en-US/docs/Web/API/Request) and [`Response`](https://developer.mozilla.org/en-US/docs/Web/API/Response) can be accessed via the `meta` attribute on the `PromiseState`. For example, to access the a response header:
+
+    userFetch.meta.response.headers.get('FOO')
+
+Do not attempt to read bodies directly from `meta.request` or `meta.response`. They are provided for metadata purposes only.  
+
 ## Complete Example
 
 This is a complex example demonstrating various feature at once:
