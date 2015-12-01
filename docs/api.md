@@ -63,6 +63,21 @@ Properties should be treated as read-only and immutable. If the `Promise` enters
 
 ##### Static Methods
 
+##### `create(meta): PromiseState`
+
+##### `refresh(previous: PromiseState, meta): PromiseState`
+
+##### `resolve(value, meta): PromiseState`
+
+##### `reject(value, meta): PromiseState`
+
+##### `race(iterable<PromiseState>): PromiseState`
+
 ##### `all(iterable<PromiseState>): PromiseState`
 
-Similar to [`PromiseState.all()`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/all), this method composes an iterable, such as an `Array`, of `PromiseState`s into a single `PromiseState`. The combined `PromiseState` will only be `fulfilled` when all the `PromiseState`s are `fulfilled` and the `value` will be an iterable of the composite values. If any of the `PromiseState`s are `rejected`, the `reason` of the first rejected `PromiseState` will be set.
+
+##### Instance Methods
+
+###### `then(onFulfilled: Function, onRejected: Function): PromiseState`
+
+###### `catch(onRejected: Function): PromiseState`

@@ -157,17 +157,11 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
           window.clearTimeout(this.state.refreshTimeouts[prop])
         }
 
-        const previouslyFulfilled = this.state.data[prop] && this.state.data[prop].fulfilled
         const request = buildRequest(mapping)
         const meta = { request: request }
 
-        this.setAtomicState(prop, startedAt, mapping, new PromiseState({
-          pending: !previouslyFulfilled || !mapping.refreshing,
-          refreshing: !!mapping.refreshing,
-          fulfilled: previouslyFulfilled && !!mapping.refreshing,
-          value: previouslyFulfilled && mapping.refreshing ? this.state.data[prop].value : null,
-          meta: meta
-        }), null)
+        const initPS = mapping.refreshing ? PromiseState.refresh(this.state.data[prop], meta) : PromiseState.create(meta)
+        this.setAtomicState(prop, startedAt, mapping, initPS, null)
 
         window.fetch(request).then(response => {
           meta.response = response
@@ -180,17 +174,9 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
               }, mapping.refreshInterval)
             }
 
-            this.setAtomicState(prop, startedAt, mapping, new PromiseState({
-              fulfilled: true,
-              value: value,
-              meta: meta
-            }), refreshTimeout)
+            this.setAtomicState(prop, startedAt, mapping, PromiseState.resolve(value, meta), refreshTimeout)
           }).catch(reason => {
-            this.setAtomicState(prop, startedAt, mapping, new PromiseState({
-              rejected: true,
-              reason: reason,
-              meta: meta
-            }), null)
+            this.setAtomicState(prop, startedAt, mapping, PromiseState.reject(reason, meta), null)
           })
         })
       }
