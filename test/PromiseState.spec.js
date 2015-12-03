@@ -30,6 +30,14 @@ describe('PromiseState', () => {
       expect(ps.value).toBe('F[v]')
     })
 
+    it('fulfilled (map with meta)', () => {
+      const ps = PromiseState.resolve('v', 'm').then((v, m) => `F[${v}:${m}]`, onRejected)
+      expect(ps.pending).toBe(false)
+      expect(ps.fulfilled).toBe(true)
+      expect(ps.value).toBe('F[v:m]')
+      expect(ps.meta).toBe('m')
+    })
+
     it('fulfilled (flatMap)', () => {
       const ps = PromiseState.resolve('v').then(onFulFilledToPromiseState, onRejectedToPromiseState)
       expect(ps.pending).toBe(false)
@@ -73,6 +81,13 @@ describe('PromiseState', () => {
       const ps = PromiseState.reject('r').catch(onRejected)
       expect(ps.pending).toBe(false)
       expect(ps.value).toBe('R[r]')
+    })
+
+
+    it('fulfilled (with meta)', () => {
+      const ps = PromiseState.reject('r', 'm').catch((v, m) => `R[${v}:${m}]`)
+      expect(ps.pending).toBe(false)
+      expect(ps.value).toBe('R[r:m]')
     })
   })
 

@@ -82,16 +82,17 @@ export default class PromiseState {
 
   // Appends and calls fulfillment and rejection handlers on the PromiseState,
   // and returns a new PromiseState resolving to the return value of the called handler,
-  // or to its original settled value if the promise was not handled
+  // or to its original settled value if the promise was not handled.
+  // The handler functions take the value/reason and meta as parameters.
   // (i.e. if the relevant handler onFulfilled or onRejected is undefined).
   // Note, unlike Promise.then(), these handlers are called immediately.
   then(onFulFilled, onRejected) {
     if (this.fulfilled && onFulFilled) {
-      return this._mapFlatMapValue(onFulFilled(this.value))
+      return this._mapFlatMapValue(onFulFilled(this.value, this.meta))
     }
 
     if (this.rejected && onRejected) {
-      return this._mapFlatMapValue(onRejected(this.reason))
+      return this._mapFlatMapValue(onRejected(this.reason, this.meta))
     }
 
     return this
@@ -100,7 +101,8 @@ export default class PromiseState {
   // Appends and calls a rejection handler callback to the PromiseState,
   // and returns a new PromiseState resolving to the return value of the
   // callback if it is called, or to its original fulfillment value if
-  // the PromiseState is instead fulfilled. Note, unlike Promise.catch(),
+  // the PromiseState is instead fulfilled. The handler function take
+  // the reason and meta as parameters. Note, unlike Promise.catch(),
   // this handlers is called immediately.
   catch(onRejected) {
     return this.then(undefined, onRejected)

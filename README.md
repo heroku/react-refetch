@@ -176,6 +176,11 @@ If a component needs data from more than one URL, the `PromiseState`s can be com
             </div>
           )
         }
+      }
+      
+Similarly, `PromiseState.race()` can be used to return the first settled `PromiseState`. Like their asynchronous [`Promise`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise) counterparts, `PromiseStates` can be chained with `then()` and `catch()`; however, the handlers are run immediately to transform the existing state. This can be helpful to handle errors or transform values as part of a composition. For example, to provide a fallback value to `likesFetch` in the case of failure:
+ 
+      PromiseState.all([userFetch, likesFetch.catch((reason) => [])])
 
 ## Accessing Headers & Metadata
 
