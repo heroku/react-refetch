@@ -1,9 +1,7 @@
 React Refetch
 =========================
 
-**EXPERIMENTAL: Use with caution**
-
-React bindings for URL data. 
+A simple, declarative, and composable way to fetch data for React components.  
 
 [![build status](https://img.shields.io/travis/heroku/react-refetch/master.svg?style=flat-square)](https://travis-ci.org/heroku/react-refetch) [![npm version](https://img.shields.io/npm/v/react-refetch.svg?style=flat-square)](https://www.npmjs.com/package/react-refetch)
 [![npm downloads](https://img.shields.io/npm/dm/react-refetch.svg?style=flat-square)](https://www.npmjs.com/package/react-refetch)
@@ -280,6 +278,10 @@ This is a complex example demonstrating various feature at once:
 
 - [`connect([mapPropsToRequestsToProps])`](https://github.com/heroku/react-refetch/blob/master/docs/api.md#connectmappropstorequeststoprops-options)
 - [`PromiseState(iterable)`](https://github.com/heroku/react-refetch/blob/master/docs/api.md#promisestate)
+
+## Support
+
+This software is provided "as is", without warranty or support of any kind, express or implied. See [license](https://github.com/heroku/react-refetch/blob/master/LICENSE.md) for details.
 
 ## License
 

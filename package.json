@@ -1,7 +1,7 @@
 {
   "name": "react-refetch",
-  "version": "0.4.0",
-  "description": "React bindings for URL data",
+  "version": "0.4.1",
+  "description": "A simple, declarative, and composable way to fetch data for React components.",
   "main": "./lib/index.js",
   "scripts": {
     "build": "babel src --out-dir lib",
