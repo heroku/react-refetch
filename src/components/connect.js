@@ -174,14 +174,22 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
               }, mapping.refreshInterval)
             }
 
-            this.setAtomicState(prop, startedAt, mapping, PromiseState.resolve(value, meta), refreshTimeout)
+            this.setAtomicState(prop, startedAt, mapping, PromiseState.resolve(value, meta), refreshTimeout, () => {
+              if (Function.prototype.isPrototypeOf(mapping.then)) {
+                this.refetchDataFromMappings(mapping.then(value, meta))
+              }
+            })
           }).catch(reason => {
-            this.setAtomicState(prop, startedAt, mapping, PromiseState.reject(reason, meta), null)
+            this.setAtomicState(prop, startedAt, mapping, PromiseState.reject(reason, meta), null, () => {
+              if (Function.prototype.isPrototypeOf(mapping.catch)) {
+                this.refetchDataFromMappings(mapping.catch(reason, meta))
+              }
+            })
           })
         })
       }
 
-      setAtomicState(prop, startedAt, mapping, datum, refreshTimeout) {
+      setAtomicState(prop, startedAt, mapping, datum, refreshTimeout, callback) {
         this.setState((prevState) => {
           if (startedAt < prevState.startedAts[prop]) {
             return {}
@@ -206,7 +214,7 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
               })
           }
 
-        })
+        }, callback)
       }
 
       clearAllRefreshTimeouts() {

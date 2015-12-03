@@ -228,6 +228,54 @@ describe('React', () => {
       )
     })
 
+    it('should call then mappings', (done) => {
+      const props = ({
+        foo: 'bar',
+        baz: 42
+      })
+
+      @connect(({ foo, baz }) => ({
+        firstFetch: {
+          url: `/first/${foo}`,
+          then: () => ({
+            thenFetch: `/second/${baz}`
+          })
+        }
+      }))
+      class Container extends Component {
+        render() {
+          return <Passthrough {...this.props} />
+        }
+      }
+
+      const container = TestUtils.renderIntoDocument(
+        <Container {...props} />
+      )
+
+      const decorated = TestUtils.findRenderedComponentWithType(container, Container)
+      expect(decorated.state.mappings.firstFetch.url).toEqual('/first/bar')
+      expect(decorated.state.mappings.firstFetch.then).toBeA('function')
+      expect(decorated.state.data.firstFetch).toIncludeKeyValues(
+        { fulfilled: false, pending: true, reason: null, refreshing: false, rejected: false, settled: false, value: null }
+      )
+
+      expect(decorated.state.mappings.thenFetch).toEqual(undefined)
+      expect(decorated.state.data.thenFetch).toEqual(undefined)
+
+      setImmediate(() => {
+        expect(decorated.state.data.firstFetch).toIncludeKeyValues(
+          { fulfilled: true, pending: false, reason: null, refreshing: false, rejected: false, settled: true, value: { 'T': 't' } }
+        )
+
+        expect(decorated.state.mappings.thenFetch.url).toEqual('/second/42')
+        expect(decorated.state.data.thenFetch).toIncludeKeyValues(
+          { fulfilled: true, pending: false, reason: null, refreshing: false, rejected: false, settled: true, value: { 'T': 't' } }
+        )
+
+        done()
+      })
+    })
+
     it('should refresh when refreshInterval is provided', (done) => {
       const interval = 100000 // set sufficently far out to not happen during test
 
