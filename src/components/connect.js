@@ -174,15 +174,27 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
               }, mapping.refreshInterval)
             }
 
+            // TODO: re-think naming and params of then, catch, andThen, andCatch
+
+            if (Function.prototype.isPrototypeOf(mapping.then)) {
+              this.refetchDatum(prop, coerceMapping(null, mapping.then(value, meta)))
+              return
+            }
+
             this.setAtomicState(prop, startedAt, mapping, PromiseState.resolve(value, meta), refreshTimeout, () => {
-              if (Function.prototype.isPrototypeOf(mapping.then)) {
-                this.refetchDataFromMappings(mapping.then(value, meta))
+              if (Function.prototype.isPrototypeOf(mapping.andThen)) {
+                this.refetchDataFromMappings(mapping.andThen(value, meta))
               }
             })
           }).catch(reason => {
+            if (Function.prototype.isPrototypeOf(mapping.catch)) {
+              this.refetchDatum(coerceMapping(null, mapping.catch(reason, meta)))
+              return
+            }
+
             this.setAtomicState(prop, startedAt, mapping, PromiseState.reject(reason, meta), null, () => {
-              if (Function.prototype.isPrototypeOf(mapping.catch)) {
-                this.refetchDataFromMappings(mapping.catch(reason, meta))
+              if (Function.prototype.isPrototypeOf(mapping.andCatch)) {
+                this.refetchDataFromMappings(mapping.andCatch(reason, meta))
               }
             })
           })

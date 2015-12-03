@@ -237,7 +237,46 @@ describe('React', () => {
       @connect(({ foo, baz }) => ({
         firstFetch: {
           url: `/first/${foo}`,
-          then: () => ({
+          then: (v) => `/second/${baz}/${v['T']}`
+        }
+      }))
+      class Container extends Component {
+        render() {
+          return <Passthrough {...this.props} />
+        }
+      }
+
+      const container = TestUtils.renderIntoDocument(
+        <Container {...props} />
+      )
+
+      const decorated = TestUtils.findRenderedComponentWithType(container, Container)
+      expect(decorated.state.mappings.firstFetch.url).toEqual('/first/bar')
+      expect(decorated.state.mappings.firstFetch.then).toBeA('function')
+      expect(decorated.state.data.firstFetch).toIncludeKeyValues(
+        { fulfilled: false, pending: true, reason: null, refreshing: false, rejected: false, settled: false, value: null }
+      )
+
+      setImmediate(() => {
+        expect(decorated.state.mappings.firstFetch.url).toEqual('/second/42/t')
+        expect(decorated.state.data.firstFetch).toIncludeKeyValues(
+          { fulfilled: true, pending: false, reason: null, refreshing: false, rejected: false, settled: true, value: { 'T': 't' } }
+        )
+
+        done()
+      })
+    })
+
+    it('should call andThen mappings', (done) => {
+      const props = ({
+        foo: 'bar',
+        baz: 42
+      })
+
+      @connect(({ foo, baz }) => ({
+        firstFetch: {
+          url: `/first/${foo}`,
+          andThen: () => ({
             thenFetch: `/second/${baz}`
           })
         }
@@ -254,7 +293,7 @@ describe('React', () => {
 
       const decorated = TestUtils.findRenderedComponentWithType(container, Container)
       expect(decorated.state.mappings.firstFetch.url).toEqual('/first/bar')
-      expect(decorated.state.mappings.firstFetch.then).toBeA('function')
+      expect(decorated.state.mappings.firstFetch.andThen).toBeA('function')
       expect(decorated.state.data.firstFetch).toIncludeKeyValues(
         { fulfilled: false, pending: true, reason: null, refreshing: false, rejected: false, settled: false, value: null }
       )
