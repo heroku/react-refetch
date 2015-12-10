@@ -180,6 +180,48 @@ Similarly, `PromiseState.race()` can be used to return the first settled `Promis
  
       PromiseState.all([userFetch, likesFetch.catch((reason) => [])])
 
+## Chaining Requests
+
+Inside of `connect()`, requests can be chained using `then()`, `catch()`, `andThen()` and `andCatch()` to trigger additional requests after a previous request is fulfilled. These are not to be confused with the similar sounding functions on `PromiseState`, which are on the response side, are synchronous, and are executed for every change of the `PromiseState`. 
+  
+`then()` is helpful for cases where multiple requests are required to get the data needed by the component and the subsequent request relies on data from the previous request. For example, if you need to make a request to `/foos/${name}` to look up `foo.id` and then make a second request to `/bar-for-foos-by-id/${foo.id}` and return the whole thing as `barFetch` (the component will not have access to the intermediate `foo`):
+ 
+      connect(({ name }) => ({
+        barFetch: {
+          url: `/foos/${name}`,
+          then: (foo) => `/bar-for-foos-by-id/${foo.id}`
+        }
+      }))
+
+`andThen()` is similar, but is intended for side effect requests where you still need access to the result of the first request and/or need to fanout to multiple requests:
+
+      connect(({ name }) => ({
+        fooFetch: {
+          url: `/foos/${name}`,
+          andThen: (foo) => { 
+            barFetch: `/bar-for-foos-by-id/${foo.id}` 
+          }
+        }
+      }))
+
+This is also helpful for cases where a fetch function is changing data that is in some other fetch that is a collection. For example, if you have a list of `foo`s and you create a new `foo` and the list needs to be refreshed:
+
+     connect(({ name }) => ({
+        foosFetch: '/foos',
+        createFoo: (name) => {
+           method: 'POST',
+           url: '/foos',
+           andThen: () => { 
+             foosFetch: { 
+               url: '/foos', 
+               refreshing: true 
+             }
+           }
+        }
+      }))
+
+`catch` and `andCatch` are similar, but for error cases.
+
 ## Accessing Headers & Metadata
 
 Both request and response headers and other metadata are accessible. Custom request headers can be set on the request as an object:

@@ -53,7 +53,7 @@ describe('React', () => {
       expect(stubPending.props.testFetch.constructor).toEqual(PromiseState)
 
       expect(stubPending.props.testFunc).toBeA('function')
-      expect(stubPending.props.deferredFetch).toEqual(null)
+      expect(stubPending.props.deferredFetch).toEqual(undefined)
       stubPending.props.testFunc('A', 'B')
       expect(stubPending.props.deferredFetch).toIncludeKeyValues({
         fulfilled: false, pending: true, refreshing: false, reason: null, rejected: false, settled: false, value: null, meta: {}
@@ -181,7 +181,7 @@ describe('React', () => {
       const decorated = TestUtils.findRenderedComponentWithType(container, Container)
       expect(decorated.state.mappings.testFunc).toBeA('function')
       expect(decorated.state.data.testFunc).toBeA('function')
-      expect(decorated.state.data.deferredFetch).toEqual(null)
+      expect(decorated.state.data.deferredFetch).toEqual(undefined)
 
       decorated.state.data.testFunc('A', 'B')
 

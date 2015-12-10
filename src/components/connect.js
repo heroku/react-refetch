@@ -174,8 +174,6 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
               }, mapping.refreshInterval)
             }
 
-            // TODO: re-think naming and params of then, catch, andThen, andCatch
-
             if (Function.prototype.isPrototypeOf(mapping.then)) {
               this.refetchDatum(prop, coerceMapping(null, mapping.then(value, meta)))
               return
