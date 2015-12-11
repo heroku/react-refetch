@@ -53,7 +53,7 @@ describe('React', () => {
       expect(stubPending.props.testFetch.constructor).toEqual(PromiseState)
 
       expect(stubPending.props.testFunc).toBeA('function')
-      expect(stubPending.props.deferredFetch).toEqual(null)
+      expect(stubPending.props.deferredFetch).toEqual(undefined)
       stubPending.props.testFunc('A', 'B')
       expect(stubPending.props.deferredFetch).toIncludeKeyValues({
         fulfilled: false, pending: true, refreshing: false, reason: null, rejected: false, settled: false, value: null, meta: {}
@@ -181,7 +181,7 @@ describe('React', () => {
       const decorated = TestUtils.findRenderedComponentWithType(container, Container)
       expect(decorated.state.mappings.testFunc).toBeA('function')
       expect(decorated.state.data.testFunc).toBeA('function')
-      expect(decorated.state.data.deferredFetch).toEqual(null)
+      expect(decorated.state.data.deferredFetch).toEqual(undefined)
 
       decorated.state.data.testFunc('A', 'B')
 
@@ -226,6 +226,93 @@ describe('React', () => {
       expect(decorated.state.data.testFetch).toIncludeKeyValues(
         { fulfilled: false, pending: true, reason: null, refreshing: false, rejected: false, settled: false, value: null }
       )
+    })
+
+    it('should call then mappings', (done) => {
+      const props = ({
+        foo: 'bar',
+        baz: 42
+      })
+
+      @connect(({ foo, baz }) => ({
+        firstFetch: {
+          url: `/first/${foo}`,
+          then: (v) => `/second/${baz}/${v['T']}`
+        }
+      }))
+      class Container extends Component {
+        render() {
+          return <Passthrough {...this.props} />
+        }
+      }
+
+      const container = TestUtils.renderIntoDocument(
+        <Container {...props} />
+      )
+
+      const decorated = TestUtils.findRenderedComponentWithType(container, Container)
+      expect(decorated.state.mappings.firstFetch.url).toEqual('/first/bar')
+      expect(decorated.state.mappings.firstFetch.then).toBeA('function')
+      expect(decorated.state.data.firstFetch).toIncludeKeyValues(
+        { fulfilled: false, pending: true, reason: null, refreshing: false, rejected: false, settled: false, value: null }
+      )
+
+      setImmediate(() => {
+        expect(decorated.state.mappings.firstFetch.url).toEqual('/second/42/t')
+        expect(decorated.state.data.firstFetch).toIncludeKeyValues(
+          { fulfilled: true, pending: false, reason: null, refreshing: false, rejected: false, settled: true, value: { 'T': 't' } }
+        )
+
+        done()
+      })
+    })
+
+    it('should call andThen mappings', (done) => {
+      const props = ({
+        foo: 'bar',
+        baz: 42
+      })
+
+      @connect(({ foo, baz }) => ({
+        firstFetch: {
+          url: `/first/${foo}`,
+          andThen: () => ({
+            thenFetch: `/second/${baz}`
+          })
+        }
+      }))
+      class Container extends Component {
+        render() {
+          return <Passthrough {...this.props} />
+        }
+      }
+
+      const container = TestUtils.renderIntoDocument(
+        <Container {...props} />
+      )
+
+      const decorated = TestUtils.findRenderedComponentWithType(container, Container)
+      expect(decorated.state.mappings.firstFetch.url).toEqual('/first/bar')
+      expect(decorated.state.mappings.firstFetch.andThen).toBeA('function')
+      expect(decorated.state.data.firstFetch).toIncludeKeyValues(
+        { fulfilled: false, pending: true, reason: null, refreshing: false, rejected: false, settled: false, value: null }
+      )
+
+      expect(decorated.state.mappings.thenFetch).toEqual(undefined)
+      expect(decorated.state.data.thenFetch).toEqual(undefined)
+
+      setImmediate(() => {
+        expect(decorated.state.data.firstFetch).toIncludeKeyValues(
+          { fulfilled: true, pending: false, reason: null, refreshing: false, rejected: false, settled: true, value: { 'T': 't' } }
+        )
+
+        expect(decorated.state.mappings.thenFetch.url).toEqual('/second/42')
+        expect(decorated.state.data.thenFetch).toIncludeKeyValues(
+          { fulfilled: true, pending: false, reason: null, refreshing: false, rejected: false, settled: true, value: { 'T': 't' } }
+        )
+
+        done()
+      })
     })
 
     it('should refresh when refreshInterval is provided', (done) => {

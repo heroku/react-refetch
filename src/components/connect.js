@@ -174,14 +174,32 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
               }, mapping.refreshInterval)
             }
 
-            this.setAtomicState(prop, startedAt, mapping, PromiseState.resolve(value, meta), refreshTimeout)
+            if (Function.prototype.isPrototypeOf(mapping.then)) {
+              this.refetchDatum(prop, coerceMapping(null, mapping.then(value, meta)))
+              return
+            }
+
+            this.setAtomicState(prop, startedAt, mapping, PromiseState.resolve(value, meta), refreshTimeout, () => {
+              if (Function.prototype.isPrototypeOf(mapping.andThen)) {
+                this.refetchDataFromMappings(mapping.andThen(value, meta))
+              }
+            })
           }).catch(reason => {
-            this.setAtomicState(prop, startedAt, mapping, PromiseState.reject(reason, meta), null)
+            if (Function.prototype.isPrototypeOf(mapping.catch)) {
+              this.refetchDatum(coerceMapping(null, mapping.catch(reason, meta)))
+              return
+            }
+
+            this.setAtomicState(prop, startedAt, mapping, PromiseState.reject(reason, meta), null, () => {
+              if (Function.prototype.isPrototypeOf(mapping.andCatch)) {
+                this.refetchDataFromMappings(mapping.andCatch(reason, meta))
+              }
+            })
           })
         })
       }
 
-      setAtomicState(prop, startedAt, mapping, datum, refreshTimeout) {
+      setAtomicState(prop, startedAt, mapping, datum, refreshTimeout, callback) {
         this.setState((prevState) => {
           if (startedAt < prevState.startedAts[prop]) {
             return {}
@@ -206,7 +224,7 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
               })
           }
 
-        })
+        }, callback)
       }
 
       clearAllRefreshTimeouts() {

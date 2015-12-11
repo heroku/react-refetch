@@ -11,15 +11,19 @@ Instead, it *returns* a new, connected component class, for you to use.
 
 * [`mapPropsToRequestsToProps(props): { prop: request, ... }`] *(Function)*: A pure function of props that specifies the requests to fetch data and the props to which to assign the results. This function is called every time props change, and if the requests materially change, the data will be refetched. Requests can be specified as plain URL strings, request objects, or functions. Plain URL strings are the most common and preferred format, but only support GET URLs with default options. For more advanced options, specify the request as an object the the following keys:
 
- - `url` *(String)*: Required. HTTP URL from which to fetch the data.
- - `method` *(String)*: HTTP method. Defaults to `GET`.
- - `headers` *(Object)*: HTTP headers as simple key-value pairs. Defaults to `Accept` and `Content-Type` set to `application/json`.
- - `credentials` *(String)*: Policy for credential to include with request. One of `omit`, `same-origin`, `include`. Defaults to `same-origin`. See [`Request.credentials`](https://developer.mozilla.org/en-US/docs/Web/API/Request/credentials) for details.
- - `body`: Any body that you want to add to your request; however, it must be replayable (i.e. not a one time use stream). Note that a request using the `GET` or `HEAD` method cannot have a body.
- - `refreshInterval` *(Integer)*: Interval in milliseconds to poll for new data from the URL.
- - `refreshing` *(Boolean)*: If true, the request is treated as a refresh. This is generally only used when overwriting an existing `PromiseState` and it is desired that the existing `value` not be cleared or changing into the `pending` state while the request is in flight. If no previous request was fulfilled, both `pending` and `refreshing` will be set.
- - `force` *(Boolean)*: Forces the data to be always fetched when new props are received. Takes precedence over `comparison`.
- - `comparison` *(Any)*: Custom value for comparing this request and the previous request when the props change. If the `comparison` values are *not* strictly equal, the data will be fetched again. In general, it is preferred to rely on the default that compares material changes to the request (i.e. URL, headers, body, etc); however, this is helpful in cases where the request should or should not be fetched again based on some other value. If `force` is true, `comparison` is not considered.
+     - `url` *(String)*: Required. HTTP URL from which to fetch the data.
+     - `method` *(String)*: HTTP method. Defaults to `GET`.
+     - `headers` *(Object)*: HTTP headers as simple key-value pairs. Defaults to `Accept` and `Content-Type` set to `application/json`.
+     - `credentials` *(String)*: Policy for credential to include with request. One of `omit`, `same-origin`, `include`. Defaults to `same-origin`. See [`Request.credentials`](https://developer.mozilla.org/en-US/docs/Web/API/Request/credentials) for details.
+     - `body`: Any body that you want to add to your request; however, it must be replayable (i.e. not a one time use stream). Note that a request using the `GET` or `HEAD` method cannot have a body.
+     - `refreshInterval` *(Integer)*: Interval in milliseconds to poll for new data from the URL.
+     - `refreshing` *(Boolean)*: If true, the request is treated as a refresh. This is generally only used when overwriting an existing `PromiseState` and it is desired that the existing `value` not be cleared or changing into the `pending` state while the request is in flight. If no previous request was fulfilled, both `pending` and `refreshing` will be set.
+     - `force` *(Boolean)*: Forces the data to be always fetched when new props are received. Takes precedence over `comparison`.
+     - `comparison` *(Any)*: Custom value for comparing this request and the previous request when the props change. If the `comparison` values are *not* strictly equal, the data will be fetched again. In general, it is preferred to rely on the default that compares material changes to the request (i.e. URL, headers, body, etc); however, this is helpful in cases where the request should or should not be fetched again based on some other value. If `force` is true, `comparison` is not considered.
+      - `then(value, meta): request` *(Function)*: returns a request to fetch after fulfillment of this request and replaces this request. Takes the `value` and `meta` of this request as arguments.
+      - `catch(reason, meta): request` *(Function)*: returns a request to fetch after rejection of this request and replaces this request. Takes the `value` and `meta` of this request as arguments.
+      - `andThen(value, meta): { prop: request, ... }` *(Function)*: returns an object of request mappings to fetch after fulfillment of this request but does not replace this request. Takes the `value` and `meta` of this request as arguments.
+      - `andCatch(reason, meta): { prop: request, ... }` *(Function)*: returns an object of request mappings to fetch after rejection of this request but does not replace this request. Takes the `value` and `meta` of this request as arguments.
 
 Requests specified as functions are not fetched immediately when props are received, but rather bound to the props and injected into the component to be called at a later time in response to user actions. Functions should be pure and return the same format as `mapPropsToRequestsToProps` itself. If a function maps a request to the same name as an existing prop, the prop will be overwritten. This is commonly used for taking some action that updates an existing `PromiseState`. Consider setting `refreshing: true` in such it situation. 
 
