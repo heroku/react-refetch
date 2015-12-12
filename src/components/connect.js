@@ -70,6 +70,7 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
         'Content-Type': 'application/json'
       }, mapping.headers),
       credentials: mapping.credentials || 'same-origin',
+      redirect: mapping.redirect || 'follow',
       body: mapping.body
     })
   }
