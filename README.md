@@ -22,13 +22,29 @@ See [Introducing React Refetch](https://engineering.heroku.com/blogs/2015-12-16-
 
 ## Motivation
 
-This project was inspired by (and forked from) [react-redux](https://github.com/rackt/react-redux). Redux/Flux is a wonderful library/pattern for applications that need to maintain complicated client-side state; however, if your application is mostly fetching and rendering read-only data from a server, it can over-complicate the architecture to fetch data in actions, reduce it into the store, only to select it back out again. The other approach of fetching data [inside](https://facebook.github.io/react/tips/initial-ajax.html) the component and dumping it in local state is also messy and makes components smarter and more mutable than they need to be. This module allows you to wrap a component in a `connect()` decorator like react-redux, but instead of mapping state to props, this lets you map props to URLs to props. This lets you keep your components completely stateless, describe data sources in a declarative manner, and delegate the complexities of data fetching to this module. Advanced options are also supported to lazy load data, poll for new data, and post data to the server.
+This project was inspired by (and forked from) [React Redux](https://github.com/rackt/react-redux). Redux/Flux is a wonderful library/pattern for applications that need to maintain complicated client-side state; however, if your application is mostly fetching and rendering read-only data from a server, it can over-complicate the architecture to fetch data in actions, reduce it into the store, only to select it back out again. The other approach of fetching data [inside](https://facebook.github.io/react/tips/initial-ajax.html) the component and dumping it in local state is also messy and makes components smarter and more mutable than they need to be. This module allows you to wrap a component in a `connect()` decorator like react-redux, but instead of mapping state to props, this lets you map props to URLs to props. This lets you keep your components completely stateless, describe data sources in a declarative manner, and delegate the complexities of data fetching to this module. Advanced options are also supported to lazy load data, poll for new data, and post data to the server.
 
 ## Example
 
 If you have a component called `Profile` that has a `userId` prop, you can wrap it in `connect()` to map `userId` to one or more requests and assign them to new props called `userFetch` and `likesFetch`:
 
 ```.jsx
+connect((props) => ({
+  userFetch:  `/users/${props.userId}`,
+  likesFetch: `/users/${props.userId}/likes`
+}))(Profile)
+```
+
+```.jsx
+import React, { Component, PropTypes } from 'react'
+import { connect, PromiseState } from 'react-refetch'
+
+export default class Profile extends Component {
+  render() {
+    // see below
+  }
+}
+
 connect((props) => ({
   userFetch:  `/users/${props.userId}`,
   likesFetch: `/users/${props.userId}/likes`
@@ -46,18 +62,20 @@ render() {
   } else if (userFetch.rejected) {
     return <Error error={userFetch.reason}/>
   } else if (userFetch.fulfilled) {
-    return <User data={userFetch.value}/>
+    return <User user={userFetch.value}/>
   }
   
   // similar for `likesFetch`
 }
 ```
 
-See the [composing responses](#composing-responses) to see how to handle `userFetch` and `likesFetch` together.
+See the [composing responses](#composing-responses) to see how to handle `userFetch` and `likesFetch` together. Although not included in this library because of application-specific defaults, see an example [`PromiseStateContainer`](https://gist.github.com/ryanbrainard/788c12c3811d3da13124#file-promisestatecontainer-jsx) and its example [usage](https://gist.github.com/ryanbrainard/788c12c3811d3da13124#file-profile-jsx) for a way to abstract and simplify the rendering of `PromiseState`s.
 
 ## Refetching
 
-When new props are received, the requests are re-calculated, and if they changed, the data is *refetched* and passed into the component as new `PromiseState`s. When refetching (not to be confused with *refreshing* explained below), the `PromiseState` will be reset to `pending` with the `value` set to `null`.
+When new props are received, the requests are re-calculated, and if they changed, the data is *refetched* and passed into the component as new `PromiseState`s. Using something like [React Router](https://github.com/rackt/react-router) to derive the props from the URL in the browser, the application can control state changes just by changing the URL. When the URL changes, the props change, which recalculates the requests, new data is fetched, and it is reinjected into the components:
+
+![react-refetch-flow](https://engineering.heroku.com/assets/images/react-refetch-flow.svg)
 
 By default, the requests are compared using their URL, headers, and body; however, if you want to use a custom value for the comparison, set the `comparison` attribute on the request. This can be helpful when the request should or should not be refetched in response to a prop change that is not in the request itself. A common situation where this occurs is when two different requests should be refetched together even though one of the requests does not actually include the prop. Note, this is using the request object syntax for `userStatsFetch` instead of just a plain URL string. This syntax allows for more advanced options. See the API documentation for details:
 
@@ -288,7 +306,9 @@ Do not attempt to read bodies directly from `meta.request` or `meta.response`. T
 This is a complex example demonstrating various feature at once:
 
 ```.jsx
-// create a component that receives data as props
+import React, { Component, PropTypes } from 'react'
+import { connect, PromiseState } from 'react-refetch'
+
 class Profile extends React.Component {
   static propTypes = {
     params: PropTypes.shape({
