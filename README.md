@@ -29,13 +29,6 @@ This project was inspired by (and forked from) [React Redux](https://github.com/
 If you have a component called `Profile` that has a `userId` prop, you can wrap it in `connect()` to map `userId` to one or more requests and assign them to new props called `userFetch` and `likesFetch`:
 
 ```.jsx
-connect((props) => ({
-  userFetch:  `/users/${props.userId}`,
-  likesFetch: `/users/${props.userId}/likes`
-}))(Profile)
-```
-
-```.jsx
 import React, { Component, PropTypes } from 'react'
 import { connect, PromiseState } from 'react-refetch'
 
