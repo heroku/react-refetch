@@ -111,7 +111,7 @@ connect((props) => ({
 }))(Profile)
 ```
 
-In this example, `userFetch` is fetched normally when the component receives  props, but `lazyFetchLikes` is a function that returns `likesFetch`, so nothing is fetched immediately. Instead `fetchLikes` is injected into the component as a function to be called later inside the component:
+In this example, `userFetch` is fetched normally when the component receives  props, but `lazyFetchLikes` is a function that returns `likesFetch`, so nothing is fetched immediately. Instead `lazyFetchLikes` is injected into the component as a function to be called later inside the component:
 
 ```.jsx
 this.props.lazyFetchLikes(10)
