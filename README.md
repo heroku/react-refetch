@@ -111,7 +111,7 @@ connect((props) => ({
 }))(Profile)
 ```
 
-In this example, `userFetch` is fetched normally when the component receives  props, but `lazyFetchLikes` is a function that returns `likesFetch`, so nothing is fetched immediately. Instead `fetchLikes` is injected into the component as a function to be called later inside the component:
+In this example, `userFetch` is fetched normally when the component receives  props, but `lazyFetchLikes` is a function that returns `likesFetch`, so nothing is fetched immediately. Instead `lazyFetchLikes` is injected into the component as a function to be called later inside the component:
 
 ```.jsx
 this.props.lazyFetchLikes(10)
@@ -138,7 +138,7 @@ connect((props) => ({
 The `postLike` function is injected in as a prop, which can then be tied to a button:
 
 ```.jsx
-<button onClick={() => { this.props.postLike(someSubject) }}>Like!</button>
+<button onClick={() => this.props.postLike(someSubject)}>Like!</button>
 ```
  
 When the user clicks the button, `someSubject` is posted to the URL and the response is injected as a new `postLikeResponse` prop as a `PromiseState` to show progress and feedback to the user.
