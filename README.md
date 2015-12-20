@@ -62,7 +62,7 @@ render() {
 }
 ```
 
-See the [composing responses](#composing-responses) to see how to handle `userFetch` and `likesFetch` together. Although not included in this library because of application-specific defaults, see an example [`PromiseStateContainer`](https://gist.github.com/ryanbrainard/788c12c3811d3da13124#file-promisestatecontainer-jsx) and its example [usage](https://gist.github.com/ryanbrainard/788c12c3811d3da13124#file-profile-jsx) for a way to abstract and simplify the rendering of `PromiseState`s.
+See the [composing responses](#composing-responses) to see how to handle `userFetch` and `likesFetch` together. Although not included in this library because of application-specific defaults, see an example [`PromiseStateContainer`](https://gist.github.com/ryanbrainard/788c12c3811d3da13124#file-promisestatecontainer-jsx) and its example [usage](https://gist.github.com/ryanbrainard/7713b4a6f328ac4b71e2#file-profile-jsx) for a way to abstract and simplify the rendering of `PromiseState`s.
 
 ## Refetching
 
