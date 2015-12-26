@@ -6,6 +6,7 @@ import shallowEqual from '../utils/shallowEqual'
 import PromiseState from '../PromiseState'
 import hoistStatics from 'hoist-non-react-statics'
 import invariant from 'invariant'
+import visibility from 'visibilityjs'
 
 const defaultMapPropsToRequestsToProps = () => ({})
 
@@ -48,6 +49,8 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
 
     invariant(isPlainObject(mapping), 'Request for `%s` must be either a string or a plain object. Instead received %s', prop, mapping)
     invariant(mapping.url, 'Request object for `%s` must have `url` attribute.', prop)
+
+    mapping.refreshHidden = mapping.refreshHidden === undefined ? true : mapping.refreshHidden
 
     mapping.equals = function (that) {
       if (this.comparison !== undefined) {
@@ -153,9 +156,21 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
 
       refetchDatum(prop, mapping) {
         const startedAt = new Date()
+        const hasRefreshInterval = mapping.refreshInterval > 0
 
         if (this.state.refreshTimeouts[prop]) {
           window.clearTimeout(this.state.refreshTimeouts[prop])
+        }
+
+        // do not refresh while tab is hidden and refreshHidden is unset
+        if (hasRefreshInterval && !mapping.refreshHidden && visibility.hidden()) {
+          const visibilityListener = visibility.change(() => {
+            if (!visibility.hidden()) {
+              visibility.unbind(visibilityListener)
+              this.refetchDatum(prop, mapping)
+            }
+          })
+          return
         }
 
         const request = buildRequest(mapping)
@@ -169,7 +184,7 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
 
           return Promise.resolve(response).then(handleResponse).then(value => {
             let refreshTimeout = null
-            if (mapping.refreshInterval > 0) {
+            if (hasRefreshInterval) {
               refreshTimeout = window.setTimeout(() => {
                 this.refetchDatum(prop, Object.assign({}, mapping, { refreshing: true, force: true }))
               }, mapping.refreshInterval)

@@ -51,10 +51,12 @@
     "react-addons-test-utils": "^0.14.0",
     "react-dom": "^0.14.0",
     "rimraf": "^2.3.4",
+    "sinon": "^1.17.2",
     "webpack": "^1.11.0"
   },
   "dependencies": {
     "hoist-non-react-statics": "^1.0.3",
+    "visibilityjs": "^1.2.1",
     "invariant": "^2.0.0"
   },
   "peerDependencies": {
