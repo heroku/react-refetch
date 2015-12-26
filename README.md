@@ -85,7 +85,7 @@ If you always want data to be refetched when any new props are received, set the
 
 ```.jsx
 connect((props) => ({
-  usersFetch:  `/users?status=${props.status}&page=${props.page}`,
+  usersFetch: `/users?status=${props.status}&page=${props.page}`,
   userStatsFetch: { url: `/users/stats`, force: true }
 }))(UsersList)
 ```
@@ -98,7 +98,7 @@ If the `refreshInterval` option is provided along with a URL, the data will be r
 
 ```.jsx
 connect((props) => ({
-  userFetch:  `/users/${props.userId}`,
+  userFetch:`/users/${props.userId}`,
   likesFetch: { url: `/users/${props.userId}/likes`, refreshInterval: 60000 }
 }))(Profile)
 ```
@@ -115,7 +115,7 @@ Here is a simple example of lazy loading the `likesFetch` with a function:
 
 ```.jsx
 connect((props) => ({
-  userFetch:  `/users/${props.userId}`,
+  userFetch: `/users/${props.userId}`,
   lazyFetchLikes: (max) => ({
     likesFetch: `/users/${props.userId}/likes?max=${max}`
   })
@@ -140,7 +140,7 @@ connect((props) => ({
     postLikeResponse: {
       url: `/users/${props.userId}/likes`
       method: 'POST'
-      body: JSON.stringify({subject: subject})
+      body: JSON.stringify({ subject })
     }
   })
 }))(Profile)
@@ -179,9 +179,9 @@ connect((props) => ({
   userFetch: `/users/${props.userId}`,
   updateUser: (firstName, lastName) => ({
     userFetch: {
-       url: `/users/${props.userId}`
-       method: 'PATCH'
-       body: JSON.stringify({firstName: firstName, lastName: lastName})
+      url: `/users/${props.userId}`
+      method: 'PATCH'
+      body: JSON.stringify({ firstName, lastName })
      }
    })
 }))(Profile)
@@ -256,14 +256,14 @@ This is also helpful for cases where a fetch function is changing data that is i
  connect(({ name }) => ({
     foosFetch: '/foos',
     createFoo: (name) => {
-       method: 'POST',
-       url: '/foos',
-       andThen: () => { 
-         foosFetch: { 
-           url: '/foos', 
-           refreshing: true 
-         }
-       }
+      method: 'POST',
+      url: '/foos',
+      andThen: () => { 
+        foosFetch: { 
+          url: '/foos', 
+          refreshing: true 
+        }
+      }
     }
   }))
 ```
@@ -279,10 +279,10 @@ connect((props) => ({
   userFetch: {
     url: `/users/${props.userId}`,
     headers: {
-        FOO: 'foo',
-        BAR: 'bar',
+      FOO: 'foo',
+      BAR: 'bar'
     }
-   }
+  }
 }))(Profile)
 ```
     
@@ -329,8 +329,8 @@ class Profile extends React.Component {
       const [user, likes] = allFetches.value
       return (
         <div>
-            <User data={user}/>
-            <Likes data={likes}/>
+          <User data={user}/>
+          <Likes data={likes}/>
         </div>
       )
     }
@@ -362,11 +362,11 @@ export default connect((props) => {
     // not immediately fetched, but rather bound to the `userId` prop and injected as `updateStatus` prop
     // when `updateStatus` is called, the `status` is posted and the response is injected as `updateStatusResponse` prop.
     updateStatus: (status) => {
-        updateStatusResponse: {
-            url: `/users/${props.params.userId}/status`,
-            method: 'POST',
-            body: status
-        }
+      updateStatusResponse: {
+        url: `/users/${props.params.userId}/status`,
+        method: 'POST',
+        body: status
+      }
     }
   }
 })(Profile)
