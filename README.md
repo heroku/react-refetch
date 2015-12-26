@@ -79,7 +79,7 @@ connect((props) => ({
 }))(UsersList)
 ```
 
-In this example, `usersFetch` is refetched every time `props.status` or `props.page` changes because they changes its URL. However, `userStatsFetch` does not contain these props in its URL, so would not normally be refetched, but because we added `comparison: ${props.status}:${props.page}`, it will be refetched along with `usersFetch`. In general, you should only rely on changes to the requests themselves to control when data is refetched, but this technique can be helpful when finer-grained control is needed.
+In this example, `usersFetch` is refetched every time `props.status` or `props.page` changes because the URL is changed. However, `userStatsFetch` does not contain these props in its URL, so would not normally be refetched, but because we added `comparison: ${props.status}:${props.page}`, it will be refetched along with `usersFetch`. In general, you should only rely on changes to the requests themselves to control when data is refetched, but this technique can be helpful when finer-grained control is needed.
  
 If you always want data to be refetched when any new props are received, set the `force: true` option on the request. This will take precedence over any custom `comparison` and the default request comparison. For example:
 
