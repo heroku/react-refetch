@@ -28,25 +28,25 @@ This project was inspired by (and forked from) [React Redux](https://github.com/
 
 If you have a component called `Profile` that has a `userId` prop, you can wrap it in `connect()` to map `userId` to one or more requests and assign them to new props called `userFetch` and `likesFetch`:
 
-```.jsx
+```jsx
 import React, { Component, PropTypes } from 'react'
 import { connect, PromiseState } from 'react-refetch'
 
-export default class Profile extends Component {
+class Profile extends Component {
   render() {
     // see below
   }
 }
 
-connect((props) => ({
-  userFetch:  `/users/${props.userId}`,
+export default connect(props => ({
+  userFetch: `/users/${props.userId}`,
   likesFetch: `/users/${props.userId}/likes`
 }))(Profile)
 ```
 
 When the component mounts, the requests will be calculated, fetched, and the result will be passed into the component as the props specified. The result is represented as a `PromiseState`, which is a synchronous representation of the fetch [`Promise`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise). It will either be `pending`, `fulfilled`, or `rejected`. This makes it simple to reason about the fetch state at the point in time the component is rendered:
 
-```.jsx
+```jsx
 render() {
   const { userFetch, likesFetch } = this.props
 
@@ -72,8 +72,8 @@ When new props are received, the requests are re-calculated, and if they changed
 
 By default, the requests are compared using their URL, headers, and body; however, if you want to use a custom value for the comparison, set the `comparison` attribute on the request. This can be helpful when the request should or should not be refetched in response to a prop change that is not in the request itself. A common situation where this occurs is when two different requests should be refetched together even though one of the requests does not actually include the prop. Note, this is using the request object syntax for `userStatsFetch` instead of just a plain URL string. This syntax allows for more advanced options. See the API documentation for details:
 
-```.jsx
-connect((props) => ({
+```jsx
+connect(props => ({
   usersFetch:  `/users?status=${props.status}&page=${props.page}`,
   userStatsFetch: { url: `/users/stats`, comparison: `${props.status}:${props.page}` }
 }))(UsersList)
@@ -83,8 +83,8 @@ In this example, `usersFetch` is refetched every time `props.status` or `props.p
 
 If you always want data to be refetched when any new props are received, set the `force: true` option on the request. This will take precedence over any custom `comparison` and the default request comparison. For example:
 
-```.jsx
-connect((props) => ({
+```jsx
+connect(props => ({
   usersFetch: `/users?status=${props.status}&page=${props.page}`,
   userStatsFetch: { url: `/users/stats`, force: true }
 }))(UsersList)
@@ -96,8 +96,8 @@ Setting `force: true` should be avoid if at all possible because it could result
 
 If the `refreshInterval` option is provided along with a URL, the data will be refreshed that many milliseconds after the last successful response. If a request was ever rejected, it will not be refreshed or otherwise retried. In this example, `likesFetch` will be refreshed every minute. Note, this is using the request object syntax for `likeFetch` instead of just a plain URL string. This syntax allows for more advanced options. See the [API documentation](https://github.com/heroku/react-refetch/blob/master/docs/api.md) for details.
 
-```.jsx
-connect((props) => ({
+```jsx
+connect(props => ({
   userFetch:`/users/${props.userId}`,
   likesFetch: { url: `/users/${props.userId}/likes`, refreshInterval: 60000 }
 }))(Profile)
@@ -113,10 +113,10 @@ Instead of mapping the props directly to a URL string or request object, you can
 
 Here is a simple example of lazy loading the `likesFetch` with a function:
 
-```.jsx
-connect((props) => ({
+```jsx
+connect(props => ({
   userFetch: `/users/${props.userId}`,
-  lazyFetchLikes: (max) => ({
+  lazyFetchLikes: max => ({
     likesFetch: `/users/${props.userId}/likes?max=${max}`
   })
 }))(Profile)
@@ -124,7 +124,7 @@ connect((props) => ({
 
 In this example, `userFetch` is fetched normally when the component receives  props, but `lazyFetchLikes` is a function that returns `likesFetch`, so nothing is fetched immediately. Instead `lazyFetchLikes` is injected into the component as a function to be called later inside the component:
 
-```.jsx
+```jsx
 this.props.lazyFetchLikes(10)
 ```
 
@@ -134,9 +134,9 @@ When this function is called, the request is calculated using both the bound pro
 
 Functions can also be used for post data to the server in response to a user action. For example:
 
-```.jsx
-connect((props) => ({
-  postLike: (subject) => ({
+```jsx
+connect(props => ({
+  postLike: subject => ({
     postLikeResponse: {
       url: `/users/${props.userId}/likes`
       method: 'POST'
@@ -148,7 +148,7 @@ connect((props) => ({
 
 The `postLike` function is injected in as a prop, which can then be tied to a button:
 
-```.jsx
+```jsx
 <button onClick={() => this.props.postLike(someSubject)}>Like!</button>
 ```
 
@@ -158,8 +158,8 @@ When the user clicks the button, `someSubject` is posted to the URL and the resp
 
 Functions can also be used to manually refresh data by overwriting an existing `PromiseState`:
 
-```.jsx
-connect((props) => ({
+```jsx
+connect(props => ({
   userFetch: `/users/${props.userId}`,
   refreshUser: () => ({
     userFetch: `/users/${props.userId}`
@@ -174,8 +174,8 @@ The `userFetch` data is first loaded normally when the component receives props,
 
 The two examples above can be combined to post data to the server and refresh an existing `PromiseState`. This is a common pattern when a responding to a user action to update a resource and reflect that update in the component. For example, if `PATCH /users/:user_id` responds with the updated user, it can be used to overwrite the existing `userFetch` when the user updates her name:
 
-```.jsx
-connect((props) => ({
+```jsx
+connect(props => ({
   userFetch: `/users/${props.userId}`,
   updateUser: (firstName, lastName) => ({
     userFetch: {
@@ -191,7 +191,7 @@ connect((props) => ({
 
 If a component needs data from more than one URL, the `PromiseState`s can be combined with [`PromiseState.all()`](https://github.com/heroku/react-refetch/blob/master/docs/api.md#promisestate) to be `pending` until all the `PromiseState`s have been fulfilled. For example:
 
-```.jsx
+```jsx
 render() {
   const { userFetch, likesFetch } = this.props
 
@@ -218,8 +218,8 @@ render() {
 
 Similarly, `PromiseState.race()` can be used to return the first settled `PromiseState`. Like their asynchronous [`Promise`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise) counterparts, `PromiseStates` can be chained with `then()` and `catch()`; however, the handlers are run immediately to transform the existing state. This can be helpful to handle errors or transform values as part of a composition. For example, to provide a fallback value to `likesFetch` in the case of failure:
 
-```.jsx
-PromiseState.all([userFetch, likesFetch.catch((reason) => [])])
+```jsx
+PromiseState.all([userFetch, likesFetch.catch(reason => [])])
 ```
 
 ## Chaining Requests
@@ -228,22 +228,22 @@ Inside of `connect()`, requests can be chained using `then()`, `catch()`, `andTh
 
 `then()` is helpful for cases where multiple requests are required to get the data needed by the component and the subsequent request relies on data from the previous request. For example, if you need to make a request to `/foos/${name}` to look up `foo.id` and then make a second request to `/bar-for-foos-by-id/${foo.id}` and return the whole thing as `barFetch` (the component will not have access to the intermediate `foo`):
 
-```.jsx
+```jsx
 connect(({ name }) => ({
   barFetch: {
     url: `/foos/${name}`,
-    then: (foo) => `/bar-for-foos-by-id/${foo.id}`
+    then: foo => `/bar-for-foos-by-id/${foo.id}`
   }
 }))
 ```
 
 `andThen()` is similar, but is intended for side effect requests where you still need access to the result of the first request and/or need to fanout to multiple requests:
 
-```.jsx
+```jsx
 connect(({ name }) => ({
   fooFetch: {
     url: `/foos/${name}`,
-    andThen: (foo) => {
+    andThen: foo => {
       barFetch: `/bar-for-foos-by-id/${foo.id}`
     }
   }
@@ -252,10 +252,10 @@ connect(({ name }) => ({
 
 This is also helpful for cases where a fetch function is changing data that is in some other fetch that is a collection. For example, if you have a list of `foo`s and you create a new `foo` and the list needs to be refreshed:
 
-```.jsx
+```jsx
  connect(({ name }) => ({
     foosFetch: '/foos',
-    createFoo: (name) => {
+    createFoo: name => {
       method: 'POST',
       url: '/foos',
       andThen: () => {
@@ -274,8 +274,8 @@ This is also helpful for cases where a fetch function is changing data that is i
 
 Both request and response headers and other metadata are accessible. Custom request headers can be set on the request as an object:
 
-```.jsx
-connect((props) => ({
+```jsx
+connect(props => ({
   userFetch: {
     url: `/users/${props.userId}`,
     headers: {
@@ -288,7 +288,7 @@ connect((props) => ({
 
 The raw [`Request`](https://developer.mozilla.org/en-US/docs/Web/API/Request) and [`Response`](https://developer.mozilla.org/en-US/docs/Web/API/Response) can be accessed via the `meta` attribute on the `PromiseState`. For example, to access the a response header:
 
-```.jsx
+```jsx
 userFetch.meta.response.headers.get('FOO')
 ```
 
@@ -298,7 +298,7 @@ Do not attempt to read bodies directly from `meta.request` or `meta.response`. T
 
 This is a complex example demonstrating various feature at once:
 
-```.jsx
+```jsx
 import React, { Component, PropTypes } from 'react'
 import { connect, PromiseState } from 'react-refetch'
 
@@ -345,7 +345,7 @@ class Profile extends React.Component {
 }
 
 // declare the requests for fetching the data, assign them props, and connect to the component.
-export default connect((props) => {
+export default connect(props => {
   return {
     // simple GET from a URL injected as `userFetch` prop
     // if `userId` changes, data will be refetched
@@ -361,7 +361,7 @@ export default connect((props) => {
     // declaring a request as a function
     // not immediately fetched, but rather bound to the `userId` prop and injected as `updateStatus` prop
     // when `updateStatus` is called, the `status` is posted and the response is injected as `updateStatusResponse` prop.
-    updateStatus: (status) => {
+    updateStatus: status => {
       updateStatusResponse: {
         url: `/users/${props.params.userId}/status`,
         method: 'POST',
