@@ -159,16 +159,25 @@ When the user clicks the button, `someSubject` is posted to the URL and the resp
 Functions can also be used to manually refresh data by overwriting an existing `PromiseState`:
 
 ```jsx
-connect(props => ({
-  userFetch: `/users/${props.userId}`,
-  refreshUser: () => ({
-    userFetch: `/users/${props.userId}`
-  })
-}))(Profile)
+connect(props => {
+ const url = `/users/${props.userId}`
+
+ return {
+   userFetch: url,
+   refreshUser: () => ({
+     userFetch: {
+       url,
+       force: true,
+       refreshing: true
+     }
+   })
+ }
+})(Profile)
 ```
 
+The `userFetch` data is first loaded normally when the component receives props, but the `refreshUser` function is also injected into the component. When `this.props.refreshUser()` is called, the request is calculated, and compared with the existing `userFetch` request. If the request changed (or `force: true`), the data is refetched and the existing `userFetch` `PromiseState` is overwritten.  This should generally only be used for user-invoked refreshes; see above for [automatically refreshing on an interval](#automatic-refreshing).
 
-The `userFetch` data is first loaded normally when the component receives props, but the `refreshUser` function is also injected into the component. When `this.props.refreshUser()` is called, the data is fetched again and overwrites the existing `userFetch`. Note, you may wish to set the `refreshing: true` option to avoid the existing `PromiseState` being cleared while refresh is in progress. This should generally only be used for user-invoked refreshes; see above for [automatically refreshing on an interval](#automatic-refreshing).
+Note, the example above sets `force: true` and `refreshing: true` on the request returned by the `refreshUser()` function. These attributes are optional, but commonly used with manual refreshes. `force: true` avoids the default request comparison (e.g. `url`, `method`, `headers`, `body`) with the existing `userFetch` request so that every time `this.props.refreshUser()` is called, a fetch is performed. Because the request would not have changed from the last prop change in the example above, `force: true` is required in this case for the fetch to occur when `this.props.refreshUser()` is called. `refreshing: true` avoids the existing `PromiseState` from being cleared while fetch is in progress.
 
 ### Posting + Refreshing Data
 
