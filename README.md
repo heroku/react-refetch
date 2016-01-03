@@ -159,18 +159,25 @@ When the user clicks the button, `someSubject` is posted to the URL and the resp
 Functions can also be used to manually refresh data by overwriting an existing `PromiseState`:
 
 ```jsx
-connect(props => ({
-  userFetch: `/users/${props.userId}`,
-  refreshUser: () => ({
-    userFetch: `/users/${props.userId}`
-  })
-}))(Profile)
+connect(props => {
+ const url = `/users/${props.userId}`
+
+ return {
+   userFetch: url,
+   refreshUser: () => ({
+     userFetch: {
+       url,
+       force: true,
+       refreshing: true
+     }
+   })
+ }
+})(Profile)
 ```
 
+The `userFetch` data is first loaded normally when the component receives props, but the `refreshUser` function is also injected into the component. When `this.props.refreshUser()` is called, the request is calculated, and compared with the existing `userFetch` request. If the request changed (or `force: true`), the data is refetched and the existing `userFetch` `PromiseState` is overwritten.  This should generally only be used for user-invoked refreshes; see above for [automatically refreshing on an interval](#automatic-refreshing).
 
-The `userFetch` data is first loaded normally when the component receives props, but the `refreshUser` function is also injected into the component. When `this.props.refreshUser()` is called, the data is fetched again and overwrites the existing `userFetch`. Note, you may wish to set the `refreshing: true` option to avoid the existing `PromiseState` being cleared while refresh is in progress. This should generally only be used for user-invoked refreshes; see above for [automatically refreshing on an interval](#automatic-refreshing).
-
-When a manual refetch occurs, the mapping that is specified inside the function is compared against mappings of the same key (in the above example the key is userFetch). If the previous mapping is equal to the the new mapping, the refetch will not occur. By default the comparison checks for differences in `url`, `method`, `headers`, and `body`. In the above example, if props.userId is 1, `/users/1` would be fetched, then refetched once if triggered, but not refetched a second time if re-triggered. If props.userId changed, however, a refetch would succeed if triggered. The mapping comparison behavior can be modified by providing a custom comparison using the `comparison` attribute, or by passing in `force: true` if you wish for the refetch function to always refetch when triggered regardless of the mapping equality check.
+Note, the example above sets `force: true` and `refreshing: true` on the request returned by the `refreshUser()` function. These attributes are optional, but commonly used with manual refreshes. `force: true` avoids the default request comparison (e.g. `url`, `method`, `headers`, `body`) with the existing `userFetch` request so that every time `this.props.refreshUser()` is called, a fetch is performed. Because the request would not have changed from the last prop change in the example above, `force: true` is required in this case for the fetch to occur when `this.props.refreshUser()` is called. `refreshing: true` avoids the existing `PromiseState` from being cleared while fetch is in progress.
 
 ### Posting + Refreshing Data
 
