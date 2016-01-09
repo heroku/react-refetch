@@ -370,13 +370,13 @@ export default connect(props => {
     // declaring a request as a function
     // not immediately fetched, but rather bound to the `userId` prop and injected as `updateStatus` prop
     // when `updateStatus` is called, the `status` is posted and the response is injected as `updateStatusResponse` prop.
-    updateStatus: status => {
+    updateStatus: status => ({
       updateStatusResponse: {
         url: `/users/${props.params.userId}/status`,
-        method: 'POST',
-        body: status
+          method: 'POST',
+          body: status
       }
-    }
+    })
   }
 })(Profile)
 ```
