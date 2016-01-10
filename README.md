@@ -373,8 +373,8 @@ export default connect(props => {
     updateStatus: status => ({
       updateStatusResponse: {
         url: `/users/${props.params.userId}/status`,
-          method: 'POST',
-          body: status
+        method: 'POST',
+        body: status
       }
     })
   }
