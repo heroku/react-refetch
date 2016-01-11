@@ -9,7 +9,7 @@ Instead, it *returns* a new, connected component class, for you to use.
 
 #### Arguments
 
-* [`mapPropsToRequestsToProps(props): { prop: request, ... }`] *(Function)*: A pure function of props that specifies the requests to fetch data and the props to which to assign the results. This function is called every time props change, and if the requests materially change, the data will be refetched. Requests can be specified as plain URL strings, request objects, or functions. Plain URL strings are the most common and preferred format, but only support GET URLs with default options. For more advanced options, specify the request as an object the the following keys:
+* [`mapPropsToRequestsToProps(props): { prop: request, ... }`] *(Function)*: A pure function of props that specifies the requests to fetch data and the props to which to assign the results. This function is called every time props change, and if the requests materially change, the data will be refetched. Requests can be specified as plain URL strings, request objects, or functions. Plain URL strings are the most common and preferred format, but only support GET URLs with default options. For more advanced options, specify the request as an object with the following keys:
 
      - `url` *(String)*: Required. HTTP URL from which to fetch the data.
      - `method` *(String)*: HTTP method. Defaults to `GET`.
