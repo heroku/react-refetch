@@ -2,11 +2,14 @@ import expect from 'expect'
 import React, { createClass, Component } from 'react'
 import TestUtils from 'react-addons-test-utils'
 import { connect, PromiseState } from '../../src/index'
+import sinon from 'sinon'
+import visibility from 'visibilityjs'
 
 describe('React', () => {
   describe('connect', () => {
 
     const fetchSpies = []
+    let sandbox
     before(() => {
       window.fetch = () => {
         fetchSpies.forEach((spy) => spy())
@@ -14,6 +17,14 @@ describe('React', () => {
           resolve(new window.Response(JSON.stringify({ T: 't' }), { status: 200, headers: { A: 'a', B: 'b' } }))
         })
       }
+    })
+
+    beforeEach(() => {
+      sandbox = sinon.sandbox.create()
+    })
+
+    afterEach(() => {
+      sandbox.restore()
     })
 
     class Passthrough extends Component {
@@ -152,7 +163,7 @@ describe('React', () => {
       )
 
       const decorated = TestUtils.findRenderedComponentWithType(container, Container)
-      expect(Object.keys(decorated.state.mappings.testFetch).length).toEqual(3)
+      expect(Object.keys(decorated.state.mappings.testFetch).length).toEqual(4)
       expect(decorated.state.mappings.testFetch.method).toEqual('POST')
       expect(decorated.state.mappings.testFetch.url).toEqual('/example')
     })
@@ -369,6 +380,59 @@ describe('React', () => {
           done()
         })
       })
+    })
+
+    it('should not refresh while tab is not visible and refreshHidden is unset', () => {
+      const interval = 100000 // set sufficently far out to not happen during test
+      const fetchSpy = sandbox.spy(window, 'fetch')
+      const unbindStub = sandbox.stub(visibility, 'unbind')
+      let isTabHidden = true
+      let changeFn
+
+      sandbox.stub(visibility, 'hidden', () => isTabHidden)
+      sandbox.stub(visibility, 'change', fn => changeFn = fn)
+
+      @connect(() => ({ testFetch: { url: `/example`, refreshInterval: interval, refreshHidden: false } }))
+      class Container extends Component {
+        render() {
+          return <Passthrough {...this.props} />
+        }
+      }
+
+      TestUtils.renderIntoDocument(
+        <Container />
+      )
+
+      expect(fetchSpy.called).toEqual(false)
+
+      // trigger visibility change
+      isTabHidden = false
+      changeFn()
+
+      expect(fetchSpy.called).toEqual(true)
+      expect(unbindStub.called).toEqual(true)
+    })
+
+    it('should refresh while tab is not visible and refreshHidden is set', () => {
+      const interval = 100000 // set sufficently far out to not happen during test
+      const fetchSpy = sandbox.spy(window, 'fetch')
+
+      let isTabHidden = true
+
+      sandbox.stub(visibility, 'hidden', () => isTabHidden)
+
+      @connect(() => ({ testFetch: { url: `/example`, refreshInterval: interval, refreshHidden: true } }))
+      class Container extends Component {
+        render() {
+          return <Passthrough {...this.props} />
+        }
+      }
+
+      TestUtils.renderIntoDocument(
+        <Container />
+      )
+
+      expect(fetchSpy.called).toEqual(true)
     })
 
     it('should not set refreshTimeouts when refreshInterval is not provided', (done) => {

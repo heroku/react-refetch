@@ -105,6 +105,8 @@ connect(props => ({
 
 When refreshing, the `PromiseState` will be the same as a the previous `fulfilled` state, but with the `refreshing` attribute set. That is, `pending` will remain unset and the existing `value` will be left in tact. When the refresh completes, `refreshing` will be unset and the `value` will be updated with the latest data. If the refresh is rejected, the `PromiseState` will move into a `rejected` and not attempt to refresh again.
 
+If the `refreshHidden` options is provided with `false` value the automatic refresh will be disabled while the browser tab is hidden. `refreshHidden` is `true` by default.
+
 ## Fetch Functions
 
 Instead of mapping the props directly to a URL string or request object, you can also map the props to a function that returns a URL string or request object. When the component receives props, instead of the data being fetched immediately and injected as a `PromiseState`, the function is bound to the props and injected into the component as functional prop to be called later (usually in response to a user action). This can be used to either lazy load data, post data to the server, or refresh data. These are best shown with examples:
