@@ -47,14 +47,15 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
     }
 
     invariant(isPlainObject(mapping), 'Request for `%s` must be either a string or a plain object. Instead received %s', prop, mapping)
-    invariant(mapping.url, 'Request object for `%s` must have `url` attribute.', prop)
+    invariant(mapping.url || mapping.value, 'Request object for `%s` must have `url` (or `value`) attribute.', prop)
+    invariant(!(mapping.url && mapping.value), 'Request object for `%s` must not have both `url` and `value` attributes.', prop)
 
     mapping.equals = function (that) {
       if (this.comparison !== undefined) {
         return this.comparison === that.comparison
       }
 
-      return [ 'url', 'method', 'headers', 'body' ].every((c) => {
+      return [ 'value', 'url', 'method', 'headers', 'body' ].every((c) => {
         return shallowEqual(deepValue(this, c), deepValue(that, c))
       })
     }.bind(mapping)
@@ -156,6 +157,11 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
 
         if (this.state.refreshTimeouts[prop]) {
           window.clearTimeout(this.state.refreshTimeouts[prop])
+        }
+
+        if (mapping.value) {
+          this.setAtomicState(prop, startedAt, mapping, PromiseState.resolve(mapping.value), null)
+          return
         }
 
         const request = buildRequest(mapping)

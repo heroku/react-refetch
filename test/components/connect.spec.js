@@ -157,6 +157,55 @@ describe('React', () => {
       expect(decorated.state.mappings.testFetch.url).toEqual('/example')
     })
 
+    it('should passthrough value of identity requests', () => {
+      @connect(() => ({ testFetch: { value: 'foo' } }))
+      class Container extends Component {
+        render() {
+          return <Passthrough {...this.props} />
+        }
+      }
+
+      const container = TestUtils.renderIntoDocument(
+        <Container />
+      )
+
+      const decorated = TestUtils.findRenderedComponentWithType(container, Container)
+      expect(decorated.state.mappings.testFetch.value).toEqual('foo')
+
+      const stub = TestUtils.findRenderedComponentWithType(container, Passthrough)
+      expect(stub.props.testFetch).toIncludeKeyValues({
+        fulfilled: true, pending: false, refreshing: false, reason: null, rejected: false, settled: true, value: 'foo'
+      })
+    })
+
+    it('identity requests should compose with url responses', (done) => {
+      @connect(() => ({
+        testFetch: {
+          url: '/test',
+          then: (r) => ({
+            value: `[${Object.keys(r)[0]}]`
+          })
+        }
+      }))
+      class Container extends Component {
+        render() {
+          return <Passthrough {...this.props} />
+        }
+      }
+
+      const container = TestUtils.renderIntoDocument(
+        <Container />
+      )
+
+      setImmediate(() => {
+        const stub = TestUtils.findRenderedComponentWithType(container, Passthrough)
+        expect(stub.props.testFetch).toIncludeKeyValues({
+          fulfilled: true, pending: false, refreshing: false, reason: null, rejected: false, settled: true, value: '[T]'
+        })
+        done()
+      })
+    })
+
     it('should allow functional mappings', () => {
       const props = ({
         foo: 'bar',
