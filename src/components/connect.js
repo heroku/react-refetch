@@ -159,51 +159,57 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
           window.clearTimeout(this.state.refreshTimeouts[prop])
         }
 
-        if (mapping.value) {
-          this.setAtomicState(prop, startedAt, mapping, PromiseState.resolve(mapping.value), null)
-          return
-        }
+        return this.createPromise(prop, mapping, startedAt).then(([ value, meta ]) => {
+          let refreshTimeout = null
+          if (mapping.refreshInterval > 0) {
+            refreshTimeout = window.setTimeout(() => {
+              this.refetchDatum(prop, Object.assign({}, mapping, { refreshing: true, force: true }))
+            }, mapping.refreshInterval)
+          }
 
-        const request = buildRequest(mapping)
-        const meta = { request: request }
+          if (Function.prototype.isPrototypeOf(mapping.then)) {
+            this.refetchDatum(prop, coerceMapping(null, mapping.then(value, meta)))
+            return
+          }
 
-        const initPS = mapping.refreshing ? PromiseState.refresh(this.state.data[prop], meta) : PromiseState.create(meta)
-        this.setAtomicState(prop, startedAt, mapping, initPS, null)
-
-        window.fetch(request).then(response => {
-          meta.response = response
-
-          return Promise.resolve(response).then(handleResponse).then(value => {
-            let refreshTimeout = null
-            if (mapping.refreshInterval > 0) {
-              refreshTimeout = window.setTimeout(() => {
-                this.refetchDatum(prop, Object.assign({}, mapping, { refreshing: true, force: true }))
-              }, mapping.refreshInterval)
+          this.setAtomicState(prop, startedAt, mapping, PromiseState.resolve(value, meta), refreshTimeout, () => {
+            if (Function.prototype.isPrototypeOf(mapping.andThen)) {
+              this.refetchDataFromMappings(mapping.andThen(value, meta))
             }
+          })
+        }).catch(([ reason, meta ]) => {
+          if (Function.prototype.isPrototypeOf(mapping.catch)) {
+            this.refetchDatum(coerceMapping(null, mapping.catch(reason, meta)))
+            return
+          }
 
-            if (Function.prototype.isPrototypeOf(mapping.then)) {
-              this.refetchDatum(prop, coerceMapping(null, mapping.then(value, meta)))
-              return
+          this.setAtomicState(prop, startedAt, mapping, PromiseState.reject(reason, meta), null, () => {
+            if (Function.prototype.isPrototypeOf(mapping.andCatch)) {
+              this.refetchDataFromMappings(mapping.andCatch(reason, meta))
             }
-
-            this.setAtomicState(prop, startedAt, mapping, PromiseState.resolve(value, meta), refreshTimeout, () => {
-              if (Function.prototype.isPrototypeOf(mapping.andThen)) {
-                this.refetchDataFromMappings(mapping.andThen(value, meta))
-              }
-            })
-          }).catch(reason => {
-            if (Function.prototype.isPrototypeOf(mapping.catch)) {
-              this.refetchDatum(coerceMapping(null, mapping.catch(reason, meta)))
-              return
-            }
-
-            this.setAtomicState(prop, startedAt, mapping, PromiseState.reject(reason, meta), null, () => {
-              if (Function.prototype.isPrototypeOf(mapping.andCatch)) {
-                this.refetchDataFromMappings(mapping.andCatch(reason, meta))
-              }
-            })
           })
         })
+      }
+
+      createPromise(prop, mapping, startedAt) {
+        if (mapping.value) {
+          return Promise.all([
+            Promise.resolve(mapping.value),
+            Promise.resolve({})
+          ])
+        } else {
+          const request = buildRequest(mapping)
+          const meta = { request: request }
+          const initPS = mapping.refreshing ? PromiseState.refresh(this.state.data[prop], meta) : PromiseState.create(meta)
+          this.setAtomicState(prop, startedAt, mapping, initPS)
+
+          return window.fetch(request).then(response => {
+            return Promise.all([
+              handleResponse(response),
+              Promise.resolve(Object.assign(meta, { response: response }))
+            ])
+          })
+        }
       }
 
       setAtomicState(prop, startedAt, mapping, datum, refreshTimeout, callback) {

@@ -157,7 +157,7 @@ describe('React', () => {
       expect(decorated.state.mappings.testFetch.url).toEqual('/example')
     })
 
-    it('should passthrough value of identity requests', () => {
+    it('should passthrough value of identity requests', (done) => {
       @connect(() => ({ testFetch: { value: 'foo' } }))
       class Container extends Component {
         render() {
@@ -169,12 +169,43 @@ describe('React', () => {
         <Container />
       )
 
-      const decorated = TestUtils.findRenderedComponentWithType(container, Container)
-      expect(decorated.state.mappings.testFetch.value).toEqual('foo')
+      setImmediate(() => {
+        const decorated = TestUtils.findRenderedComponentWithType(container, Container)
+        expect(decorated.state.mappings.testFetch.value).toEqual('foo')
 
-      const stub = TestUtils.findRenderedComponentWithType(container, Passthrough)
-      expect(stub.props.testFetch).toIncludeKeyValues({
-        fulfilled: true, pending: false, refreshing: false, reason: null, rejected: false, settled: true, value: 'foo'
+        const stub = TestUtils.findRenderedComponentWithType(container, Passthrough)
+        expect(stub.props.testFetch).toIncludeKeyValues({
+          fulfilled: true, pending: false, refreshing: false, reason: null, rejected: false, settled: true, value: 'foo'
+        })
+        done()
+      })
+    })
+
+    it('identity requests should compose with identity responses', (done) => {
+      @connect(() => ({
+        testFetch: {
+          value: 'foo',
+          then: (r) => ({
+            value: `[${r}]`
+          })
+        }
+      }))
+      class Container extends Component {
+        render() {
+          return <Passthrough {...this.props} />
+        }
+      }
+
+      const container = TestUtils.renderIntoDocument(
+        <Container />
+      )
+
+      setImmediate(() => {
+        const stub = TestUtils.findRenderedComponentWithType(container, Passthrough)
+        expect(stub.props.testFetch).toIncludeKeyValues({
+          fulfilled: true, pending: false, refreshing: false, reason: null, rejected: false, settled: true, value: '[foo]'
+        })
+        done()
       })
     })
 
@@ -383,7 +414,7 @@ describe('React', () => {
         fulfilled: false, pending: true, reason: null, refreshing: false, rejected: false, settled: false, value: null
       })
       expect(pending.state.mappings.testFetch.refreshInterval).toEqual(interval)
-      expect(pending.state.refreshTimeouts.testFetch).toEqual(null)
+      expect(pending.state.refreshTimeouts.testFetch).toEqual(undefined)
 
       setImmediate(() => {
         const fulfilled = TestUtils.findRenderedComponentWithType(container, Container)
@@ -403,7 +434,7 @@ describe('React', () => {
           fulfilled: true, pending: false, reason: null, refreshing: true, rejected: false, settled: true, value: { T: 't' }
         })
         expect(refreshing.state.mappings.testFetch.refreshInterval).toEqual(interval)
-        expect(refreshing.state.refreshTimeouts.testFetch).toEqual(null)
+        expect(refreshing.state.refreshTimeouts.testFetch).toEqual(undefined)
 
         setImmediate(() => {
           const fulfilledAgain = TestUtils.findRenderedComponentWithType(container, Container)
