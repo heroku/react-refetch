@@ -3,6 +3,7 @@ import React, { Component } from 'react'
 import isPlainObject from '../utils/isPlainObject'
 import deepValue from '../utils/deepValue'
 import shallowEqual from '../utils/shallowEqual'
+import newError from '../utils/errors'
 import PromiseState from '../PromiseState'
 import hoistStatics from 'hoist-non-react-statics'
 import invariant from 'invariant'
@@ -80,16 +81,7 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
     if (response.status >= 200 && response.status < 300) { // TODO: support custom acceptable statuses
       return json
     } else {
-      return json.then((errorJson) => {
-        const { id, error, message } = errorJson
-        if (error) {
-          throw new Error(error, id)
-        } else if (message) {
-          throw new Error(message, id)
-        } else {
-          throw new Error(errorJson)
-        }
-      })
+      return json.then(cause => Promise.reject(newError(cause)))
     }
   }
 
