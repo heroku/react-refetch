@@ -8,10 +8,14 @@ describe('React', () => {
 
     const fetchSpies = []
     before(() => {
-      window.fetch = () => {
+      window.fetch = (request) => {
         fetchSpies.forEach((spy) => spy())
         return new Promise((resolve) => {
-          resolve(new window.Response(JSON.stringify({ T: 't' }), { status: 200, headers: { A: 'a', B: 'b' } }))
+          if (request.url == '/error') {
+            resolve(new window.Response(JSON.stringify({ error: 'e', id: 'not_found' }), { status: 404 }))
+          } else {
+            resolve(new window.Response(JSON.stringify({ T: 't' }), { status: 200, headers: { A: 'a', B: 'b' } }))
+          }
         })
       }
     })
@@ -30,6 +34,7 @@ describe('React', () => {
 
       @connect(({ foo, baz }) => ({
         testFetch: `/${foo}/${baz}`,
+        errorFetch: `/error`,
         testFunc: (arg1, arg2) => ({
           deferredFetch: `/${foo}/${baz}/deferred/${arg1}/${arg2}`
         })
@@ -52,6 +57,11 @@ describe('React', () => {
       })
       expect(stubPending.props.testFetch.constructor).toEqual(PromiseState)
 
+      expect(stubPending.props.errorFetch).toIncludeKeyValues({
+        fulfilled: false, pending: true, refreshing: false, reason: null, rejected: false, settled: false, value: null, meta: {}
+      })
+      expect(stubPending.props.errorFetch.constructor).toEqual(PromiseState)
+
       expect(stubPending.props.testFunc).toBeA('function')
       expect(stubPending.props.deferredFetch).toEqual(undefined)
       stubPending.props.testFunc('A', 'B')
@@ -72,6 +82,15 @@ describe('React', () => {
         expect(stubFulfilled.props.testFetch.meta.response.headers.get('A')).toEqual('a')
         expect(stubFulfilled.props.testFetch.meta.response.status).toEqual(200)
         expect(stubFulfilled.props.testFetch.meta.response.bodyUsed).toEqual(true)
+
+
+        expect(stubFulfilled.props.errorFetch).toIncludeKeyValues({
+          fulfilled: false, pending: false, refreshing: false, reason: { message: 'e', cause: { error: 'e', id: 'not_found' } }, rejected: true, settled: true, value: null
+        })
+        expect(stubFulfilled.props.errorFetch.meta.request.headers.get('Accept')).toEqual('application/json')
+        expect(stubFulfilled.props.errorFetch.meta.response.status).toEqual(404)
+        expect(stubFulfilled.props.errorFetch.meta.response.bodyUsed).toEqual(true)
+
         done()
       })
     })
