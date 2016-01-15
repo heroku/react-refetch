@@ -49,6 +49,8 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
     invariant(isPlainObject(mapping), 'Request for `%s` must be either a string or a plain object. Instead received %s', prop, mapping)
     invariant(mapping.url, 'Request object for `%s` must have `url` attribute.', prop)
 
+    mapping = assignDefaults(mapping)
+
     mapping.equals = function (that) {
       if (this.comparison !== undefined) {
         return this.comparison === that.comparison
@@ -62,15 +64,32 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
     return mapping
   }
 
+  function assignDefaults(mapping) {
+    return Object.assign(
+      {
+        method: 'GET',
+        credentials: 'same-origin',
+        redirect: 'follow'
+      },
+      mapping,
+      {
+        headers: Object.assign(
+          {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          },
+          mapping.headers
+        )
+      }
+    )
+  }
+
   function buildRequest(mapping) {
     return new window.Request(mapping.url, {
-      method: mapping.method || 'GET',
-      headers: Object.assign({
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      }, mapping.headers),
-      credentials: mapping.credentials || 'same-origin',
-      redirect: mapping.redirect || 'follow',
+      method: mapping.method,
+      headers: mapping.headers,
+      credentials: mapping.credentials,
+      redirect: mapping.redirect,
       body: mapping.body
     })
   }

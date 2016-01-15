@@ -3,7 +3,7 @@ export default function shallowEqual(objA, objB) {
     return true
   }
 
-  if (objA || objB) {
+  if (objA === undefined || objB === undefined) {
     return false
   }
 
