@@ -279,6 +279,44 @@ This is also helpful for cases where a fetch function is changing data that is i
 
 `catch` and `andCatch` are similar, but for error cases.
 
+## Identity Requests: Static Data & Transforming Responses
+
+To support static data and response transformations, there is a special kind of request called an "identity request" that has a `value` instead of a `url`. The `value` is passed through directly to the `PromiseState` without actually fetching anything. In its pure form, it looks like this:
+
+```jsx
+connect(props => ({
+  usersFetch: {
+    value: [
+      {
+        id: 1,
+        name: 'Jane Doe',
+        verified: true
+      },
+      {
+        id: 2,
+        name: 'John Doe',
+        verified: false
+      }
+    ]
+  }
+}))(Users)
+```
+
+In this case the `userFetch` `PromiseState` will be set to the provided list of users. The use case for identity requests by themselves is limited to mostly injecting static data during development and testing; however, they can be quite powerful when used with [request chaining](#chaining-requests). For example, it is possible to fetch data from the server, filter it within a `then` function, and return an identity request:
+
+```jsx
+connect(props => ({
+  usersFetch: {
+    url: `/users`,
+    then: (users) => ({
+      value: users.filter(u => u.verified)
+    })
+  }
+}))(Users)
+```
+
+Note, this form of transformation is similar to what is possible on the `PromiseState` (i.e. `this.props.usersFetch.then(users => users.filter(u => u.verified))`); however, this has the advantage of only being called when `usersFetch` changes and keeps the logic out of the component. 
+
 ## Accessing Headers & Metadata
 
 Both request and response headers and other metadata are accessible. Custom request headers can be set on the request as an object:

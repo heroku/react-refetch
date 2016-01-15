@@ -47,7 +47,8 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
     }
 
     invariant(isPlainObject(mapping), 'Request for `%s` must be either a string or a plain object. Instead received %s', prop, mapping)
-    invariant(mapping.url, 'Request object for `%s` must have `url` attribute.', prop)
+    invariant(mapping.url || mapping.value, 'Request object for `%s` must have `url` (or `value`) attribute.', prop)
+    invariant(!(mapping.url && mapping.value), 'Request object for `%s` must not have both `url` and `value` attributes.', prop)
 
     mapping = assignDefaults(mapping)
 
@@ -56,7 +57,7 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
         return this.comparison === that.comparison
       }
 
-      return [ 'url', 'method', 'headers', 'body' ].every((c) => {
+      return [ 'value', 'url', 'method', 'headers', 'body' ].every((c) => {
         return shallowEqual(deepValue(this, c), deepValue(that, c))
       })
     }.bind(mapping)
@@ -177,16 +178,33 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
           window.clearTimeout(this.state.refreshTimeouts[prop])
         }
 
-        const request = buildRequest(mapping)
-        const meta = { request: request }
+        return this.createPromise(prop, mapping, startedAt)
+      }
 
-        const initPS = mapping.refreshing ? PromiseState.refresh(this.state.data[prop], meta) : PromiseState.create(meta)
-        this.setAtomicState(prop, startedAt, mapping, initPS, null)
+      createPromise(prop, mapping, startedAt) {
+        const onFulfillment = this.createPromiseStateOnFulfillment(prop, mapping, startedAt)
+        const onRejection = this.createPromiseStateOnRejection(prop, mapping, startedAt)
 
-        window.fetch(request).then(response => {
-          meta.response = response
+        if (mapping.value) {
+          const meta = {}
+          return Promise.resolve(mapping.value).then(onFulfillment(meta), onRejection(meta))
+        } else {
+          const request = buildRequest(mapping)
+          const meta = { request: request }
+          const initPS = mapping.refreshing ? PromiseState.refresh(this.state.data[prop], meta) : PromiseState.create(meta)
+          this.setAtomicState(prop, startedAt, mapping, initPS)
 
-          return Promise.resolve(response).then(handleResponse).then(value => {
+          const fetched = window.fetch(request)
+          return fetched.then(response => {
+            meta.response = response
+            return fetched.then(handleResponse).then(onFulfillment(meta), onRejection(meta))
+          })
+        }
+      }
+
+      createPromiseStateOnFulfillment(prop, mapping, startedAt) {
+        return (meta) => {
+          return (value) => {
             let refreshTimeout = null
             if (mapping.refreshInterval > 0) {
               refreshTimeout = window.setTimeout(() => {
@@ -204,7 +222,13 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
                 this.refetchDataFromMappings(mapping.andThen(value, meta))
               }
             })
-          }).catch(reason => {
+          }
+        }
+      }
+
+      createPromiseStateOnRejection(prop, mapping, startedAt) {
+        return (meta) => {
+          return (reason) => {
             if (Function.prototype.isPrototypeOf(mapping.catch)) {
               this.refetchDatum(coerceMapping(null, mapping.catch(reason, meta)))
               return
@@ -215,8 +239,8 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
                 this.refetchDataFromMappings(mapping.andCatch(reason, meta))
               }
             })
-          })
-        })
+          }
+        }
       }
 
       setAtomicState(prop, startedAt, mapping, datum, refreshTimeout, callback) {
