@@ -218,7 +218,7 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
         return (meta) => {
           return (reason) => {
             if (Function.prototype.isPrototypeOf(mapping.catch)) {
-              this.refetchDatum(coerceMapping(null, mapping.catch(reason, meta)))
+              this.refetchDatum(prop, coerceMapping(null, mapping.catch(reason, meta)))
               return
             }
 
