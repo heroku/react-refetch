@@ -169,6 +169,14 @@ describe('React', () => {
         <Container />
       )
 
+      const decorated = TestUtils.findRenderedComponentWithType(container, Container)
+      expect(decorated.state.mappings.testFetch.value).toEqual('foo')
+
+      const stub = TestUtils.findRenderedComponentWithType(container, Passthrough)
+      expect(stub.props.testFetch).toIncludeKeyValues({
+        fulfilled: false, pending: true, refreshing: false, reason: null, rejected: false, settled: false, value: null
+      })
+
       setImmediate(() => {
         const decorated = TestUtils.findRenderedComponentWithType(container, Container)
         expect(decorated.state.mappings.testFetch.value).toEqual('foo')

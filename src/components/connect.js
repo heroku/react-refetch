@@ -163,23 +163,30 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
       }
 
       createPromise(prop, mapping, startedAt) {
+        const initPS = this.createInitialPromiseState(prop, mapping)
         const onFulfillment = this.createPromiseStateOnFulfillment(prop, mapping, startedAt)
         const onRejection = this.createPromiseStateOnRejection(prop, mapping, startedAt)
 
         if (mapping.value) {
           const meta = {}
+          this.setAtomicState(prop, startedAt, mapping, initPS(meta))
           return Promise.resolve(mapping.value).then(onFulfillment(meta), onRejection(meta))
         } else {
           const request = buildRequest(mapping)
           const meta = { request: request }
-          const initPS = mapping.refreshing ? PromiseState.refresh(this.state.data[prop], meta) : PromiseState.create(meta)
-          this.setAtomicState(prop, startedAt, mapping, initPS)
+          this.setAtomicState(prop, startedAt, mapping, initPS(meta))
 
           const fetched = window.fetch(request)
           return fetched.then(response => {
             meta.response = response
             return fetched.then(handleResponse).then(onFulfillment(meta), onRejection(meta))
           })
+        }
+      }
+
+      createInitialPromiseState(prop, mapping) {
+        return (meta) => {
+          return mapping.refreshing ? PromiseState.refresh(this.state.data[prop], meta) : PromiseState.create(meta)
         }
       }
 
