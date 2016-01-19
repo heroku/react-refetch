@@ -26,7 +26,8 @@ Instead, it *returns* a new, connected component class, for you to use.
      - `andThen(value, meta): { prop: request, ... }` *(Function)*: returns an object of request mappings to fetch after fulfillment of this request but does not replace this request. Takes the `value` and `meta` of this request as arguments.
      - `andCatch(reason, meta): { prop: request, ... }` *(Function)*: returns an object of request mappings to fetch after rejection of this request but does not replace this request. Takes the `value` and `meta` of this request as arguments.
      - `value` *(Any)*: Data to passthrough directly to `PromiseState` as an alternative to providing a URL. This is an advanced option used for static data and data transformations. 
-
+     - `meta` *(Any)*: Metadata to passthrough directly to `PromiseState`. This attribute is only recognized if `value` is also provided.
+     
 Requests specified as functions are not fetched immediately when props are received, but rather bound to the props and injected into the component to be called at a later time in response to user actions. Functions should be pure and return the same format as `mapPropsToRequestsToProps` itself. If a function maps a request to the same name as an existing prop, the prop will be overwritten. This is commonly used for taking some action that updates an existing `PromiseState`. Consider setting `refreshing: true` in such it situation. 
 
 * [`options`] *(Object)* If specified, further customizes the behavior of the connector.
