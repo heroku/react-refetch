@@ -181,7 +181,7 @@ describe('React', () => {
     })
 
     it('should passthrough value of identity requests', (done) => {
-      @connect(() => ({ testFetch: { value: 'foo' } }))
+      @connect(() => ({ testFetch: { value: 'foo', meta: 'voodoo' } }))
       class Container extends Component {
         render() {
           return <Passthrough {...this.props} />
@@ -197,7 +197,7 @@ describe('React', () => {
 
       const stub = TestUtils.findRenderedComponentWithType(container, Passthrough)
       expect(stub.props.testFetch).toIncludeKeyValues({
-        fulfilled: false, pending: true, refreshing: false, reason: null, rejected: false, settled: false, value: null
+        fulfilled: false, pending: true, refreshing: false, reason: null, rejected: false, settled: false, value: null, meta: 'voodoo'
       })
 
       setImmediate(() => {
@@ -206,7 +206,7 @@ describe('React', () => {
 
         const stub = TestUtils.findRenderedComponentWithType(container, Passthrough)
         expect(stub.props.testFetch).toIncludeKeyValues({
-          fulfilled: true, pending: false, refreshing: false, reason: null, rejected: false, settled: true, value: 'foo'
+          fulfilled: true, pending: false, refreshing: false, reason: null, rejected: false, settled: true, value: 'foo', meta: 'voodoo'
         })
         done()
       })
