@@ -71,6 +71,7 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
       {
         method: 'GET',
         credentials: 'same-origin',
+        mode: 'cors',
         redirect: 'follow'
       },
       mapping,
@@ -91,6 +92,7 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
       method: mapping.method,
       headers: mapping.headers,
       credentials: mapping.credentials,
+      mode: mapping.mode,
       redirect: mapping.redirect,
       body: mapping.body
     })
