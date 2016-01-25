@@ -53,6 +53,8 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
 
     mapping = assignDefaults(mapping)
 
+    invariant(isPlainObject(mapping.meta), 'meta for `%s` must be a plain object. Instead received %s', prop, mapping.meta)
+
     mapping.equals = function (that) {
       if (this.comparison !== undefined) {
         return this.comparison === that.comparison
@@ -71,7 +73,8 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
       {
         method: 'GET',
         credentials: 'same-origin',
-        redirect: 'follow'
+        redirect: 'follow',
+        meta: {}
       },
       mapping,
       {
@@ -174,17 +177,17 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
       }
 
       createPromise(prop, mapping, startedAt) {
+        const meta = mapping.meta
         const initPS = this.createInitialPromiseState(prop, mapping)
         const onFulfillment = this.createPromiseStateOnFulfillment(prop, mapping, startedAt)
         const onRejection = this.createPromiseStateOnRejection(prop, mapping, startedAt)
 
         if (mapping.value) {
-          const meta = mapping.meta || {}
           this.setAtomicState(prop, startedAt, mapping, initPS(meta))
           return Promise.resolve(mapping.value).then(onFulfillment(meta), onRejection(meta))
         } else {
           const request = buildRequest(mapping)
-          const meta = { request: request }
+          meta.request = request
           this.setAtomicState(prop, startedAt, mapping, initPS(meta))
 
           const fetched = window.fetch(request)

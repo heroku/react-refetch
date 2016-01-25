@@ -33,7 +33,12 @@ describe('React', () => {
       })
 
       @connect(({ foo, baz }) => ({
-        testFetch: `/${foo}/${baz}`,
+        testFetch: {
+          url: `/${foo}/${baz}`,
+          meta: {
+            test: 'voodoo'
+          }
+        },
         errorFetch: `/error`,
         testFunc: (arg1, arg2) => ({
           deferredFetch: `/${foo}/${baz}/deferred/${arg1}/${arg2}`
@@ -53,7 +58,7 @@ describe('React', () => {
       expect(stubPending.props.foo).toEqual('bar')
       expect(stubPending.props.baz).toEqual(42)
       expect(stubPending.props.testFetch).toIncludeKeyValues({
-        fulfilled: false, pending: true, refreshing: false, reason: null, rejected: false, settled: false, value: null, meta: {}
+        fulfilled: false, pending: true, refreshing: false, reason: null, rejected: false, settled: false, value: null, meta: { test: 'voodoo' }
       })
       expect(stubPending.props.testFetch.constructor).toEqual(PromiseState)
 
@@ -78,6 +83,8 @@ describe('React', () => {
         expect(stubFulfilled.props.testFetch).toIncludeKeyValues({
           fulfilled: true, pending: false, refreshing: false, reason: null, rejected: false, settled: true, value: { T: 't' }
         })
+        expect(stubFulfilled.props.testFetch.meta.test).toEqual('voodoo')
+        expect(stubFulfilled.props.testFetch.meta.request.headers.get('Accept')).toEqual('application/json')
         expect(stubFulfilled.props.testFetch.meta.request.headers.get('Accept')).toEqual('application/json')
         expect(stubFulfilled.props.testFetch.meta.response.headers.get('A')).toEqual('a')
         expect(stubFulfilled.props.testFetch.meta.response.status).toEqual(200)
@@ -171,7 +178,7 @@ describe('React', () => {
       )
 
       const decorated = TestUtils.findRenderedComponentWithType(container, Container)
-      expect(Object.keys(decorated.state.mappings.testFetch).length).toEqual(6)
+      expect(Object.keys(decorated.state.mappings.testFetch).length).toEqual(7)
       expect(decorated.state.mappings.testFetch.method).toEqual('POST')
       expect(decorated.state.mappings.testFetch.headers).toEqual({ Accept: 'application/json', 'Content-Type': 'overwrite-default', 'X-Foo': 'custom-foo' })
       expect(decorated.state.mappings.testFetch.credentials).toEqual('same-origin')
@@ -181,7 +188,7 @@ describe('React', () => {
     })
 
     it('should passthrough value of identity requests', (done) => {
-      @connect(() => ({ testFetch: { value: 'foo', meta: 'voodoo' } }))
+      @connect(() => ({ testFetch: { value: 'foo', meta: { test: 'voodoo' } } }))
       class Container extends Component {
         render() {
           return <Passthrough {...this.props} />
@@ -197,7 +204,7 @@ describe('React', () => {
 
       const stub = TestUtils.findRenderedComponentWithType(container, Passthrough)
       expect(stub.props.testFetch).toIncludeKeyValues({
-        fulfilled: false, pending: true, refreshing: false, reason: null, rejected: false, settled: false, value: null, meta: 'voodoo'
+        fulfilled: false, pending: true, refreshing: false, reason: null, rejected: false, settled: false, value: null, meta: { test: 'voodoo' }
       })
 
       setImmediate(() => {
@@ -206,7 +213,7 @@ describe('React', () => {
 
         const stub = TestUtils.findRenderedComponentWithType(container, Passthrough)
         expect(stub.props.testFetch).toIncludeKeyValues({
-          fulfilled: true, pending: false, refreshing: false, reason: null, rejected: false, settled: true, value: 'foo', meta: 'voodoo'
+          fulfilled: true, pending: false, refreshing: false, reason: null, rejected: false, settled: true, value: 'foo', meta: { test: 'voodoo' }
         })
         done()
       })
