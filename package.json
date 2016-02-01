@@ -58,7 +58,7 @@
     "invariant": "^2.0.0"
   },
   "peerDependencies": {
-    "whatwg-fetch": "^0.10.1",
+    "whatwg-fetch": "*",
     "react": "^0.14.0"
   }
 }
