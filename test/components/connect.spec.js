@@ -817,8 +817,8 @@ describe('React', () => {
 
     it('should hoist non-react statics from wrapped component', () => {
       class Container extends Component {
-        static howIsRedux = () => 'Awesome!'
-        static foo = 'bar'
+        static howIsRedux = () => 'Awesome!';
+        static foo = 'bar';
 
         render() {
           return <Passthrough />
