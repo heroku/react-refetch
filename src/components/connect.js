@@ -1,3 +1,5 @@
+require('es6-promise').polyfill()
+import 'isomorphic-fetch'
 import 'whatwg-fetch'
 import React, { Component } from 'react'
 import isPlainObject from '../utils/isPlainObject'
@@ -90,13 +92,17 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
   }
 
   function buildRequest(mapping) {
-    return new window.Request(mapping.url, {
+    const map = {
       method: mapping.method,
       headers: mapping.headers,
       credentials: mapping.credentials,
       redirect: mapping.redirect,
       body: mapping.body
-    })
+    }
+    if (typeof window !== undefined) {
+      return new window.Request(mapping.url, map)
+    }
+    return new global.Request(mapping.url, map)
   }
 
   function handleResponse(response) {
@@ -170,7 +176,12 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
         const startedAt = new Date()
 
         if (this.state.refreshTimeouts[prop]) {
-          window.clearTimeout(this.state.refreshTimeouts[prop])
+          if (typeof window === undefined) {
+            global.clearTimeout(this.state.refreshTimeouts[prop])
+          } else {
+            window.clearTimeout(this.state.refreshTimeouts[prop])
+          }
+
         }
 
         return this.createPromise(prop, mapping, startedAt)
@@ -190,7 +201,7 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
           meta.request = request
           this.setAtomicState(prop, startedAt, mapping, initPS(meta))
 
-          const fetched = window.fetch(request)
+          const fetched = typeof window === undefined ? global.fetch(request) : window.fetch(request)
           return fetched.then(response => {
             meta.response = response
             return fetched.then(handleResponse).then(onFulfillment(meta), onRejection(meta))
@@ -209,7 +220,9 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
           return (value) => {
             let refreshTimeout = null
             if (mapping.refreshInterval > 0) {
-              refreshTimeout = window.setTimeout(() => {
+              refreshTimeout = typeof window === undefined ? global.setTimeout(() => {
+                this.refetchDatum(prop, Object.assign({}, mapping, { refreshing: true, force: true }))
+              }, mapping.refreshInterval) : window.setTimeout(() => {
                 this.refetchDatum(prop, Object.assign({}, mapping, { refreshing: true, force: true }))
               }, mapping.refreshInterval)
             }
