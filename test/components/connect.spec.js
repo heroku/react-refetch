@@ -187,7 +187,7 @@ describe('React', () => {
       expect(decorated.state.mappings.testFetch.equals).toBeA('function')
     })
 
-    it('should passthrough value of identity requests', (done) => {
+    it('should passthrough value of identity requests', () => {
       @connect(() => ({ testFetch: { value: 'foo', meta: { test: 'voodoo' } } }))
       class Container extends Component {
         render() {
@@ -204,18 +204,7 @@ describe('React', () => {
 
       const stub = TestUtils.findRenderedComponentWithType(container, Passthrough)
       expect(stub.props.testFetch).toIncludeKeyValues({
-        fulfilled: false, pending: true, refreshing: false, reason: null, rejected: false, settled: false, value: null, meta: { test: 'voodoo' }
-      })
-
-      setImmediate(() => {
-        const decorated = TestUtils.findRenderedComponentWithType(container, Container)
-        expect(decorated.state.mappings.testFetch.value).toEqual('foo')
-
-        const stub = TestUtils.findRenderedComponentWithType(container, Passthrough)
-        expect(stub.props.testFetch).toIncludeKeyValues({
-          fulfilled: true, pending: false, refreshing: false, reason: null, rejected: false, settled: true, value: 'foo', meta: { test: 'voodoo' }
-        })
-        done()
+        fulfilled: true, pending: false, refreshing: false, reason: null, rejected: false, settled: true, value: 'foo', meta: { test: 'voodoo' }
       })
     })
 
