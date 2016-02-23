@@ -741,6 +741,84 @@ describe('React', () => {
       })
     })
 
+    it('should compare requests using provided comparison of parent request if then is also provided', (done) => {
+      const fetchSpy = expect.createSpy(() => ({}))
+      fetchSpies.push(fetchSpy)
+
+      const renderSpy = expect.createSpy(() => ({}))
+
+      function render() {
+        renderSpy()
+        return <Passthrough/>
+      }
+
+      @connect(({ foo }) => ({
+        testFetch: {
+          url: '/resource-without-foo',
+          comparison: foo,
+          then: (v, m) => ({ value: v, meta: m })
+        }
+      }))
+      class WithProps extends Component {
+        render() {
+          return render(this.props)
+        }
+      }
+
+      class OuterComponent extends Component {
+        constructor() {
+          super()
+          this.state = { foo: 'FOO' }
+        }
+
+        setFoo(foo) {
+          this.setState({ foo })
+        }
+
+        render() {
+          return (
+            <div>
+              <WithProps {...this.state} />
+            </div>
+          )
+        }
+      }
+
+      let outerComponent
+      TestUtils.renderIntoDocument(
+        <OuterComponent ref={c => outerComponent = c} />
+      )
+
+      expect(renderSpy.calls.length).toBe(1)
+      setImmediate(() => {
+        expect(fetchSpy.calls.length).toBe(1)
+
+        outerComponent.setFoo('BAR')
+        setImmediate(() => {
+          expect(renderSpy.calls.length).toBe(6)
+          setImmediate(() => {
+            expect(fetchSpy.calls.length).toBe(2)
+
+            // set BAR again, but will not be refetched
+            // TODO: no need to re-render here
+            outerComponent.setFoo('BAR')
+            expect(renderSpy.calls.length).toBe(7)
+            setImmediate(() => {
+              expect(fetchSpy.calls.length).toBe(2)
+
+              outerComponent.setFoo('BAZ')
+              expect(renderSpy.calls.length).toBe(8)
+              setImmediate(() => {
+                expect(fetchSpy.calls.length).toBe(3)
+
+                done()
+              })
+            })
+          })
+        })
+      })
+    })
+
     it('should throw an error if mapPropsToRequestsToProps returns anything but a plain object', () => {
       function makeContainer(mapPropsToRequestsToProps) {
         return React.createElement(
