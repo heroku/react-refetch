@@ -784,19 +784,19 @@ describe('React', () => {
 
         outerComponent.setFoo('BAR')
         setImmediate(() => {
-          expect(renderSpy.calls.length).toBe(6)
+          expect(renderSpy.calls.length).toBe(4)
           setImmediate(() => {
             expect(fetchSpy.calls.length).toBe(2)
 
             // set BAR again, but will not be refetched
             // TODO: no need to re-render here
             outerComponent.setFoo('BAR')
-            expect(renderSpy.calls.length).toBe(7)
+            expect(renderSpy.calls.length).toBe(5)
             setImmediate(() => {
               expect(fetchSpy.calls.length).toBe(2)
 
               outerComponent.setFoo('BAZ')
-              expect(renderSpy.calls.length).toBe(8)
+              expect(renderSpy.calls.length).toBe(6)
               setImmediate(() => {
                 expect(fetchSpy.calls.length).toBe(3)
 
