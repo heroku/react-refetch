@@ -38,7 +38,7 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
     return mappings
   }
 
-  function coerceMapping(prop, mapping) {
+  function coerceMapping(prop, mapping, parent) {
     if (Function.prototype.isPrototypeOf(mapping)) {
       return mapping
     }
@@ -51,7 +51,7 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
     invariant(mapping.url || mapping.value, 'Request object for `%s` must have `url` (or `value`) attribute.', prop)
     invariant(!(mapping.url && mapping.value), 'Request object for `%s` must not have both `url` and `value` attributes.', prop)
 
-    mapping = assignDefaults(mapping)
+    mapping = assignDefaults(mapping, parent)
 
     invariant(isPlainObject(mapping.meta), 'meta for `%s` must be a plain object. Instead received %s', prop, mapping.meta)
 
@@ -68,8 +68,11 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
     return mapping
   }
 
-  function assignDefaults(mapping) {
+  function assignDefaults(mapping, parent) {
     return Object.assign(
+      parent ? {
+        comparison: parent.comparison
+      } : {},
       {
         method: 'GET',
         credentials: 'same-origin',
@@ -214,7 +217,7 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
             }
 
             if (Function.prototype.isPrototypeOf(mapping.then)) {
-              this.refetchDatum(prop, coerceMapping(null, mapping.then(value, meta)))
+              this.refetchDatum(prop, coerceMapping(null, mapping.then(value, meta), mapping))
               return
             }
 
@@ -231,7 +234,7 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
         return (meta) => {
           return (reason) => {
             if (Function.prototype.isPrototypeOf(mapping.catch)) {
-              this.refetchDatum(prop, coerceMapping(null, mapping.catch(reason, meta)))
+              this.refetchDatum(prop, coerceMapping(null, mapping.catch(reason, meta), mapping))
               return
             }
 
