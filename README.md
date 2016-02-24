@@ -166,7 +166,7 @@ connect(props => {
    userFetch: url,
    refreshUser: () => ({
      userFetch: {
-       url,
+       url: url,
        force: true,
        refreshing: true
      }
@@ -315,7 +315,7 @@ connect(props => ({
 }))(Users)
 ```
 
-Note, this form of transformation is similar to what is possible on the `PromiseState` (i.e. `this.props.usersFetch.then(users => users.filter(u => u.verified))`); however, this has the advantage of only being called when `usersFetch` changes and keeps the logic out of the component. 
+Note, this form of transformation is similar to what is possible on the `PromiseState` (i.e. `this.props.usersFetch.then(users => users.filter(u => u.verified))`); however, this has the advantage of only being called when `usersFetch` changes and keeps the logic out of the component.
 
 ## Accessing Headers & Metadata
 
