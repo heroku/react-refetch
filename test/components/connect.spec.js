@@ -949,6 +949,70 @@ describe('React', () => {
       expect(decorated.refs.wrappedInstance.someInstanceMethod()).toBe(someData)
     })
 
+    it('should not parse the body if response is a 204', (done) => {
+      window.fetch = () => {
+        return new Promise((resolve) => {
+          resolve(new window.Response('', { status: 204 }))
+        })
+      }
+
+      @connect(() => ({ testFetch: `/empty` }))
+      class Container extends Component {
+        render() {
+          return <Passthrough {...this.props} />
+        }
+      }
+
+      const container = TestUtils.renderIntoDocument(
+        <Container />
+      )
+
+      const init = TestUtils.findRenderedComponentWithType(container, Container)
+      expect(init.state.data.testFetch).toIncludeKeyValues(
+        { fulfilled: false, pending: true, reason: null, refreshing: false, rejected: false, settled: false, value: null }
+      )
+
+      setImmediate(() => {
+        const fulfilled = TestUtils.findRenderedComponentWithType(container, Container)
+        expect(fulfilled.state.data.testFetch).toIncludeKeyValues(
+          { fulfilled: true, pending: false, reason: null, refreshing: false, rejected: false, settled: true, value: null }
+        )
+        done()
+      })
+    })
+
+    it('should not parse the body if response has Content-Length: 0', (done) => {
+      window.fetch = () => {
+        return new Promise((resolve) => {
+          resolve(new window.Response('', { status: 200, headers: { 'Content-Length': 0 } }))
+        })
+      }
+
+      @connect(() => ({ testFetch: `/empty` }))
+      class Container extends Component {
+        render() {
+          return <Passthrough {...this.props} />
+        }
+      }
+
+      const container = TestUtils.renderIntoDocument(
+        <Container />
+      )
+
+      const init = TestUtils.findRenderedComponentWithType(container, Container)
+      expect(init.state.data.testFetch).toIncludeKeyValues(
+        { fulfilled: false, pending: true, reason: null, refreshing: false, rejected: false, settled: false, value: null }
+      )
+
+      setImmediate(() => {
+        const fulfilled = TestUtils.findRenderedComponentWithType(container, Container)
+        expect(fulfilled.state.data.testFetch).toIncludeKeyValues(
+          { fulfilled: true, pending: false, reason: null, refreshing: false, rejected: false, settled: true, value: null }
+        )
+        done()
+      })
+    })
+
     // TODO
     //it('should not render the wrapped component when mapState does not produce change', () => {
     //  const store = createStore(stringBuilder)
