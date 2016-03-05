@@ -9,6 +9,17 @@ import invariant from 'invariant'
 
 const defaultMapPropsToRequestsToProps = () => ({})
 
+const top = (typeof window !== 'undefined'
+  ? window
+  : (typeof global !== 'undefined'
+    ? global
+    : (typeof self !== 'undefined'
+      ? self
+      : {}
+    )
+  )
+)
+
 function getDisplayName(WrappedComponent) {
   return WrappedComponent.displayName || WrappedComponent.name || 'Component'
 }
@@ -16,9 +27,127 @@ function getDisplayName(WrappedComponent) {
 // Helps track hot reloading.
 let nextVersion = 0
 
-export default function connect(mapPropsToRequestsToProps, options = {}) {
+function connectFactory(defaults = {}) {
+  function connectImpl(map, options = {}) {
+    /* eslint-disable no-console */
+    if (Object.getOwnPropertyNames(options).length > 0 && console && console.warn) {
+      console.warn('The options argument is deprecated in favor of `connect.defaults()` calls. In a future release, support will be removed.')
+    }
+
+    const finalOptions = Object.assign({}, defaults, options)
+
+    if (Function.prototype.isPrototypeOf(finalOptions.buildRequest) &&
+      Function.prototype.isPrototypeOf(finalOptions.Request) &&
+      console && console.info) {
+      console.info('Both buildRequest and Request were provided in `connect.defaults()`. However this custom Request would only be used in the default buildRequest.')
+    }
+
+    /* eslint-enable no-console */
+    return connect(map, finalOptions)
+  }
+
+  connectImpl.defaults = function (overrides = {}) {
+    return connectFactory(Object.assign({}, defaults, overrides))
+  }
+
+  return connectImpl
+}
+
+export default connectFactory()
+
+function typecheck(type, name, obj) {
+  invariant(
+    typeof obj === type,
+    `${name} must be a ${type}. Instead received a %s.`,
+    typeof obj
+  )
+}
+
+const checks = {
+  buildRequest(fn) {
+    typecheck('function', 'buildRequest', fn)
+  },
+
+  credentials(str) {
+    const allowed = [ 'omit', 'same-origin', 'include' ]
+    invariant(
+      allowed.indexOf(str) !== -1,
+      `credentials must be one of ${allowed.join(', ')}. Instead got %s.`,
+      str ? str.toString() : str
+    )
+  },
+
+  fetch(fn) {
+    typecheck('function', 'fetch', fn)
+  },
+
+  handleResponse(fn) {
+    typecheck('function', 'handleResponse', fn)
+  },
+
+  headers(obj) {
+    invariant(
+      isPlainObject(obj),
+      'headers must be a plain object with string values. Instead received a %s.',
+      typeof obj
+    )
+  },
+
+  method(str) {
+    typecheck('string', 'method', str)
+  },
+
+  redirect(str) {
+    const allowed = [ 'follow', 'error', 'manual' ]
+    invariant(
+      allowed.indexOf(str) !== -1,
+      `redirect must be one of ${allowed.join(', ')}. Instead got %s.`,
+      str ? str.toString() : str
+    )
+  },
+
+  refreshInterval(num) {
+    typecheck('number', 'refreshInterval', num)
+    invariant(num >= 0, 'refreshInterval must be positive or 0.')
+    invariant(num !== Infinity, 'refreshInterval must not be Infinity.')
+  },
+
+  Request(fn) {
+    typecheck('function', 'Request', fn)
+  }
+}
+
+function connect(mapPropsToRequestsToProps, defaults) {
   const finalMapPropsToRequestsToProps = mapPropsToRequestsToProps || defaultMapPropsToRequestsToProps
-  const { withRef = false } = options
+
+  defaults = Object.assign({
+    andCatch: undefined,
+    andThen: undefined,
+    buildRequest,
+    catch: undefined,
+    comparison: undefined,
+    credentials: 'same-origin',
+    fetch: top.fetch,
+    force: false,
+    handleResponse,
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json'
+    },
+    method: 'GET',
+    redirect: 'follow',
+    refreshing: false,
+    refreshInterval: 0,
+    Request: top.Request,
+    then: undefined,
+    withRef: false
+  }, defaults)
+
+  Object.keys(defaults).forEach(key => {
+    if (checks[key]) {
+      checks[key](defaults[key])
+    }
+  })
 
   // Helps track hot reloading.
   const version = nextVersion++
@@ -69,30 +198,30 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
 
   function assignDefaults(mapping, parent) {
     return Object.assign(
+      { comparison: defaults.comparison },
       parent ? {
         comparison: parent.comparison
       } : {},
       {
-        method: 'GET',
-        credentials: 'same-origin',
-        redirect: 'follow',
-        meta: {}
+        andCatch: defaults.andCatch,
+        andThen: defaults.andThen,
+        catch: defaults.catch,
+        credentials: defaults.credentials,
+        force: defaults.force,
+        meta: {},
+        method: defaults.method,
+        redirect: defaults.redirect,
+        refreshing: defaults.refreshing,
+        refreshInterval: defaults.refreshInterval,
+        then: defaults.then
       },
       mapping,
-      {
-        headers: Object.assign(
-          {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          },
-          mapping.headers
-        )
-      }
+      { headers: Object.assign({}, defaults.headers, mapping.headers) }
     )
   }
 
   function buildRequest(mapping) {
-    return new window.Request(mapping.url, {
+    return new defaults.Request(mapping.url, {
       method: mapping.method,
       headers: mapping.headers,
       credentials: mapping.credentials,
@@ -137,16 +266,16 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
       }
 
       render() {
-        const ref = withRef ? 'wrappedInstance' : null
+        const ref = defaults.withRef ? 'wrappedInstance' : null
         return (
           <WrappedComponent { ...this.state.data } { ...this.props } ref={ref}/>
         )
       }
 
       getWrappedInstance() {
-        invariant(withRef,
-          `To access the wrapped instance, you need to specify ` +
-          `{ withRef: true } as the fourth argument of the connect() call.`
+        invariant(defaults.withRef,
+          `To access the wrapped instance, you need to specify { withRef: true } ` +
+          `in the .defaults().`
         )
 
         return this.refs.wrappedInstance
@@ -193,14 +322,14 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
         if (mapping.hasOwnProperty('value')) {
           return onFulfillment(meta)(mapping.value)
         } else {
-          const request = buildRequest(mapping)
+          const request = defaults.buildRequest(mapping)
           meta.request = request
           this.setAtomicState(prop, startedAt, mapping, initPS(meta))
 
-          const fetched = window.fetch(request)
+          const fetched = defaults.fetch(request)
           return fetched.then(response => {
             meta.response = response
-            return fetched.then(handleResponse).then(onFulfillment(meta), onRejection(meta))
+            return fetched.then(defaults.handleResponse).then(onFulfillment(meta), onRejection(meta))
           })
         }
       }
