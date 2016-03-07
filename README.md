@@ -252,9 +252,9 @@ connect(({ name }) => ({
 connect(({ name }) => ({
   fooFetch: {
     url: `/foos/${name}`,
-    andThen: foo => {
+    andThen: foo => ({
       barFetch: `/bar-for-foos-by-id/${foo.id}`
-    }
+    })
   }
 }))
 ```
@@ -264,7 +264,7 @@ This is also helpful for cases where a fetch function is changing data that is i
 ```jsx
  connect(({ name }) => ({
     foosFetch: '/foos',
-    createFoo: name => {
+    createFoo: name => ({
       method: 'POST',
       url: '/foos',
       andThen: () => ({
@@ -273,7 +273,7 @@ This is also helpful for cases where a fetch function is changing data that is i
           refreshing: true
         }
       })
-    }
+    })
   }))
 ```
 
