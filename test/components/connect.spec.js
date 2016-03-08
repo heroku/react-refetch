@@ -1,3 +1,4 @@
+import 'whatwg-fetch'
 import expect from 'expect'
 import React, { createClass, Component } from 'react'
 import TestUtils from 'react-addons-test-utils'
