@@ -39,6 +39,10 @@ export default class PromiseState {
   // argument have resolved, or rejects with the reason of the
   // first passed PromiseState that rejects.
   static all(iterable) {
+    if (!Array.isArray(iterable)) {
+      iterable = Array.from(iterable)
+    }
+
     return new PromiseState({
       pending: iterable.some(ps => ps.pending),
       refreshing: iterable.some(ps => ps.refreshing),
@@ -55,6 +59,10 @@ export default class PromiseState {
   // the iterable resolves or rejects, with the value or reason
   // from that PromiseState.
   static race(iterable) {
+    if (!Array.isArray(iterable)) {
+      iterable = Array.from(iterable)
+    }
+
     const winner = iterable.find(ps => ps.settled)
 
     return new PromiseState({

@@ -97,7 +97,7 @@ describe('PromiseState', () => {
         new PromiseState({ pending: true }),
         new PromiseState({ pending: false })
       ]).pending).toBe(true)
-      
+
       expect(PromiseState.all([
         new PromiseState({ pending: false }),
         new PromiseState({ pending: false })
@@ -154,15 +154,23 @@ describe('PromiseState', () => {
         new PromiseState({ meta: 'B' })
       ]).meta).toEqual([ 'A', 'B' ])
     })
+
+    it('accepts non-array iterables', () => {
+      const set = new Set([
+        new PromiseState({ meta: 'A' }),
+        new PromiseState({ meta: 'B' })
+      ])
+      expect(PromiseState.all(set).meta).toEqual([ 'A', 'B' ])
+    })
   })
-  
+
   describe('race', () => {
     it('pending', () => {
       expect(PromiseState.race([
         new PromiseState({ pending: true }),
         new PromiseState({ pending: false })
       ]).pending).toBe(true)
-      
+
       expect(PromiseState.race([
         new PromiseState({ pending: false }),
         new PromiseState({ pending: false })
@@ -239,6 +247,13 @@ describe('PromiseState', () => {
         new PromiseState({ fulfilled: true, meta: 'B' })
       ]).meta).toEqual('B')
     })
+
+    it('accepts non-array iterables', () => {
+      const set = new Set([
+        new PromiseState({ meta: 'A' }),
+        new PromiseState({ fulfilled: true, meta: 'B' })
+      ])
+      expect(PromiseState.race(set).meta).toEqual('B')
+    })
   })
 })
-
