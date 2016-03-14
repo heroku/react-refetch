@@ -208,6 +208,27 @@ describe('React', () => {
       })
     })
 
+    it('should support falsey values in identity requests', () => {
+      @connect(() => ({ testFetch: { value: null } }))
+      class Container extends Component {
+        render() {
+          return <Passthrough {...this.props} />
+        }
+      }
+
+      const container = TestUtils.renderIntoDocument(
+        <Container />
+      )
+
+      const decorated = TestUtils.findRenderedComponentWithType(container, Container)
+      expect(decorated.state.mappings.testFetch.value).toEqual(null)
+
+      const stub = TestUtils.findRenderedComponentWithType(container, Passthrough)
+      expect(stub.props.testFetch).toIncludeKeyValues({
+        fulfilled: true, pending: false, refreshing: false, reason: null, rejected: false, settled: true, value: null
+      })
+    })
+
     it('identity requests should compose with identity responses', (done) => {
       @connect(() => ({
         testFetch: {
