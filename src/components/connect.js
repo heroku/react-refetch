@@ -48,8 +48,8 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
     }
 
     invariant(isPlainObject(mapping), 'Request for `%s` must be either a string or a plain object. Instead received %s', prop, mapping)
-    invariant(mapping.url || mapping.value, 'Request object for `%s` must have `url` (or `value`) attribute.', prop)
-    invariant(!(mapping.url && mapping.value), 'Request object for `%s` must not have both `url` and `value` attributes.', prop)
+    invariant(mapping.hasOwnProperty('url') || mapping.hasOwnProperty('value'), 'Request object for `%s` must have `url` (or `value`) attribute.', prop)
+    invariant(!(mapping.hasOwnProperty('url') && mapping.hasOwnProperty('value')), 'Request object for `%s` must not have both `url` and `value` attributes.', prop)
 
     mapping = assignDefaults(mapping, parent)
 
@@ -190,7 +190,7 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
         const onFulfillment = this.createPromiseStateOnFulfillment(prop, mapping, startedAt)
         const onRejection = this.createPromiseStateOnRejection(prop, mapping, startedAt)
 
-        if (mapping.value) {
+        if (mapping.hasOwnProperty('value')) {
           return onFulfillment(meta)(mapping.value)
         } else {
           const request = buildRequest(mapping)
