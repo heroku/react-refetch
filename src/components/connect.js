@@ -134,6 +134,7 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
 
       componentWillUnmount() {
         this.clearAllRefreshTimeouts()
+        this._unmounted = true
       }
 
       render() {
@@ -253,6 +254,10 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
       }
 
       setAtomicState(prop, startedAt, mapping, datum, refreshTimeout, callback) {
+        if (this._unmounted) {
+          return
+        }
+
         this.setState((prevState) => {
           if (startedAt < prevState.startedAts[prop]) {
             return {}
