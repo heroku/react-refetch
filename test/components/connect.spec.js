@@ -970,6 +970,57 @@ describe('React', () => {
       expect(decorated.refs.wrappedInstance.someInstanceMethod()).toBe(someData)
     })
 
+    it('should not call setState if component is unmounted', (done) => {
+      @connect(() => {
+        return {
+          testFetch: '/some/url'
+        }
+      })
+      class WithProps extends Component {
+        render() {
+          return <Passthrough {...this.props}/>
+        }
+      }
+
+      class OuterComponent extends Component {
+        constructor() {
+          super()
+          this.state = { render: true }
+        }
+
+        setRender(render) {
+          this.setState({ render })
+        }
+
+        render() {
+          if (this.state.render) {
+            return (
+              <div>
+                <WithProps {...this.state} />
+              </div>
+            )
+          } else {
+            return <div />
+          }
+        }
+      }
+
+      let outerComponent
+      TestUtils.renderIntoDocument(
+        <OuterComponent ref={c => outerComponent = c} />
+      )
+
+      outerComponent.setRender(false)
+
+      const spy = expect.spyOn(console, 'error')
+      setImmediate(() => {
+        spy.destroy()
+        expect(spy.calls.length).toBe(0)
+        done()
+      })
+
+    })
+
     it('should not parse the body if response is a 204', (done) => {
       window.fetch = () => {
         return new Promise((resolve) => {
