@@ -128,8 +128,8 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
         this.refetchDataFromProps()
       }
 
-      componentWillReceiveProps(nextProps) {
-        this.refetchDataFromProps(nextProps)
+      componentWillReceiveProps(nextProps, nextContext) {
+        this.refetchDataFromProps(nextProps, nextContext)
       }
 
       componentWillUnmount() {
@@ -153,8 +153,8 @@ export default function connect(mapPropsToRequestsToProps, options = {}) {
         return this.refs.wrappedInstance
       }
 
-      refetchDataFromProps(props = this.props) {
-        this.refetchDataFromMappings(finalMapPropsToRequestsToProps(props) || {})
+      refetchDataFromProps(props = this.props, context = this.context) {
+        this.refetchDataFromMappings(finalMapPropsToRequestsToProps(props, context) || {})
       }
 
       refetchDataFromMappings(mappings) {
