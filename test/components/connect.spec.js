@@ -587,6 +587,65 @@ describe('React', () => {
       })
     })
 
+    it('should invoke mapPropsToRequestsToProps with context', () => {
+      let contextPassedIn = []
+
+      @connect((props, context) => {
+        contextPassedIn.push(context)
+        return {}
+      })
+      class InnerComponent extends Component {
+        render() {
+          return <div />
+        }
+      }
+      InnerComponent.contextTypes = {
+        foo: React.PropTypes.string
+      }
+
+      class OuterComponent extends Component {
+        constructor(props) {
+          super(props)
+          this.state = {
+            foo: 'bar'
+          }
+        }
+
+        getChildContext() {
+          return {
+            foo: this.state.foo
+          }
+        }
+
+        setFoo(foo) {
+          this.setState({ foo })
+        }
+
+        render() {
+          return <InnerComponent />
+        }
+      }
+      OuterComponent.childContextTypes = {
+        foo: React.PropTypes.string
+      }
+
+      let outerComponent
+      TestUtils.renderIntoDocument(
+        <OuterComponent ref={c => outerComponent = c} />
+      )
+
+      outerComponent.setFoo('baz')
+
+      expect(contextPassedIn).toEqual([
+        {
+          foo: 'bar'
+        },
+        {
+          foo: 'baz'
+        }
+      ])
+    })
+
     it('should shallowly compare the requests to prevent unnecessary fetches', (done) => {
       const fetchSpy = expect.createSpy(() => ({}))
       fetchSpies.push(fetchSpy)
