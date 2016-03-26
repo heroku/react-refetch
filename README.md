@@ -16,6 +16,14 @@ npm install --save react-refetch
 
 This assumes that you’re using [npm](http://npmjs.com/) package manager with a module bundler like [Webpack](http://webpack.github.io) or [Browserify](http://browserify.org/) to consume [CommonJS modules](http://webpack.github.io/docs/commonjs.html).
 
+The following ES6 functions are required:
+
+- [`Object.assign`](https://developer.mozilla.org/en/docs/Web/JavaScript/Reference/Global_Objects/Object/assign)
+- [`Promise`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise)
+- [`fetch`](https://developer.mozilla.org/en-US/docs/Web/API/GlobalFetch)
+
+Check the compatibility tables ([`Object.assign`](https://kangax.github.io/compat-table/es6/#test-Object_static_methods_Object.assign), [`Promise`](https://kangax.github.io/compat-table/es6/#test-Promise), [`fetch`](http://caniuse.com/#feat=fetch)) to make sure all browsers and platforms you need to support have these, and include polyfills as necessary.
+
 ## Introduction
 
 See [Introducing React Refetch](https://engineering.heroku.com/blogs/2015-12-16-react-refetch/) on the [Heroku Engineering Blog](https://engineering.heroku.com/) for background and a quick introduction to this project.
@@ -418,6 +426,71 @@ export default connect((props, context) => {
 })(Profile)
 ```
 
+## Setting defaults and hooking into internal processing
+
+It is possible to modify the various defaults used by React Refetch, as well as substitute in custom implementations of internal functions. A simple usecase would be to avoid repeating the same option for every fetch block:
+
+```jsx
+import { connect } from 'react-refetch'
+const refetch = connect.defaults({
+  credentials: 'include'
+})
+
+refetch(props => ({
+  userFetch: `/users/${props.userId}`
+}))(Profile)
+```
+
+A more advanced usecase would be to replace the `buildRequest` internal function to, for example, modify headers on the fly based on the URL of the request, or using advanced [`Request`](https://developer.mozilla.org/en-US/docs/Web/API/Request/Request) options:
+
+```jsx
+// api-connector.js
+import { connect } from 'react-refetch'
+import urlJoin from 'url-join'
+import { getPrivateToken } from './api-tokens'
+
+const baseUrl = 'https://api.example.com/'
+
+export default connect.defaults({
+  buildRequest: function (mapping) {
+    const options = {
+      method: mapping.method,
+      cache: 'force-cache',
+      referrer: 'https://example.com',
+      headers: mapping.headers,
+      credentials: mapping.credentials,
+      redirect: mapping.redirect,
+      body: mapping.body
+    }
+
+    if (mapping.url.match(/private/)) {
+      options.headers['X-Api-Token'] = getPrivateToken()
+    }
+
+    if (mapping.url.match(/listOfServers.json$/)) {
+      options.integrity = 'sha256-BpfBw7ivV8q2jLiT13fxDYAe2tJllusRSZ273h2nFSE='
+    }
+
+    return new Request(urlJoin(baseUrl, mapping.url), options)
+  }
+})
+
+// ProfileComponent.js
+import connect from './api-connector'
+connect(props => ({
+  userFetch: `/users/${props.userId}`,
+  serversFetch: `/listOfServers.json`
+}))(Profile)
+```
+
+### On changing the `fetch` and `Request` implementations
+
+Through this same API it is possible to change the internal `fetch` and `Request` implementations. This could be useful for a number of reasons, such as precise control over requests or customisation that is not possible with either `buildRequest` or `handleResponse`.
+
+When using this feature, make sure to read the [`fetch` API and interface documentation](https://developer.mozilla.org/en-US/docs/Web/API/GlobalFetch/) and all related topics. Notably, you need to keep in mind that the `body` of a `Response` can _only be consumed once_, so if you need to read it in your custom `fetch`, you also need to recreate a brand new `Response` (or a `.clone()` of the original one if you're not modifying the body) so React Refetch can work properly.
+
+This is an _advanced feature_. Use existing declarative functionality wherever possible. Customise `buildRequest` or `handleResponse` if these can work instead. Please be aware that changing the `fetch` (or `Request`) implementation could conflict with built-in current or future functionality.
+
 ## Complete Example
 
 This is a complex example demonstrating various feature at once:
@@ -499,6 +572,7 @@ export default connect(props => {
 ## API Documentation
 
 - [`connect([mapPropsToRequestsToProps])`](https://github.com/heroku/react-refetch/blob/master/docs/api.md#connectmappropstorequeststoprops-options)
+- [`connect.defaults([newDefaults])`](https://github.com/heroku/react-refetch/blob/master/docs/api.md#connectdefaultsnewdefaults)
 - [`PromiseState(iterable)`](https://github.com/heroku/react-refetch/blob/master/docs/api.md#promisestate)
 
 ## Support
