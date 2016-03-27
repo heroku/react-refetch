@@ -1201,6 +1201,8 @@ describe('React', () => {
     //})
 
     context('.defaults', () => {
+      // Escape characters that have special meaning in RegExps, then create a
+      // RegExp from the passed string.
       function regexpify(str) {
         return new RegExp(str.replace(/([\[\]\{\}\(\)\.\-\,\+\?\*])/g, '\\$1'))
       }
