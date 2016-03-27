@@ -6,6 +6,7 @@ import newError from '../utils/errors'
 import PromiseState from '../PromiseState'
 import hoistStatics from 'hoist-non-react-statics'
 import invariant from 'invariant'
+import warning from 'warning'
 
 const defaultMapPropsToRequestsToProps = () => ({})
 
@@ -25,21 +26,20 @@ function connectFactory(defaults = {}) {
   }
 
   function connectImpl(map, options = {}) {
-    /* eslint-disable no-console */
-    if (Object.getOwnPropertyNames(options).length > 0 && console && console.warn) {
-      console.warn('The options argument is deprecated in favor of `connect.defaults()` calls. In a future release, support will be removed.')
-    }
+    warning(Object.getOwnPropertyNames(options).length === 0,
+      'The options argument is deprecated in favor of `connect.defaults()` ' +
+      'calls. In a future release, support will be removed.'
+    )
 
     options.headers = mergeHeaders(options)
     const finalOptions = Object.assign({}, defaults, options)
 
-    if (Function.prototype.isPrototypeOf(finalOptions.buildRequest) &&
-      Function.prototype.isPrototypeOf(finalOptions.Request) &&
-      console && console.info) {
-      console.info('Both buildRequest and Request were provided in `connect.defaults()`. However this custom Request would only be used in the default buildRequest.')
-    }
+    warning(!(Function.prototype.isPrototypeOf(finalOptions.buildRequest) &&
+      Function.prototype.isPrototypeOf(finalOptions.Request)),
+      'Both buildRequest and Request were provided in `connect.defaults()`. ' +
+      'However this custom Request would only be used in the default buildRequest.'
+    )
 
-    /* eslint-enable no-console */
     return connect(map, finalOptions)
   }
 

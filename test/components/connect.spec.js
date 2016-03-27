@@ -1152,8 +1152,8 @@ describe('React', () => {
       })
     })
 
-    it('should give a warning on the console if the options argument is used', () => {
-      const spy = expect.spyOn(console, 'warn')
+    it('should warn if the options argument is used', () => {
+      const spy = expect.spyOn(console, 'error')
       @connect(() => ({}), { refreshInterval: 0 })
       class Container extends Component {
         render() {
@@ -1164,6 +1164,7 @@ describe('React', () => {
       expect(Container).toExist()
       expect(spy.calls.length).toEqual(1)
       expect(spy.calls[0].arguments[0]).toMatch(/The options argument is deprecated/)
+      spy.restore()
     })
 
     // TODO
@@ -1727,8 +1728,8 @@ describe('React', () => {
         expect(decorated.state.mappings.firstFetch.andCatch).toBeA('function')
       })
 
-      it('should give an info on the console if both buildRequest and Request are customised', () => {
-        const spy = expect.spyOn(console, 'info')
+      it('should warn if both buildRequest and Request are customised', () => {
+        const spy = expect.spyOn(console, 'error')
         @connect.defaults({
           buildRequest: () => {},
           Request: () => {}
@@ -1739,6 +1740,7 @@ describe('React', () => {
           }
         }
 
+        spy.restore()
         expect(Container).toExist()
         expect(spy.calls.length).toEqual(1)
         expect(spy.calls[0].arguments[0]).toMatch(/Both buildRequest and Request were provided/)
