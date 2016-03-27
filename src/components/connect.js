@@ -275,7 +275,7 @@ function connect(mapPropsToRequestsToProps, defaults) {
       getWrappedInstance() {
         invariant(defaults.withRef,
           `To access the wrapped instance, you need to specify { withRef: true } ` +
-          `in the .defaults().`
+          `in .defaults().`
         )
 
         return this.refs.wrappedInstance
