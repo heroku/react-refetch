@@ -9,17 +9,6 @@ import invariant from 'invariant'
 
 const defaultMapPropsToRequestsToProps = () => ({})
 
-const top = (typeof window !== 'undefined'
-  ? window
-  : (typeof global !== 'undefined'
-    ? global
-    : (typeof self !== 'undefined'
-      ? self
-      : {}
-    )
-  )
-)
-
 function getDisplayName(WrappedComponent) {
   return WrappedComponent.displayName || WrappedComponent.name || 'Component'
 }
@@ -134,6 +123,19 @@ const checks = {
 function connect(mapPropsToRequestsToProps, defaults) {
   const finalMapPropsToRequestsToProps = mapPropsToRequestsToProps || defaultMapPropsToRequestsToProps
 
+  let topFetch
+  let topRequest
+  if (typeof window !== 'undefined') {
+    if (window.fetch) { topFetch = window.fetch.bind(window) }
+    if (window.Request) { topRequest = window.Request.bind(window) }
+  } else if (typeof global !== 'undefined') {
+    if (global.fetch) { topFetch = global.fetch.bind(global) }
+    if (global.Request) { topRequest = global.Request.bind(global) }
+  } else if (typeof self !== 'undefined') {
+    if (self.fetch) { topFetch = self.fetch.bind(self) }
+    if (self.Request) { topRequest = self.Request.bind(self) }
+  }
+
   defaults = Object.assign({
     andCatch: undefined,
     andThen: undefined,
@@ -141,7 +143,7 @@ function connect(mapPropsToRequestsToProps, defaults) {
     catch: undefined,
     comparison: undefined,
     credentials: 'same-origin',
-    fetch: top.fetch,
+    fetch: topFetch,
     force: false,
     handleResponse,
     headers: {},
@@ -149,7 +151,7 @@ function connect(mapPropsToRequestsToProps, defaults) {
     redirect: 'follow',
     refreshing: false,
     refreshInterval: 0,
-    Request: top.Request,
+    Request: topRequest,
     then: undefined,
     withRef: false
   }, defaults)
