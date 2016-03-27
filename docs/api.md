@@ -28,7 +28,7 @@ Instead, it *returns* a new, connected component class, for you to use.
      - `value` *(Any)*: Data to passthrough directly to `PromiseState` as an alternative to providing a URL. This is an advanced option used for static data and data transformations. Also consider setting `meta`.
      - `meta` *(Object)*: Metadata to passthrough directly to `PromiseState`. Keys `request`, `response`, and future keys may be overwritten.
 
-Requests specified as functions are not fetched immediately when props are received, but rather bound to the props and injected into the component to be called at a later time in response to user actions. Functions should be pure and return the same format as `mapPropsToRequestsToProps` itself. If a function maps a request to the same name as an existing prop, the prop will be overwritten. This is commonly used for taking some action that updates an existing `PromiseState`. Consider setting `refreshing: true` in such it situation. 
+Requests specified as functions are not fetched immediately when props are received, but rather bound to the props and injected into the component to be called at a later time in response to user actions. Functions should be pure and return the same format as `mapPropsToRequestsToProps` itself. If a function maps a request to the same name as an existing prop, the prop will be overwritten. This is commonly used for taking some action that updates an existing `PromiseState`. Consider setting `refreshing: true` in such it situation.
 
 #### Returns
 
@@ -52,20 +52,25 @@ Returns the wrapped component instance. Only available if you set `connect.defau
 
 ### `connect.defaults([newDefaults])`
 
-Returns a new `connect` which will have its defaults amended according to `newDefaults`.
+Returns a new `connect` which will have `newDefaults` merged into its defaults.
 
-Calls to `.defaults()` can be chained, each latter call overriding defaults set in previous ones:
+Calls to `.defaults()` can be chained. If latter keys conflict with earlier ones, the latter ones will be used:
 
 ```js
-const withRef = connect.defaults({ withRef: true })
-const withRefAndWithPost = withRef.defaults({ method: 'POST' })
-const onlyWithPost = withRefAndWithPost.defaults({ withRef: false })
+const a = connect.defaults({ withRef: true })
+// Defaults are as documented, except `withRef` which is `true`
+
+const b = a.defaults({ method: 'POST' })
+// ...`withRef` is `true`, `method` is `POST`
+
+const c = b.defaults({ withRef: false })
+// ...`withRef` is `false` (back to default value), `method` is still `POST`
 ```
 
 #### Arguments
 
 * `[newDefaults = {}]` *(Object)*: An object with any of the following keys:
-     - `buildRequest(mapping): Request` *(Function)*: Takes a mapping and returns a `Request`. If setting this, make sure it interoperates with either the default `fetch` and `Request` or the `fetch` and `Request` you've provided. Defaults to the internal implementation, see the source for details.
+     - `buildRequest(mapping): Request` *(Function)*: Takes a mapping and returns a `Request`. If setting this, make sure it interoperates with either the default `fetch` and `Request` or the `fetch` and `Request` you've provided. The `mapping` will always be an Object, even if the URL-only short form is used. Defaults to the internal implementation, see the source for details.
      - `fetch(url|Request, options): Promise<Request>` *(Function)*: The function to use when performing requests. It should conform to the [`window.fetch` API](https://developer.mozilla.org/en-US/docs/Web/API/GlobalFetch/fetch). If setting this, make sure it interoperates with either the default `Request` or the `Request` you've provided. Defaults to the global `fetch`, if available, checking on `window`, `global`, and `self` in that order.
      - `handleResponse(Response): Promise<Object>` *(Function)*: Takes a `Response` (the [global one](https://developer.mozilla.org/en-US/docs/Web/API/Response) or whatever is returned by your custom `fetch`) and returns a `Promise` that resolves to an object representation of the response. If setting this, make sure it interoperates with either the default `fetch` and `Request` or the `fetch` and `Request` you've provided. Defaults to the internal implementation, see the source for details.
      - `Request(url, options): Request` *(Function)*: The constructor to use when building requests. It should conform to the [`window.Request` API](https://developer.mozilla.org/en-US/docs/Web/API/Request). If setting this, make sure it interoperates with either the default `fetch` or the `fetch` you've provided. Defaults to the global `Request`, if available, checking on `window`, `global`, and `self` in that order.
