@@ -428,7 +428,7 @@ export default connect((props, context) => {
 
 ## Setting defaults and hooking into internal processing
 
-It is possible to modify the various defaults used by React Refetch, as well as substitute in custom implementations of internal functions. A simple usecase would be to avoid repeating the same option for every fetch block:
+It is possible to modify the various defaults used by React Refetch, as well as substitute in custom implementations of internal functions. A simple use case would be to avoid repeating the same option for every fetch block:
 
 ```jsx
 import { connect } from 'react-refetch'
@@ -441,7 +441,7 @@ refetch(props => ({
 }))(Profile)
 ```
 
-A more advanced usecase would be to replace the `buildRequest` internal function to, for example, modify headers on the fly based on the URL of the request, or using advanced [`Request`](https://developer.mozilla.org/en-US/docs/Web/API/Request/Request) options:
+A more advanced use case would be to replace the `buildRequest` internal function to, for example, modify headers on the fly based on the URL of the request, or using advanced [`Request`](https://developer.mozilla.org/en-US/docs/Web/API/Request/Request) options:
 
 ```jsx
 // api-connector.js
