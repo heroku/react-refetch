@@ -347,7 +347,7 @@ You can also use `context` (in addition to props) to help define the requests yo
 It's available as the second argument to the function you pass to `connect`.
 Don't forget to define `contextTypes` on the component you're wrapping for context to be available.
 
-Some use case examples are, eg. setting a urlPrefix in a root component that all others use:
+Some use case examples are, eg. setting a URL prefix in a root component that all others use:
 ```js
 connect((props, context) => {
   return {
@@ -368,7 +368,7 @@ connect((props, context) => {
 })(Profile)
 ```
 
-This is a complete example of everything you need to use context with react-refetch:
+This is a complete example of everything you need to use context with React Refetch:
 ```jsx
 import React, { Component, PropTypes } from 'react'
 import { connect, PromiseState } from 'react-refetch'
