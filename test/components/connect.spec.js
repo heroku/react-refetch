@@ -1402,7 +1402,7 @@ describe('React', () => {
         })
       })
 
-      it('should set the default headers', (done) => {
+      it('should merge headers with the defaults', (done) => {
         const spy = expect.createSpy(() => {})
         const customFetch = (request) => {
           spy(request.headers)
@@ -1425,7 +1425,53 @@ describe('React', () => {
           expect(spy.calls.length).toBe(1)
           const headers = spy.calls[0].arguments[0]
           expect(headers).toBeA(window.Headers)
+          expect(headers.get('Accept')).toBe('application/json')
+          expect(headers.get('Content-Type')).toBe('application/json')
           expect(headers.get('X-Foo')).toBe('bar')
+          done()
+        })
+      })
+
+      it('should discard headers with falsy values', (done) => {
+        const spy = expect.createSpy(() => {})
+        const customFetch = (request) => {
+          spy(request.headers)
+          return new Promise((resolve) => {
+            resolve(new window.Response(JSON.stringify({ T: 't' })))
+          })
+        }
+
+        const headers = { 'X-Foo': 'bar', 'X-Baz': 'qux', 'X-xx': 'mordor' }
+        const custom = connect
+          .defaults({ fetch: customFetch, headers })
+          .defaults({ headers: { 'Be': 'nice' } })
+          .defaults({ headers: { 'X-Foo': false, 'X-Baz': 0, 'X-xx': '' } })
+          .defaults({ headers: { 'Accept': null, 'Content-Type': undefined } })
+        @custom(() => ({ testFetch: {
+          url: `/example`,
+          headers: {
+            'Stay': 'there',
+            'Be': null
+          }
+        } }))
+        class Container extends Component {
+          render() {
+            return <Passthrough {...this.props} />
+          }
+        }
+
+        TestUtils.renderIntoDocument(<Container />)
+        setImmediate(() => {
+          expect(spy.calls.length).toBe(1)
+          const headers = spy.calls[0].arguments[0]
+          expect(headers).toBeA(window.Headers)
+          expect(headers.get('Accept')).toNotExist()
+          expect(headers.get('Content-Type')).toNotExist()
+          expect(headers.get('X-Foo')).toNotExist()
+          expect(headers.get('X-Baz')).toNotExist()
+          expect(headers.get('X-xx')).toNotExist()
+          expect(headers.get('Be')).toNotExist()
+          expect(headers.get('Stay')).toEqual('there')
           done()
         })
       })

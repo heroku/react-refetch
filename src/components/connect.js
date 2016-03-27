@@ -28,12 +28,20 @@ function getDisplayName(WrappedComponent) {
 let nextVersion = 0
 
 function connectFactory(defaults = {}) {
+  function mergeHeaders(options) {
+    if (options.hasOwnProperty('headers')) {
+      checks.headers(options.headers)
+    }
+    return Object.assign({}, defaults.headers, options.headers)
+  }
+
   function connectImpl(map, options = {}) {
     /* eslint-disable no-console */
     if (Object.getOwnPropertyNames(options).length > 0 && console && console.warn) {
       console.warn('The options argument is deprecated in favor of `connect.defaults()` calls. In a future release, support will be removed.')
     }
 
+    options.headers = mergeHeaders(options)
     const finalOptions = Object.assign({}, defaults, options)
 
     if (Function.prototype.isPrototypeOf(finalOptions.buildRequest) &&
@@ -47,13 +55,19 @@ function connectFactory(defaults = {}) {
   }
 
   connectImpl.defaults = function (overrides = {}) {
+    overrides.headers = mergeHeaders(overrides)
     return connectFactory(Object.assign({}, defaults, overrides))
   }
 
   return connectImpl
 }
 
-export default connectFactory()
+export default connectFactory({
+  headers: {
+    'Accept': 'application/json',
+    'Content-Type': 'application/json'
+  }
+})
 
 function typecheck(type, name, obj) {
   invariant(
@@ -130,10 +144,7 @@ function connect(mapPropsToRequestsToProps, defaults) {
     fetch: top.fetch,
     force: false,
     handleResponse,
-    headers: {
-      'Accept': 'application/json',
-      'Content-Type': 'application/json'
-    },
+    headers: {},
     method: 'GET',
     redirect: 'follow',
     refreshing: false,
@@ -197,6 +208,15 @@ function connect(mapPropsToRequestsToProps, defaults) {
   }
 
   function assignDefaults(mapping, parent) {
+    const rawHeaders = Object.assign({}, defaults.headers, mapping.headers)
+    const headers = {}
+    for (let key in rawHeaders) {
+      // Discard headers with falsy values
+      if (rawHeaders.hasOwnProperty(key) && rawHeaders[key]) {
+        headers[key] = rawHeaders[key]
+      }
+    }
+
     return Object.assign(
       { comparison: defaults.comparison },
       parent ? {
@@ -216,7 +236,7 @@ function connect(mapPropsToRequestsToProps, defaults) {
         then: defaults.then
       },
       mapping,
-      { headers: Object.assign({}, defaults.headers, mapping.headers) }
+      { headers }
     )
   }
 
