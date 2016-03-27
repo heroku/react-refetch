@@ -341,6 +341,83 @@ userFetch.meta.response.headers.get('FOO')
 
 Do not attempt to read bodies directly from `meta.request` or `meta.response`. They are provided for metadata purposes only.
 
+## Using context to define requests
+
+You can also use `context` (in addition to props) to help define the requests your components need.
+It's available as the second argument to the function you pass to `connect`.
+Don't forget to define `contextTypes` on the component you're wrapping for context to be available.
+
+Some use case examples are, eg. setting a URL prefix in a root component that all others use:
+```js
+connect((props, context) => {
+  return {
+    userFetch: `${context.apiPrefix}/user/${props.params.userId}`
+  }
+})(Profile)
+```
+or also, setting a common refresh interval used by all components that need it:
+```js
+connect((props, context) => {
+  return {
+    userFetch: `/user/${props.params.userId}`,
+    likesFetch: {
+      url: `/users/${props.userId}/likes`,
+      refreshInterval: context.refreshInterval,
+    }
+  }
+})(Profile)
+```
+
+This is a complete example of everything you need to use context with React Refetch:
+```jsx
+import React, { Component, PropTypes } from 'react'
+import { connect, PromiseState } from 'react-refetch'
+
+class App extends React.Component {
+  static childContextTypes = {
+    apiPrefix: PropTypes.string.isRequired,
+  }
+
+  getChildContext() {
+    return {
+      apiPrefix: '/api/v1'
+    }
+  }
+
+  render() {
+    return <Profile params={this.props.params} />
+  }
+}
+
+class Profile extends React.Component {
+  static propTypes = {
+    userFetch: PropTypes.instanceOf(PromiseState).isRequired,
+  }
+
+  static contextTypes = {
+    apiPrefix: PropTypes.string.isRequired,
+  }
+
+  render() {
+    const { userFetch } = this.props
+
+    if (userFetch.pending) {
+      return <LoadingAnimation/>
+    } else if (userFetch.rejected) {
+      return <Error error={userFetch.reason}/>
+    } else if (userFetch.fulfilled) {
+      return <User data={userFetch.value}/>
+    }
+  }
+}
+
+export default connect((props, context) => {
+  return {
+    userFetch: `${context.apiPrefix}/user/${props.params.userId}`
+  }
+})(Profile)
+```
+
 ## Complete Example
 
 This is a complex example demonstrating various feature at once:
