@@ -520,6 +520,36 @@ csvConnector(props => ({
 
 Through this same API it is possible to change the internal `fetch` and `Request` implementations. This could be useful for a number of reasons, such as precise control over requests or customisation that is not possible with either `buildRequest` or `handleResponse`.
 
+For example, here's a simplistic implementation of a "caching fetch," which will cache the result of successful requests for a minute, regardless of headers:
+
+```jsx
+import { connect } from 'react-refetch'
+
+const cache = new Map()
+function cachingFetch(input, init) {
+  const req = new Request(input, init)
+  const inAMinute = 60000 + new Date()
+  const cached = cache.get(req.url)
+
+  if (cached && cached.time < inAMinute) {
+    return cached.response.clone()
+  }
+
+  return fetch(req).then(response => {
+    cache.set(req.url, {
+      time: new Date(),
+      response: response.clone()
+    })
+
+    return response
+  })
+}
+
+connect.defaults({ fetch: cachingFetch })(props => ({
+  userFetch: `/users/${props.userId}`
+}))(Profile)
+```
+
 When using this feature, make sure to read the [`fetch` API and interface documentation](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) and all related topics. Notably, you need to keep in mind that the `body` of a `Response` can _only be consumed once_, so if you need to read it in your custom `fetch`, you also need to recreate a brand new `Response` (or a `.clone()` of the original one if you're not modifying the body) so React Refetch can work properly.
 
 This is an _advanced feature_. Use existing declarative functionality wherever possible. Customise `buildRequest` or `handleResponse` if these can work instead. Please be aware that changing the `fetch` (or `Request`) implementation could conflict with built-in current or future functionality.
