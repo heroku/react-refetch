@@ -483,11 +483,44 @@ connect(props => ({
 }))(Profile)
 ```
 
+You can also replace the `handleResponse` function, which takes a Promise that resolves to a [`Response`](https://developer.mozilla.org/en-US/docs/Web/API/Response), and should return a Promise that resolves to the value of the response, or rejects based on the body, headers, status code, etc. You can use it, for example, to parse CSV instead of JSON:
+
+```jsx
+// api-connector.js
+import { connect } from 'react-refetch'
+import { parse } from 'csv'
+
+const csvConnector = connect.defaults({
+  handleResponse: function (response) {
+    if (response.headers.get('content-length') === '0' || response.status === 204) {
+      return
+    }
+
+    const csv = response.text()
+
+    if (response.status >= 200 && response.status < 300) {
+      return csv.then(text => new Promise((resolve, reject) => {
+        parse(text, (err, data) => {
+          if (err) { reject(err) }
+          resolve(data)
+        })
+      }))
+    } else {
+      return csv.then(cause => Promise.reject(new Error(cause)))
+    }
+  }
+})
+
+csvConnector(props => ({
+  userFetch: `/users/${props.userId}.csv`
+}))(Profile)
+```
+
 ### On changing the `fetch` and `Request` implementations
 
 Through this same API it is possible to change the internal `fetch` and `Request` implementations. This could be useful for a number of reasons, such as precise control over requests or customisation that is not possible with either `buildRequest` or `handleResponse`.
 
-When using this feature, make sure to read the [`fetch` API and interface documentation](https://developer.mozilla.org/en-US/docs/Web/API/GlobalFetch/) and all related topics. Notably, you need to keep in mind that the `body` of a `Response` can _only be consumed once_, so if you need to read it in your custom `fetch`, you also need to recreate a brand new `Response` (or a `.clone()` of the original one if you're not modifying the body) so React Refetch can work properly.
+When using this feature, make sure to read the [`fetch` API and interface documentation](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) and all related topics. Notably, you need to keep in mind that the `body` of a `Response` can _only be consumed once_, so if you need to read it in your custom `fetch`, you also need to recreate a brand new `Response` (or a `.clone()` of the original one if you're not modifying the body) so React Refetch can work properly.
 
 This is an _advanced feature_. Use existing declarative functionality wherever possible. Customise `buildRequest` or `handleResponse` if these can work instead. Please be aware that changing the `fetch` (or `Request`) implementation could conflict with built-in current or future functionality.
 
