@@ -1,3 +1,4 @@
+import 'whatwg-fetch'
 import expect from 'expect'
 import React, { createClass, Component } from 'react'
 import TestUtils from 'react-addons-test-utils'
@@ -166,7 +167,14 @@ describe('React', () => {
     })
 
     it('should use provided mapping object with applied defaults', () => {
-      @connect(() => ({ testFetch: { url: '/example', method: 'POST', headers: { 'Content-Type': 'overwrite-default', 'X-Foo': 'custom-foo' } } }))
+      @connect(() => ({ testFetch: {
+        url: '/example',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'overwrite-default',
+          'X-Foo': 'custom-foo'
+        }
+      } }))
       class Container extends Component {
         render() {
           return <Passthrough {...this.props} />
@@ -178,7 +186,7 @@ describe('React', () => {
       )
 
       const decorated = TestUtils.findRenderedComponentWithType(container, Container)
-      expect(Object.keys(decorated.state.mappings.testFetch).length).toEqual(7)
+      expect(Object.keys(decorated.state.mappings.testFetch).length).toEqual(15)
       expect(decorated.state.mappings.testFetch.method).toEqual('POST')
       expect(decorated.state.mappings.testFetch.headers).toEqual({ Accept: 'application/json', 'Content-Type': 'overwrite-default', 'X-Foo': 'custom-foo' })
       expect(decorated.state.mappings.testFetch.credentials).toEqual('same-origin')
@@ -523,7 +531,7 @@ describe('React', () => {
       let props = { x: true }
       let container
 
-      @connect(() => ({}), () => ({}))
+      @connect(() => ({}))
       class ConnectContainer extends Component {
         render() {
           return (
@@ -996,7 +1004,7 @@ describe('React', () => {
 
       const decorated = TestUtils.findRenderedComponentWithType(tree, Decorated)
       expect(() => decorated.getWrappedInstance()).toThrow(
-        /To access the wrapped instance, you need to specify \{ withRef: true \} as the fourth argument of the connect\(\) call\./
+        /To access the wrapped instance, you need to specify \{ withRef: true \} in \.defaults\(\)\./
       )
     })
 
@@ -1015,7 +1023,7 @@ describe('React', () => {
         }
       }
 
-      const decorator = connect(() => {}, { withRef: true })
+      const decorator = connect.defaults({ withRef: true })(() => {})
       const Decorated = decorator(Container)
 
       const tree = TestUtils.renderIntoDocument(
@@ -1144,6 +1152,21 @@ describe('React', () => {
       })
     })
 
+    it('should warn if the options argument is used', () => {
+      const spy = expect.spyOn(console, 'error')
+      @connect(() => ({}), { refreshInterval: 0 })
+      class Container extends Component {
+        render() {
+          return <Passthrough {...this.props} />
+        }
+      }
+
+      expect(Container).toExist()
+      expect(spy.calls.length).toEqual(1)
+      expect(spy.calls[0].arguments[0]).toMatch(/The options argument is deprecated/)
+      spy.restore()
+    })
+
     // TODO
     //it('should not render the wrapped component when mapState does not produce change', () => {
     //  const store = createStore(stringBuilder)
@@ -1177,5 +1200,551 @@ describe('React', () => {
     //  // But render is not because it did not make any actual changes
     //  expect(renderCalls).toBe(1)
     //})
+
+    context('.defaults', () => {
+      // Escape characters that have special meaning in RegExps, then create a
+      // RegExp from the passed string.
+      function regexpify(str) {
+        return new RegExp(str.replace(/([\[\]\{\}\(\)\.\-\,\+\?\*])/g, '\\$1'))
+      }
+
+      function typecheckCheck(name, expectedType, typeException = null) {
+        typeException = typeException || function (type) {
+          return regexpify(
+            `${name} must be a ${expectedType}. Instead received a ${type}.`
+          )
+        }
+
+        const checks = {
+          boolean: [ true, false ],
+          function: [ Date, () => {} ],
+          number: [ 1337, 1.37e25, 0.123456789, Math.PI, -42, 0, NaN, Infinity ],
+          object: [ null, [ 7.2, 'billion' ], new Date(), { obj: 'ect' } ],
+          string: [ 'string', 'chaîne', '細線', '😀🌂🔗💯🆗' ],
+          symbol: [ Symbol('hearts'), Symbol(), Symbol.iterator ],
+          undefined: [ undefined, void 0 ]
+        }
+
+        for (let type in checks) {
+          let values = checks[type]
+          if (type === expectedType) { return }
+          if (expectedType === 'plain object with string values' &&
+            type === 'object') { values = values.slice(0, 3) }
+
+          values.forEach(value => {
+            expect(() => connect.defaults({ [name]: value })())
+              .toThrow(typeException(type, value))
+          })
+        }
+      }
+
+      it('should throw unless a function is given as buildRequest', () => {
+        typecheckCheck('buildRequest', 'function')
+      })
+
+      it('should throw unless a function is given as handleResponse', () => {
+        typecheckCheck('handleResponse', 'function')
+      })
+
+      it('should throw unless a function is given as fetch', () => {
+        typecheckCheck('fetch', 'function')
+      })
+
+      it('should throw unless a string is given as method', () => {
+        typecheckCheck('method', 'string')
+      })
+
+      it('should throw unless a number >= 0 is given as refreshInterval', () => {
+        typecheckCheck('refreshInterval', 'number')
+
+        ;[ -0, 0, 1, 100, 1293, 1.23e5, 99e99 ].forEach(refreshInterval => {
+          expect(() => connect.defaults({ refreshInterval })()).toNotThrow(/invariant/i)
+        })
+
+        ;[ -1, -100, -1293, -1.23e5, -99e99 ].forEach(refreshInterval => {
+          expect(() => connect.defaults({ refreshInterval })()).toThrow(
+            /refreshInterval must be positive or 0\./
+          )
+        })
+
+        ;[ Infinity, 1e999 ].forEach(refreshInterval => {
+          expect(() => connect.defaults({ refreshInterval })()).toThrow(
+            /refreshInterval must not be Infinity\./
+          )
+        })
+      })
+
+      it('should throw unless a function is given as Request', () => {
+        typecheckCheck('Request', 'function')
+      })
+
+      it('should throw unless a plain object is given as headers', () => {
+        typecheckCheck('headers', 'plain object with string values')
+      })
+
+      it('should throw unless a correct value is given as credentials', () => {
+        const allowed = [ 'omit', 'same-origin', 'include' ]
+
+        typecheckCheck('credentials', 'enum', (type, value) => regexpify(
+          `credentials must be one of ${allowed.join(', ')}. ` +
+          `Instead got ${value ? value.toString() : value}.`
+        ))
+
+        allowed.forEach(credentials => {
+          expect(() => connect.defaults({ credentials })()).toNotThrow(/invariant/i)
+        })
+      })
+
+      it('should throw unless a correct value is given as redirect', () => {
+        const allowed = [ 'follow', 'error', 'manual' ]
+
+        typecheckCheck('redirect', 'enum', (type, value) => regexpify(
+          `redirect must be one of ${allowed.join(', ')}. ` +
+          `Instead got ${value ? value.toString() : value}.`
+        ))
+
+        allowed.forEach(redirect => {
+          expect(() => connect.defaults({ redirect })()).toNotThrow(/invariant/i)
+        })
+      })
+
+      it('should allow overriding further by chaining', () => {
+        expect(connect.defaults({}).defaults({}).defaults({})).toBeA('function')
+      })
+
+      it('should throw if no fetch implementation is available', () => {
+        let globalFetch
+        if (typeof global !== 'undefined') {
+          globalFetch = global.fetch
+          global.fetch = undefined
+        }
+
+        let selfFetch
+        if (typeof self !== 'undefined') {
+          selfFetch = self.fetch
+          self.fetch = undefined
+        }
+
+        let windowFetch
+        if (typeof window !== 'undefined') {
+          windowFetch = window.fetch
+          window.fetch = undefined
+        }
+
+        // Sanity check
+        expect(global.fetch).toNotExist('global.fetch should be unset')
+        expect(self.fetch).toNotExist('self.fetch should be unset')
+        expect(window.fetch).toNotExist('window.fetch should be unset')
+
+        expect(() => connect()).toThrow(/fetch must be a function/)
+
+        if (typeof globalFetch !== 'undefined') { global.fetch = globalFetch }
+        if (typeof selfFetch !== 'undefined') { self.fetch = selfFetch }
+        if (typeof windowFetch !== 'undefined') { window.fetch = windowFetch }
+      })
+
+      it('should throw if no Request implementation is available', () => {
+        let globalRequest
+        if (typeof global !== 'undefined') {
+          globalRequest = global.Request
+          global.Request = undefined
+        }
+
+        let selfRequest
+        if (typeof self !== 'undefined') {
+          selfRequest = self.Request
+          self.Request = undefined
+        }
+
+        let windowRequest
+        if (typeof window !== 'undefined') {
+          windowRequest = window.Request
+          window.Request = undefined
+        }
+
+        // Sanity check
+        expect(global.Request).toNotExist('global.Request should be unset')
+        expect(self.Request).toNotExist('self.Request should be unset')
+        expect(window.Request).toNotExist('window.Request should be unset')
+
+        expect(() => connect()).toThrow(/Request must be a function/)
+
+        if (typeof globalRequest !== 'undefined') { global.Request = globalRequest }
+        if (typeof selfRequest !== 'undefined') { self.Request = selfRequest }
+        if (typeof windowRequest !== 'undefined') { window.Request = windowRequest }
+      })
+
+      it('should set the default fetch', (done) => {
+        const customSpy = expect.createSpy(() => ({}))
+        const customFetch = () => {
+          customSpy()
+          return new Promise((resolve) => {
+            resolve(new window.Response(JSON.stringify({ T: 't' })))
+          })
+        }
+
+        const custom = connect.defaults({ fetch: customFetch })
+
+        const fetchSpy = expect.createSpy(() => ({}))
+        fetchSpies.push(fetchSpy)
+
+        @custom(() => ({ testFetch: `/example` }))
+        class Container extends Component {
+          render() {
+            return <Passthrough {...this.props} />
+          }
+        }
+
+        TestUtils.renderIntoDocument(<Container />)
+        setImmediate(() => {
+          expect(fetchSpy.calls.length).toBe(0)
+          expect(customSpy.calls.length).toBe(1)
+          done()
+        })
+      })
+
+      it('should merge headers with the defaults', (done) => {
+        const spy = expect.createSpy(() => {})
+        const customFetch = (request) => {
+          spy(request.headers)
+          return new Promise((resolve) => {
+            resolve(new window.Response(JSON.stringify({ T: 't' })))
+          })
+        }
+
+        const headers = { 'X-Foo': 'bar' }
+        const custom = connect.defaults({ fetch: customFetch, headers })
+        @custom(() => ({ testFetch: `/example` }))
+        class Container extends Component {
+          render() {
+            return <Passthrough {...this.props} />
+          }
+        }
+
+        TestUtils.renderIntoDocument(<Container />)
+        setImmediate(() => {
+          expect(spy.calls.length).toBe(1)
+          const headers = spy.calls[0].arguments[0]
+          expect(headers).toBeA(window.Headers)
+          expect(headers.get('Accept')).toBe('application/json')
+          expect(headers.get('Content-Type')).toBe('application/json')
+          expect(headers.get('X-Foo')).toBe('bar')
+          done()
+        })
+      })
+
+      it('should discard headers with falsy values', (done) => {
+        const spy = expect.createSpy(() => {})
+        const customFetch = (request) => {
+          spy(request.headers)
+          return new Promise((resolve) => {
+            resolve(new window.Response(JSON.stringify({ T: 't' })))
+          })
+        }
+
+        const headers = { 'X-Foo': 'bar', 'X-Baz': 'qux', 'X-xx': 'mordor' }
+        const custom = connect
+          .defaults({ fetch: customFetch, headers })
+          .defaults({ headers: { 'Be': 'nice' } })
+          .defaults({ headers: { 'X-Foo': false, 'X-Baz': 0, 'X-xx': '' } })
+          .defaults({ headers: { 'Accept': null, 'Content-Type': undefined } })
+        @custom(() => ({ testFetch: {
+          url: `/example`,
+          headers: {
+            'Stay': 'there',
+            'Be': null
+          }
+        } }))
+        class Container extends Component {
+          render() {
+            return <Passthrough {...this.props} />
+          }
+        }
+
+        TestUtils.renderIntoDocument(<Container />)
+        setImmediate(() => {
+          expect(spy.calls.length).toBe(1)
+          const headers = spy.calls[0].arguments[0]
+          expect(headers).toBeA(window.Headers)
+          expect(headers.get('Accept')).toNotExist()
+          expect(headers.get('Content-Type')).toNotExist()
+          expect(headers.get('X-Foo')).toNotExist()
+          expect(headers.get('X-Baz')).toNotExist()
+          expect(headers.get('X-xx')).toNotExist()
+          expect(headers.get('Be')).toNotExist()
+          expect(headers.get('Stay')).toEqual('there')
+          done()
+        })
+      })
+
+      it('should set the default method', (done) => {
+        const spy = expect.createSpy(() => {})
+        const customFetch = (request) => {
+          spy(request.method)
+          return new Promise((resolve) => {
+            resolve(new window.Response(JSON.stringify({ T: 't' })))
+          })
+        }
+
+        const custom = connect.defaults({ fetch: customFetch, method: 'PUT' })
+        @custom(() => ({ testFetch: `/example` }))
+        class Container extends Component {
+          render() {
+            return <Passthrough {...this.props} />
+          }
+        }
+
+        TestUtils.renderIntoDocument(<Container />)
+        setImmediate(() => {
+          expect(spy.calls.length).toBe(1)
+          expect(spy.calls[0].arguments).toEqual([ 'PUT' ])
+          done()
+        })
+      })
+
+      it('should set the default Request', (done) => {
+        const requestSpy = expect.createSpy(() => ({}))
+        class Request extends window.Request {
+          constructor() {
+            super()
+            requestSpy()
+          }
+        }
+
+        const custom = connect.defaults({ Request })
+        @custom(() => ({ testFetch: `/example` }))
+        class Container extends Component {
+          render() {
+            return <Passthrough {...this.props} />
+          }
+        }
+
+        TestUtils.renderIntoDocument(<Container />)
+        setImmediate(() => {
+          expect(requestSpy.calls.length).toBe(1)
+          done()
+        })
+      })
+
+      it('should set the default credentials', (done) => {
+        const spy = expect.createSpy(() => {})
+        class Request extends window.Request {
+          constructor(url, options) {
+            super(url, options)
+            spy(options.credentials)
+          }
+        }
+
+        const custom = connect.defaults({ Request, credentials: 'include' })
+        @custom(() => ({ testFetch: `/example` }))
+        class Container extends Component {
+          render() {
+            return <Passthrough {...this.props} />
+          }
+        }
+
+        TestUtils.renderIntoDocument(<Container />)
+        setImmediate(() => {
+          expect(spy.calls.length).toBe(1)
+          expect(spy.calls[0].arguments).toEqual([ 'include' ])
+          done()
+        })
+      })
+
+      it('should set the default redirect', (done) => {
+        const spy = expect.createSpy(() => {})
+        class Request extends window.Request {
+          constructor(url, options) {
+            super(url, options)
+            spy(options.redirect)
+          }
+        }
+
+        const custom = connect.defaults({ Request, redirect: 'error' })
+        @custom(() => ({ testFetch: `/example` }))
+        class Container extends Component {
+          render() {
+            return <Passthrough {...this.props} />
+          }
+        }
+
+        TestUtils.renderIntoDocument(<Container />)
+        setImmediate(() => {
+          expect(spy.calls.length).toBe(1)
+          expect(spy.calls[0].arguments).toEqual([ 'error' ])
+          done()
+        })
+      })
+
+      it('should set the default buildRequest', (done) => {
+        const spy = expect.createSpy(() => {})
+        function buildRequest(mapping) {
+          spy()
+          return new window.Request(mapping.url, {
+            method: mapping.method,
+            headers: mapping.headers,
+            credentials: mapping.credentials,
+            redirect: mapping.redirect,
+            body: mapping.body
+          })
+        }
+
+        const custom = connect.defaults({ buildRequest })
+        @custom(() => ({ testFetch: `/example` }))
+        class Container extends Component {
+          render() {
+            return <Passthrough {...this.props} />
+          }
+        }
+
+        TestUtils.renderIntoDocument(<Container />)
+        setImmediate(() => {
+          expect(spy.calls.length).toBe(1)
+          done()
+        })
+      })
+
+      it('should set the default handleResponse', (done) => {
+        const spy = expect.createSpy(() => {})
+        function handleResponse(response) {
+          spy()
+          if (response.headers.get('content-length') === '0' || response.status === 204) {
+            return
+          }
+
+          const json = response.json()
+          if (response.status >= 200 && response.status < 300) {
+            return json
+          } else {
+            return json.then(cause => Promise.reject(new Error(cause)))
+          }
+        }
+
+        const custom = connect.defaults({ handleResponse })
+        @custom(() => ({ testFetch: `/example` }))
+        class Container extends Component {
+          render() {
+            return <Passthrough {...this.props} />
+          }
+        }
+
+        TestUtils.renderIntoDocument(<Container />)
+        setImmediate(() => {
+          expect(spy.calls.length).toBe(1)
+          done()
+        })
+      })
+
+      it('should set the default refreshInterval', () => {
+        const interval = 100000 // set sufficently far out to not happen during test
+
+        const custom = connect.defaults({ refreshInterval: interval })
+        @custom(() => ({ testFetch: { url: `/example` } }))
+        class Container extends Component {
+          render() {
+            return <Passthrough {...this.props} />
+          }
+        }
+
+        const container = TestUtils.renderIntoDocument(
+          <Container />
+        )
+
+        const pending = TestUtils.findRenderedComponentWithType(container, Container)
+        expect(pending.state.data.testFetch).toIncludeKeyValues({
+          fulfilled: false, pending: true, reason: null, refreshing: false, rejected: false, settled: false, value: null
+        })
+        expect(pending.state.mappings.testFetch.refreshInterval).toEqual(interval)
+        expect(pending.state.refreshTimeouts.testFetch).toEqual(undefined)
+      })
+
+      it('should set the default refreshing', () => {
+        const custom = connect.defaults({ refreshing: true })
+        @custom(() => ({ testFetch: { url: `/example` } }))
+        class Container extends Component {
+          render() {
+            return <Passthrough {...this.props} />
+          }
+        }
+
+        const container = TestUtils.renderIntoDocument(<Container />)
+        const init = TestUtils.findRenderedComponentWithType(container, Container)
+        expect(init.state.data.testFetch).toIncludeKeyValues({ refreshing: true })
+      })
+
+      it('should set the default then', () => {
+        const custom = connect.defaults({ then: (v) => `/second/${v['T']}` })
+        @custom(({ foo }) => ({ firstFetch: `/first/${foo}` }))
+        class Container extends Component {
+          render() {
+            return <Passthrough {...this.props} />
+          }
+        }
+
+        const container = TestUtils.renderIntoDocument(<Container foo="bar" />)
+        const decorated = TestUtils.findRenderedComponentWithType(container, Container)
+        expect(decorated.state.mappings.firstFetch.then).toBeA('function')
+      })
+
+      it('should set the default andThen', () => {
+        const custom = connect.defaults({ andThen: (v) => `/second/${v['T']}` })
+        @custom(({ foo }) => ({ firstFetch: `/first/${foo}` }))
+        class Container extends Component {
+          render() {
+            return <Passthrough {...this.props} />
+          }
+        }
+
+        const container = TestUtils.renderIntoDocument(<Container foo="bar" />)
+        const decorated = TestUtils.findRenderedComponentWithType(container, Container)
+        expect(decorated.state.mappings.firstFetch.andThen).toBeA('function')
+      })
+
+      it('should set the default catch', () => {
+        const custom = connect.defaults({ catch: (v) => `/second/${v['T']}` })
+        @custom(({ foo }) => ({ firstFetch: `/first/${foo}` }))
+        class Container extends Component {
+          render() {
+            return <Passthrough {...this.props} />
+          }
+        }
+
+        const container = TestUtils.renderIntoDocument(<Container foo="bar" />)
+        const decorated = TestUtils.findRenderedComponentWithType(container, Container)
+        expect(decorated.state.mappings.firstFetch.catch).toBeA('function')
+      })
+
+      it('should set the default andCatch', () => {
+        const custom = connect.defaults({ andCatch: (v) => `/second/${v['T']}` })
+        @custom(({ foo }) => ({ firstFetch: `/first/${foo}` }))
+        class Container extends Component {
+          render() {
+            return <Passthrough {...this.props} />
+          }
+        }
+
+        const container = TestUtils.renderIntoDocument(<Container foo="bar" />)
+        const decorated = TestUtils.findRenderedComponentWithType(container, Container)
+        expect(decorated.state.mappings.firstFetch.andCatch).toBeA('function')
+      })
+
+      it('should warn if both buildRequest and Request are customised', () => {
+        const spy = expect.spyOn(console, 'error')
+        @connect.defaults({
+          buildRequest: () => {},
+          Request: () => {}
+        })()
+        class Container extends Component {
+          render() {
+            return <Passthrough {...this.props} />
+          }
+        }
+
+        spy.restore()
+        expect(Container).toExist()
+        expect(spy.calls.length).toEqual(1)
+        expect(spy.calls[0].arguments[0]).toMatch(/Both buildRequest and Request were provided/)
+      })
+    })
   })
 })

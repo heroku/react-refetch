@@ -55,14 +55,15 @@
     "react-addons-test-utils": "^0.14.0",
     "react-dom": "^0.14.0",
     "rimraf": "^2.3.4",
-    "webpack": "^1.11.0"
+    "webpack": "^1.11.0",
+    "whatwg-fetch": "*"
   },
   "dependencies": {
     "hoist-non-react-statics": "^1.0.3",
-    "invariant": "^2.0.0"
+    "invariant": "^2.0.0",
+    "warning": "^2.1.0"
   },
   "peerDependencies": {
-    "whatwg-fetch": "*",
     "react": "^0.14.0 || ^15.0.0-rc"
   }
 }
