@@ -136,22 +136,16 @@ function connect(mapPropsToRequestsToProps, defaults) {
   }
 
   defaults = Object.assign({
-    andCatch: undefined,
-    andThen: undefined,
     buildRequest,
-    catch: undefined,
-    comparison: undefined,
     credentials: 'same-origin',
     fetch: topFetch,
     force: false,
     handleResponse,
-    headers: {},
     method: 'GET',
     redirect: 'follow',
     refreshing: false,
     refreshInterval: 0,
     Request: topRequest,
-    then: undefined,
     withRef: false
   }, defaults)
 
@@ -219,30 +213,18 @@ function connect(mapPropsToRequestsToProps, defaults) {
     }
 
     return Object.assign(
-      { comparison: defaults.comparison },
-      parent ? {
-        comparison: parent.comparison
-      } : {},
       {
-        andCatch: defaults.andCatch,
-        andThen: defaults.andThen,
-        catch: defaults.catch,
-        credentials: defaults.credentials,
-        force: defaults.force,
-        meta: {},
-        method: defaults.method,
-        redirect: defaults.redirect,
-        refreshing: defaults.refreshing,
-        refreshInterval: defaults.refreshInterval,
-        then: defaults.then
+        meta: {}
       },
+      defaults,
+      parent ? { comparison: parent.comparison } : {},
       mapping,
       { headers }
     )
   }
 
   function buildRequest(mapping) {
-    return new defaults.Request(mapping.url, {
+    return new mapping.Request(mapping.url, {
       method: mapping.method,
       headers: mapping.headers,
       credentials: mapping.credentials,
@@ -343,14 +325,15 @@ function connect(mapPropsToRequestsToProps, defaults) {
         if (mapping.hasOwnProperty('value')) {
           return onFulfillment(meta)(mapping.value)
         } else {
-          const request = defaults.buildRequest(mapping)
+          const request = mapping.buildRequest(mapping)
           meta.request = request
           this.setAtomicState(prop, startedAt, mapping, initPS(meta))
 
-          const fetched = defaults.fetch(request)
+          const fetched = mapping.fetch(request)
           return fetched.then(response => {
             meta.response = response
-            return fetched.then(defaults.handleResponse).then(onFulfillment(meta), onRejection(meta))
+            return fetched.then(mapping.handleResponse)
+              .then(onFulfillment(meta), onRejection(meta))
           })
         }
       }
