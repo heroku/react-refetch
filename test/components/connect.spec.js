@@ -656,7 +656,7 @@ describe('React', () => {
       expect('x' in propsAfter).toEqual(false, 'x prop must be removed')
     })
 
-    it('should invoke mapPropsToRequestsToProps every time props are changed', () => {
+    it('should invoke mapPropsToRequestsToProps if props changed', () => {
       let propsPassedIn
       let invocationCount = 0
 
@@ -695,21 +695,76 @@ describe('React', () => {
         <OuterComponent ref={c => outerComponent = c} />
       )
 
-      outerComponent.setFoo('BAR')
-      outerComponent.setFoo('BAR')
-      outerComponent.setFoo('BAZ')
+      const obj = { blah: 2 }
 
+      expect(invocationCount).toEqual(1)
+      outerComponent.setFoo('BAR')
+      expect(invocationCount).toEqual(2)
+      outerComponent.setFoo('BAR')
+      expect(invocationCount).toEqual(2)
+      outerComponent.setFoo('BAZ')
+      expect(invocationCount).toEqual(3)
+      outerComponent.setFoo(obj)
       expect(invocationCount).toEqual(4)
+      outerComponent.setFoo({ blah: 2 })
+      expect(invocationCount).toEqual(5)
+
       expect(propsPassedIn).toEqual({
-        foo: 'BAZ'
+        foo: { blah: 2 }
       })
     })
 
+    it("should not re-invoke mapPropsToRequestsToProps if it doesn't depend on props or context", () => {
+      let invocationCount = 0
+
+      @connect(() => {
+        invocationCount++
+        return {}
+      })
+      class WithProps extends Component {
+        render() {
+          return <Passthrough {...this.props}/>
+        }
+      }
+
+      class OuterComponent extends Component {
+        constructor() {
+          super()
+          this.state = { foo: 'FOO' }
+        }
+
+        setFoo(foo) {
+          this.setState({ foo })
+        }
+
+        render() {
+          return (
+            <div>
+              <WithProps {...this.state} />
+            </div>
+          )
+        }
+      }
+
+      let outerComponent
+      TestUtils.renderIntoDocument(
+        <OuterComponent ref={c => outerComponent = c} />
+      )
+
+      expect(invocationCount).toEqual(1)
+      outerComponent.setFoo('BAR')
+      expect(invocationCount).toEqual(1)
+    })
+
     it('should invoke mapPropsToRequestsToProps with context', () => {
+      let invocationCount = 0
       let contextPassedIn = []
+      let propsPassedIn = []
 
       @connect((props, context) => {
+        invocationCount++
         contextPassedIn.push(context)
+        propsPassedIn.push(props)
         return {}
       })
       class InnerComponent extends Component {
@@ -725,7 +780,8 @@ describe('React', () => {
         constructor(props) {
           super(props)
           this.state = {
-            foo: 'bar'
+            foo: 'bar',
+            bar: 'foo'
           }
         }
 
@@ -735,12 +791,16 @@ describe('React', () => {
           }
         }
 
-        setFoo(foo) {
+        setContext(foo) {
           this.setState({ foo })
         }
 
+        setProp(bar) {
+          this.setState({ bar })
+        }
+
         render() {
-          return <InnerComponent />
+          return <InnerComponent bar={this.state.bar} />
         }
       }
       OuterComponent.childContextTypes = {
@@ -752,7 +812,15 @@ describe('React', () => {
         <OuterComponent ref={c => outerComponent = c} />
       )
 
-      outerComponent.setFoo('baz')
+      expect(invocationCount).toEqual(1)
+      outerComponent.setContext('baz')
+      expect(invocationCount).toEqual(2)
+      outerComponent.setContext('baz')
+      expect(invocationCount).toEqual(2)
+      outerComponent.setProp('baz')
+      expect(invocationCount).toEqual(3)
+      outerComponent.setProp('baz')
+      expect(invocationCount).toEqual(3)
 
       expect(contextPassedIn).toEqual([
         {
@@ -760,6 +828,95 @@ describe('React', () => {
         },
         {
           foo: 'baz'
+        },
+        {
+          foo: 'baz'
+        }
+      ])
+
+      expect(propsPassedIn).toEqual([
+        {
+          bar: 'foo'
+        },
+        {
+          bar: 'foo'
+        },
+        {
+          bar: 'baz'
+        }
+      ])
+    })
+
+    it("should not re-invoke mapPropsToRequestsToProps when context changes if it doesn't depend on context", () => {
+      let invocationCount = 0
+      let propsPassedIn = []
+
+      @connect((props) => {
+        invocationCount++
+        propsPassedIn.push(props)
+        return {}
+      })
+      class InnerComponent extends Component {
+        render() {
+          return <div />
+        }
+      }
+      InnerComponent.contextTypes = {
+        foo: React.PropTypes.string
+      }
+
+      class OuterComponent extends Component {
+        constructor(props) {
+          super(props)
+          this.state = {
+            foo: 'bar',
+            bar: 'foo'
+          }
+        }
+
+        getChildContext() {
+          return {
+            foo: this.state.foo
+          }
+        }
+
+        setContext(foo) {
+          this.setState({ foo })
+        }
+
+        setProp(bar) {
+          this.setState({ bar })
+        }
+
+        render() {
+          return <InnerComponent bar={this.state.bar} />
+        }
+      }
+      OuterComponent.childContextTypes = {
+        foo: React.PropTypes.string
+      }
+
+      let outerComponent
+      TestUtils.renderIntoDocument(
+        <OuterComponent ref={c => outerComponent = c} />
+      )
+
+      expect(invocationCount).toEqual(1)
+      outerComponent.setContext('baz')
+      expect(invocationCount).toEqual(1)
+      outerComponent.setContext('baz')
+      expect(invocationCount).toEqual(1)
+      outerComponent.setProp('baz')
+      expect(invocationCount).toEqual(2)
+      outerComponent.setProp('baz')
+      expect(invocationCount).toEqual(2)
+
+      expect(propsPassedIn).toEqual([
+        {
+          bar: 'foo'
+        },
+        {
+          bar: 'baz'
         }
       ])
     })
