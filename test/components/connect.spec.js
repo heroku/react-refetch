@@ -403,6 +403,44 @@ describe('React', () => {
       })
     })
 
+    it('should call catch mappings', (done) => {
+      const props = ({
+        baz: 42
+      })
+
+      @connect(({ baz }) => ({
+        firstFetch: {
+          url: `/error`,
+          catch: (v) => `/second/${baz}/${v.cause.error}`
+        }
+      }))
+      class Container extends Component {
+        render() {
+          return <Passthrough {...this.props} />
+        }
+      }
+
+      const container = TestUtils.renderIntoDocument(
+        <Container {...props} />
+      )
+
+      const decorated = TestUtils.findRenderedComponentWithType(container, Container)
+      expect(decorated.state.mappings.firstFetch.url).toEqual('/error')
+      expect(decorated.state.mappings.firstFetch.catch).toBeA('function')
+      expect(decorated.state.data.firstFetch).toIncludeKeyValues(
+        { fulfilled: false, pending: true, reason: null, refreshing: false, rejected: false, settled: false, value: null }
+      )
+
+      setImmediate(() => {
+        expect(decorated.state.mappings.firstFetch.url).toEqual('/second/42/e')
+        expect(decorated.state.data.firstFetch).toIncludeKeyValues(
+          { fulfilled: true, pending: false, reason: null, refreshing: false, rejected: false, settled: true, value: { 'T': 't' } }
+        )
+
+        done()
+      })
+    })
+
     it('should call andThen mappings', (done) => {
       const props = ({
         foo: 'bar',
@@ -444,6 +482,55 @@ describe('React', () => {
 
         expect(decorated.state.mappings.thenFetch.url).toEqual('/second/42')
         expect(decorated.state.data.thenFetch).toIncludeKeyValues(
+          { fulfilled: true, pending: false, reason: null, refreshing: false, rejected: false, settled: true, value: { 'T': 't' } }
+        )
+
+        done()
+      })
+    })
+
+    it('should call andCatch mappings', (done) => {
+      const props = ({
+        baz: 42
+      })
+
+      @connect(({ baz }) => ({
+        firstFetch: {
+          url: `/error`,
+          andCatch: () => ({
+            catchFetch: `/second/${baz}`
+          })
+        }
+      }))
+      class Container extends Component {
+        render() {
+          return <Passthrough {...this.props} />
+        }
+      }
+
+      const container = TestUtils.renderIntoDocument(
+        <Container {...props} />
+      )
+
+      const decorated = TestUtils.findRenderedComponentWithType(container, Container)
+      expect(decorated.state.mappings.firstFetch.url).toEqual('/error')
+      expect(decorated.state.mappings.firstFetch.andCatch).toBeA('function')
+      expect(decorated.state.data.firstFetch).toIncludeKeyValues(
+        { fulfilled: false, pending: true, reason: null, refreshing: false, rejected: false, settled: false, value: null }
+      )
+
+      expect(decorated.state.mappings.catchFetch).toEqual(undefined)
+      expect(decorated.state.data.catchFetch).toEqual(undefined)
+
+      setImmediate(() => {
+        expect(decorated.state.data.firstFetch).toIncludeKeyValues(
+          { fulfilled: false, pending: false, refreshing: false, rejected: true, settled: true, value: null }
+        )
+        expect(decorated.state.data.firstFetch.reason).toBeA(Error)
+        expect(decorated.state.data.firstFetch.reason.cause).toEqual({ error: 'e', id: 'not_found' })
+
+        expect(decorated.state.mappings.catchFetch.url).toEqual('/second/42')
+        expect(decorated.state.data.catchFetch).toIncludeKeyValues(
           { fulfilled: true, pending: false, reason: null, refreshing: false, rejected: false, settled: true, value: { 'T': 't' } }
         )
 

@@ -1,6 +1,5 @@
 import React, { Component } from 'react'
 import isPlainObject from '../utils/isPlainObject'
-import deepValue from '../utils/deepValue'
 import shallowEqual from '../utils/shallowEqual'
 import newError from '../utils/errors'
 import PromiseState from '../PromiseState'
@@ -202,7 +201,7 @@ function connect(mapPropsToRequestsToProps, defaults) {
       }
 
       return [ 'value', 'url', 'method', 'headers', 'body' ].every((c) => {
-        return shallowEqual(deepValue(this, c), deepValue(that, c))
+        return shallowEqual(this[c], that[c])
       })
     }.bind(mapping)
 
@@ -314,7 +313,7 @@ function connect(mapPropsToRequestsToProps, defaults) {
 
           if (Function.prototype.isPrototypeOf(mapping)) {
             this.setAtomicState(prop, new Date(), mapping, (...args) => {
-              this.refetchDataFromMappings(mapping(...args || {}))
+              this.refetchDataFromMappings(mapping(...args))
             })
             return
           }
