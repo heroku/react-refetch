@@ -313,7 +313,7 @@ function connect(mapPropsToRequestsToProps, defaults) {
 
           if (Function.prototype.isPrototypeOf(mapping)) {
             this.setAtomicState(prop, new Date(), mapping, (...args) => {
-              this.refetchDataFromMappings(mapping(...args || {}))
+              this.refetchDataFromMappings(mapping(...args))
             })
             return
           }
