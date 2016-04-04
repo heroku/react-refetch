@@ -3,6 +3,8 @@ import expect from 'expect'
 import React, { createClass, Component } from 'react'
 import TestUtils from 'react-addons-test-utils'
 import { connect, PromiseState } from '../../src/index'
+import buildRequest from '../../src/utils/buildRequest'
+import handleResponse from '../../src/utils/handleResponse'
 
 describe('React', () => {
   describe('connect', () => {
@@ -1241,7 +1243,7 @@ describe('React', () => {
 
     it('should warn if the options argument is used', () => {
       const spy = expect.spyOn(console, 'error')
-      @connect(() => ({}), { refreshInterval: 0 })
+      @connect(() => ({}), { withRef: true })
       class Container extends Component {
         render() {
           return <Passthrough {...this.props} />
@@ -1331,6 +1333,22 @@ describe('React', () => {
 
       it('should throw unless a function is given as handleResponse', () => {
         typecheckCheck('handleResponse', 'function')
+      })
+
+      it('should throw unless a function is given as then', () => {
+        typecheckCheck('then', 'function')
+      })
+
+      it('should throw unless a function is given as andThen', () => {
+        typecheckCheck('andThen', 'function')
+      })
+
+      it('should throw unless a function is given as catch', () => {
+        typecheckCheck('catch', 'function')
+      })
+
+      it('should throw unless a function is given as andCatch', () => {
+        typecheckCheck('andCatch', 'function')
       })
 
       it('should throw unless a function is given as fetch', () => {
@@ -1664,19 +1682,9 @@ describe('React', () => {
       })
 
       it('should set the default buildRequest', (done) => {
-        const spy = expect.createSpy(() => {})
-        function buildRequest(mapping) {
-          spy()
-          return new window.Request(mapping.url, {
-            method: mapping.method,
-            headers: mapping.headers,
-            credentials: mapping.credentials,
-            redirect: mapping.redirect,
-            body: mapping.body
-          })
-        }
+        const spy = expect.createSpy().andCall(buildRequest)
 
-        const custom = connect.defaults({ buildRequest })
+        const custom = connect.defaults({ buildRequest: spy })
         @custom(() => ({ testFetch: `/example` }))
         class Container extends Component {
           render() {
@@ -1692,22 +1700,9 @@ describe('React', () => {
       })
 
       it('should set the default handleResponse', (done) => {
-        const spy = expect.createSpy(() => {})
-        function handleResponse(response) {
-          spy()
-          if (response.headers.get('content-length') === '0' || response.status === 204) {
-            return
-          }
+        const spy = expect.createSpy().andCall(handleResponse)
 
-          const json = response.json()
-          if (response.status >= 200 && response.status < 300) {
-            return json
-          } else {
-            return json.then(cause => Promise.reject(new Error(cause)))
-          }
-        }
-
-        const custom = connect.defaults({ handleResponse })
+        const custom = connect.defaults({ handleResponse: spy })
         @custom(() => ({ testFetch: `/example` }))
         class Container extends Component {
           render() {
@@ -1813,6 +1808,66 @@ describe('React', () => {
         const container = TestUtils.renderIntoDocument(<Container foo="bar" />)
         const decorated = TestUtils.findRenderedComponentWithType(container, Container)
         expect(decorated.state.mappings.firstFetch.andCatch).toBeA('function')
+      })
+
+      it('options defined on a mapping should take precedence over defaults', (done) => {
+        const fetchDefault = expect.createSpy().andCall(window.fetch)
+        const handleResponseDefault = expect.createSpy().andCall(handleResponse)
+        const buildRequestDefault = expect.createSpy().andCall(buildRequest)
+
+        const custom = connect.defaults({
+          then: (v) => `/second/${v['T']}`,
+          andThen: (v) => `/second/${v['T']}`,
+          catch: (v) => `/second/${v['T']}`,
+          andCatch: (v) => `/second/${v['T']}`,
+          fetch: fetchDefault,
+          handleResponse: handleResponseDefault,
+          buildRequest: buildRequestDefault
+        })
+
+        const then = (v) => `/second/${v['T']}`
+        const andThen = (v) => `/second/${v['T']}`
+        const ccatch = (v) => `/second/${v['T']}`
+        const andCatch = (v) => `/second/${v['T']}`
+
+        const fetchSpy = expect.createSpy().andCall(window.fetch)
+        const handleResponseSpy = expect.createSpy().andCall(handleResponse)
+        const buildRequestSpy = expect.createSpy().andCall(buildRequest)
+
+        @custom(({ foo }) => ({
+          firstFetch: {
+            url: `/first/${foo}`,
+            then,
+            andThen,
+            catch: ccatch,
+            andCatch,
+            fetch: fetchSpy,
+            handleResponse: handleResponseSpy,
+            buildRequest: buildRequestSpy
+          }
+        }))
+        class Container extends Component {
+          render() {
+            return <Passthrough {...this.props} />
+          }
+        }
+
+        const container = TestUtils.renderIntoDocument(<Container />)
+        const decorated = TestUtils.findRenderedComponentWithType(container, Container)
+        const mapping = decorated.state.mappings.firstFetch
+        expect(mapping.then).toBe(then)
+        expect(mapping.andThen).toBe(andThen)
+        expect(mapping.catch).toBe(ccatch)
+        expect(mapping.andCatch).toBe(andCatch)
+        setImmediate(() => {
+          expect(fetchDefault.calls.length).toBe(0)
+          expect(handleResponseDefault.calls.length).toBe(0)
+          expect(buildRequestDefault.calls.length).toBe(0)
+          expect(fetchSpy.calls.length).toBe(1)
+          expect(handleResponseSpy.calls.length).toBe(1)
+          expect(buildRequestSpy.calls.length).toBe(1)
+          done()
+        })
       })
 
       it('should warn if both buildRequest and Request are customised', () => {
