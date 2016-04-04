@@ -60,6 +60,8 @@ export default connectFactory({
 
 function connect(mapPropsToRequestsToProps, defaults) {
   const finalMapPropsToRequestsToProps = mapPropsToRequestsToProps || defaultMapPropsToRequestsToProps
+  const dependsOnProps = finalMapPropsToRequestsToProps.length >= 1
+  const dependsOnContext = finalMapPropsToRequestsToProps.length == 2
 
   let topFetch
   let topRequest
@@ -173,7 +175,12 @@ function connect(mapPropsToRequestsToProps, defaults) {
       }
 
       componentWillReceiveProps(nextProps, nextContext) {
-        this.refetchDataFromProps(nextProps, nextContext)
+        if (
+          (dependsOnProps && !shallowEqual(this.props, nextProps)) ||
+          (dependsOnContext && !shallowEqual(this.context, nextContext))
+        ) {
+          this.refetchDataFromProps(nextProps, nextContext)
+        }
       }
 
       componentWillUnmount() {
