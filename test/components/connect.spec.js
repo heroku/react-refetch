@@ -756,7 +756,7 @@ describe('React', () => {
       expect(invocationCount).toEqual(1)
     })
 
-    it('should invoke mapPropsToRequestsToProps with context', () => {
+    it('should invoke mapPropsToRequestsToProps with context (used as decorator)', () => {
       let invocationCount = 0
       let contextPassedIn = []
       let propsPassedIn = []
@@ -775,6 +775,97 @@ describe('React', () => {
       InnerComponent.contextTypes = {
         foo: React.PropTypes.string
       }
+
+      class OuterComponent extends Component {
+        constructor(props) {
+          super(props)
+          this.state = {
+            foo: 'bar',
+            bar: 'foo'
+          }
+        }
+
+        getChildContext() {
+          return {
+            foo: this.state.foo
+          }
+        }
+
+        setContext(foo) {
+          this.setState({ foo })
+        }
+
+        setProp(bar) {
+          this.setState({ bar })
+        }
+
+        render() {
+          return <InnerComponent bar={this.state.bar} />
+        }
+      }
+      OuterComponent.childContextTypes = {
+        foo: React.PropTypes.string
+      }
+
+      let outerComponent
+      TestUtils.renderIntoDocument(
+        <OuterComponent ref={c => outerComponent = c} />
+      )
+
+      expect(invocationCount).toEqual(1)
+      outerComponent.setContext('baz')
+      expect(invocationCount).toEqual(2)
+      outerComponent.setContext('baz')
+      expect(invocationCount).toEqual(2)
+      outerComponent.setProp('baz')
+      expect(invocationCount).toEqual(3)
+      outerComponent.setProp('baz')
+      expect(invocationCount).toEqual(3)
+
+      expect(contextPassedIn).toEqual([
+        {
+          foo: 'bar'
+        },
+        {
+          foo: 'baz'
+        },
+        {
+          foo: 'baz'
+        }
+      ])
+
+      expect(propsPassedIn).toEqual([
+        {
+          bar: 'foo'
+        },
+        {
+          bar: 'foo'
+        },
+        {
+          bar: 'baz'
+        }
+      ])
+    })
+
+    it('should invoke mapPropsToRequestsToProps with context (used as function)', () => {
+      let invocationCount = 0
+      let contextPassedIn = []
+      let propsPassedIn = []
+
+      class InnerComponent extends Component {
+        render() {
+          return <div />
+        }
+      }
+      InnerComponent.contextTypes = {
+        foo: React.PropTypes.string
+      }
+      InnerComponent = connect((props, context) => {
+        invocationCount++
+        contextPassedIn.push(context)
+        propsPassedIn.push(props)
+        return {}
+      })(InnerComponent)
 
       class OuterComponent extends Component {
         constructor(props) {
