@@ -347,6 +347,10 @@ function connect(mapPropsToRequestsToProps, defaults) {
     RefetchConnect.displayName = `Refetch.connect(${getDisplayName(WrappedComponent)})`
     RefetchConnect.WrappedComponent = WrappedComponent
 
+    if (dependsOnContext && WrappedComponent.contextTypes) {
+      RefetchConnect.contextTypes = WrappedComponent.contextTypes
+    }
+
     if (process.env.NODE_ENV !== 'production') {
       RefetchConnect.prototype.componentWillUpdate = function componentWillUpdate() {
         if (this.version === version) {
