@@ -188,7 +188,7 @@ describe('React', () => {
       )
 
       const decorated = TestUtils.findRenderedComponentWithType(container, Container)
-      expect(Object.keys(decorated.state.mappings.testFetch).length).toEqual(15)
+      expect(Object.keys(decorated.state.mappings.testFetch).length).toEqual(14)
       expect(decorated.state.mappings.testFetch.method).toEqual('POST')
       expect(decorated.state.mappings.testFetch.headers).toEqual({ Accept: 'application/json', 'Content-Type': 'overwrite-default', 'X-Foo': 'custom-foo' })
       expect(decorated.state.mappings.testFetch.credentials).toEqual('same-origin')
@@ -1022,7 +1022,7 @@ describe('React', () => {
         return <Passthrough/>
       }
 
-      @connect(({ foo }) => ({ testFetch: `/resource/${foo}` }))
+      @connect(({ foo }) => ({ testFetch: `/resource/${foo.FOO}` }))
       class WithProps extends Component {
         render() {
           return render(this.props)
@@ -1032,11 +1032,15 @@ describe('React', () => {
       class OuterComponent extends Component {
         constructor() {
           super()
-          this.state = { foo: 'FOO' }
+          this.state = {
+            foo: {
+              FOO: 'FOO'
+            }
+          }
         }
 
-        setFoo(foo) {
-          this.setState({ foo })
+        setFoo(FOO) {
+          this.setState({ foo: { FOO } })
         }
 
         render() {
@@ -1341,7 +1345,7 @@ describe('React', () => {
 
       const decorated = TestUtils.findRenderedComponentWithType(tree, Decorated)
       expect(() => decorated.getWrappedInstance()).toThrow(
-        /To access the wrapped instance, you need to specify \{ withRef: true \} in \.defaults\(\)\./
+        /To access the wrapped instance, you need to specify \{ withRef: true \} in \.options\(\)\./
       )
     })
 
@@ -1360,7 +1364,7 @@ describe('React', () => {
         }
       }
 
-      const decorator = connect.defaults({ withRef: true })(() => {})
+      const decorator = connect.options({ withRef: true })(() => {})
       const Decorated = decorator(Container)
 
       const tree = TestUtils.renderIntoDocument(
