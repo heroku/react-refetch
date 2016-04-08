@@ -1022,7 +1022,7 @@ describe('React', () => {
         return <Passthrough/>
       }
 
-      @connect(({ foo }) => ({ testFetch: `/resource/${foo}` }))
+      @connect(({ foo }) => ({ testFetch: `/resource/${foo.FOO}` }))
       class WithProps extends Component {
         render() {
           return render(this.props)
@@ -1032,11 +1032,15 @@ describe('React', () => {
       class OuterComponent extends Component {
         constructor() {
           super()
-          this.state = { foo: 'FOO' }
+          this.state = {
+            foo: {
+              FOO: 'FOO'
+            }
+          }
         }
 
-        setFoo(foo) {
-          this.setState({ foo })
+        setFoo(FOO) {
+          this.setState({ foo: { FOO } })
         }
 
         render() {
