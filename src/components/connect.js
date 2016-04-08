@@ -18,24 +18,21 @@ function getDisplayName(WrappedComponent) {
 // Helps track hot reloading.
 let nextVersion = 0
 
-function connectFactory(defaults = {}) {
-  function connectImpl(map, options = {}) {
-    let finalOptions = defaults
-    if ('withRef' in options) {
-      warning(false,
-        'The options argument is deprecated in favor of `connect.defaults()`.' +
-        ' In a future release, support will be removed.'
-      )
-      finalOptions = Object.assign({}, defaults, { withRef: options.withRef })
+function connectFactory(defaults = {}, options = {}) {
+  function connectImpl(map, deprecatedOptionsArgument = {}) {
+    let finalOptions = options
+    if ('withRef' in deprecatedOptionsArgument) {
+      warning(false, 'The options argument is deprecated in favor of `connect.options()`. In a future release, support will be removed.')
+      finalOptions = Object.assign({}, options, { withRef: deprecatedOptionsArgument.withRef })
     }
 
-    warning(!(Function.prototype.isPrototypeOf(finalOptions.buildRequest) &&
-      Function.prototype.isPrototypeOf(finalOptions.Request)),
+    warning(!(Function.prototype.isPrototypeOf(defaults.buildRequest) &&
+      Function.prototype.isPrototypeOf(defaults.Request)),
       'Both buildRequest and Request were provided in `connect.defaults()`. ' +
       'However, this custom Request would only be used in the default buildRequest.'
     )
 
-    return connect(map, finalOptions)
+    return connect(map, defaults, finalOptions)
   }
 
   connectImpl.defaults = function (overrides = {}) {
@@ -45,7 +42,11 @@ function connectFactory(defaults = {}) {
       defaults,
       overrides,
       { headers: Object.assign({}, defaults.headers, overrides.headers) }
-    ))
+    ), options)
+  }
+
+  connectImpl.options = function (overrides = {}) {
+    return connectFactory(defaults, Object.assign({}, options, overrides))
   }
 
   return connectImpl
@@ -58,7 +59,7 @@ export default connectFactory({
   }
 })
 
-function connect(mapPropsToRequestsToProps, defaults) {
+function connect(mapPropsToRequestsToProps, defaults, options) {
   const finalMapPropsToRequestsToProps = mapPropsToRequestsToProps || defaultMapPropsToRequestsToProps
   const dependsOnProps = finalMapPropsToRequestsToProps.length >= 1
   const dependsOnContext = finalMapPropsToRequestsToProps.length == 2
@@ -86,11 +87,14 @@ function connect(mapPropsToRequestsToProps, defaults) {
     redirect: 'follow',
     refreshing: false,
     refreshInterval: 0,
-    Request: topRequest,
-    withRef: false
+    Request: topRequest
   }, defaults)
 
   checkTypes(defaults)
+
+  options = Object.assign({
+    withRef: false
+  }, options)
 
   // Helps track hot reloading.
   const version = nextVersion++
@@ -189,16 +193,15 @@ function connect(mapPropsToRequestsToProps, defaults) {
       }
 
       render() {
-        const ref = defaults.withRef ? 'wrappedInstance' : null
+        const ref = options.withRef ? 'wrappedInstance' : null
         return (
           <WrappedComponent { ...this.state.data } { ...this.props } ref={ref}/>
         )
       }
 
       getWrappedInstance() {
-        invariant(defaults.withRef,
-          `To access the wrapped instance, you need to specify { withRef: true } ` +
-          `in .defaults().`
+        invariant(options.withRef,
+          `To access the wrapped instance, you need to specify { withRef: true } in .options().`
         )
 
         return this.refs.wrappedInstance
