@@ -9,6 +9,26 @@ describe('PromiseState', () => {
   const onFulFilledToPromiseState = (v) => PromiseState.resolve(`F[${v}]`)
   const onRejectedToPromiseState  = (r) => PromiseState.resolve(`R[${r}]`)
 
+  describe('resolve', () => {
+    it('resolves raw value', () => {
+      const ps = PromiseState.resolve('x')
+      expect(ps.fulfilled).toBe(true)
+      expect(ps.value).toBe('x')
+    })
+
+    it('returns provided fulfilled PromiseState value', () => {
+      const ps = PromiseState.resolve(PromiseState.resolve('x'))
+      expect(ps.fulfilled).toBe(true)
+      expect(ps.value).toBe('x')
+    })
+
+    it('returns provided non-fulfilled PromiseState value', () => {
+      const ps = PromiseState.resolve(PromiseState.reject('x'))
+      expect(ps.rejected).toBe(true)
+      expect(ps.reason).toBe('x')
+    })
+  })
+
   describe('then', () => {
     it('pending', () => {
       const ps = PromiseState.create().then(onFulFilled, onRejected)
