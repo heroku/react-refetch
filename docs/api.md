@@ -109,6 +109,8 @@ Properties should be treated as read-only and immutable. If the `Promise` enters
 
 ##### `refresh(previous: PromiseState, meta): PromiseState`
 
+##### `cast(value, meta): PromiseState`
+
 ##### `resolve(value, meta): PromiseState`
 
 ##### `reject(value, meta): PromiseState`
