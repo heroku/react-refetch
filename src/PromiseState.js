@@ -16,8 +16,32 @@ export default class PromiseState {
     return ps
   }
 
-  // creates a PromiseState that is resolved with the given value
+  // casts the given value into a PromiseState.
+  // if the value is already a PromiseState, it will be returned as-is and ignore the provided meta.
+  // if the value is an Error, it will return it as a rejected PromiseState.
+  // otherwise it will return it as a resolved PromiseState.
+  static cast(value, meta) {
+    if (value instanceof PromiseState) {
+      return value
+    } else if (value instanceof Error) {
+      return PromiseState.reject(value, meta)
+    } else {
+      return PromiseState.resolve(value, meta)
+    }
+  }
+
+  // creates a PromiseState that is resolved with the given value.
+  // if the given value is already a fulfilled PromiseState,
+  // the value will be returned as is and ignore the provided meta.
   static resolve(value, meta) {
+    if (value instanceof PromiseState) {
+      if (value.fulfilled) {
+        return value
+      } else {
+        throw new Error('PromiseState must be fulfilled')
+      }
+    }
+
     return new PromiseState({
       fulfilled: true,
       value: value,
@@ -96,11 +120,11 @@ export default class PromiseState {
   // Note, unlike Promise.then(), these handlers are called immediately.
   then(onFulFilled, onRejected) {
     if (this.fulfilled && onFulFilled) {
-      return this._mapFlatMapValue(onFulFilled(this.value, this.meta))
+      return PromiseState.cast(onFulFilled(this.value, this.meta), this.meta)
     }
 
     if (this.rejected && onRejected) {
-      return this._mapFlatMapValue(onRejected(this.reason, this.meta))
+      return PromiseState.cast(onRejected(this.reason, this.meta), this.meta)
     }
 
     return this
@@ -114,13 +138,5 @@ export default class PromiseState {
   // this handlers is called immediately.
   catch(onRejected) {
     return this.then(undefined, onRejected)
-  }
-
-  _mapFlatMapValue(value) {
-    if (value instanceof PromiseState) {
-      return value
-    } else {
-      return PromiseState.resolve(value, this.meta)
-    }
   }
 }
