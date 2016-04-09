@@ -273,14 +273,16 @@ This is also helpful for cases where a fetch function is changing data that is i
  connect(({ name }) => ({
     foosFetch: '/foos',
     createFoo: name => ({
-      method: 'POST',
-      url: '/foos',
-      andThen: () => ({
-        foosFetch: {
-          url: '/foos',
-          refreshing: true
-        }
-      })
+      fooCreation: {
+        method: 'POST',
+        url: '/foos',
+        andThen: () => ({
+          foosFetch: {
+            url: '/foos',
+            refreshing: true
+          }
+        })
+      }
     })
   }))
 ```
@@ -483,7 +485,7 @@ connect(props => ({
 }))(Profile)
 ```
 
-You can also replace the `handleResponse` function, which takes a Promise that resolves to a [`Response`](https://developer.mozilla.org/en-US/docs/Web/API/Response), and should return a Promise that resolves to the value of the response, or rejects based on the body, headers, status code, etc. You can use it, for example, to parse CSV instead of JSON:
+You can also replace the `handleResponse` function, which takes a [`Response`](https://developer.mozilla.org/en-US/docs/Web/API/Response), and should return a Promise that resolves to the value of the response, or rejects based on the body, headers, status code, etc. You can use it, for example, to parse CSV instead of JSON:
 
 ```jsx
 // api-connector.js
