@@ -188,7 +188,7 @@ describe('React', () => {
       )
 
       const decorated = TestUtils.findRenderedComponentWithType(container, Container)
-      expect(Object.keys(decorated.state.mappings.testFetch).length).toEqual(15)
+      expect(Object.keys(decorated.state.mappings.testFetch).length).toEqual(14)
       expect(decorated.state.mappings.testFetch.method).toEqual('POST')
       expect(decorated.state.mappings.testFetch.headers).toEqual({ Accept: 'application/json', 'Content-Type': 'overwrite-default', 'X-Foo': 'custom-foo' })
       expect(decorated.state.mappings.testFetch.credentials).toEqual('same-origin')
@@ -1098,7 +1098,7 @@ describe('React', () => {
       @connect(({ foo }) => ({
         testFetch: {
           url: '/resource-without-foo',
-          comparison: foo
+          comparison: foo.FOO
         }
       }))
       class WithProps extends Component {
@@ -1110,11 +1110,15 @@ describe('React', () => {
       class OuterComponent extends Component {
         constructor() {
           super()
-          this.state = { foo: 'FOO' }
+          this.state = {
+            foo: {
+              FOO: 'FOO'
+            }
+          }
         }
 
-        setFoo(foo) {
-          this.setState({ foo })
+        setFoo(FOO) {
+          this.setState({ foo: { FOO } })
         }
 
         render() {
@@ -1345,7 +1349,7 @@ describe('React', () => {
 
       const decorated = TestUtils.findRenderedComponentWithType(tree, Decorated)
       expect(() => decorated.getWrappedInstance()).toThrow(
-        /To access the wrapped instance, you need to specify \{ withRef: true \} in \.defaults\(\)\./
+        /To access the wrapped instance, you need to specify \{ withRef: true \} in \.options\(\)\./
       )
     })
 
@@ -1364,7 +1368,7 @@ describe('React', () => {
         }
       }
 
-      const decorator = connect.defaults({ withRef: true })(() => {})
+      const decorator = connect.options({ withRef: true })(() => {})
       const Decorated = decorator(Container)
 
       const tree = TestUtils.renderIntoDocument(
@@ -2120,6 +2124,37 @@ describe('React', () => {
           expect(buildRequestSpy.calls.length).toBe(1)
           done()
         })
+      })
+
+      it('defaults provided in .defaults() should not affect original connect', () => {
+        const then = (v) => `/second/${v['T']}`
+        const withThen = connect.defaults({ then })
+
+        @withThen(({ foo }) => ({
+          firstFetch: `/first/${foo}`
+        }))
+        class WithDefaults extends Component {
+          render() {
+            return <Passthrough {...this.props} />
+          }
+        }
+
+        @connect(({ foo }) => ({
+          firstFetch: `/first/${foo}`
+        }))
+        class Original extends Component {
+          render() {
+            return <Passthrough {...this.props} />
+          }
+        }
+
+        const containerForWithDefaults = TestUtils.renderIntoDocument(<WithDefaults />)
+        const withDefaults = TestUtils.findRenderedComponentWithType(containerForWithDefaults, WithDefaults)
+        expect(withDefaults.state.mappings.firstFetch.then).toBe(then)
+
+        const containerForOriginal = TestUtils.renderIntoDocument(<Original />)
+        const original = TestUtils.findRenderedComponentWithType(containerForOriginal, Original)
+        expect(original.state.mappings.firstFetch.then).toBe(undefined)
       })
 
       it('should warn if both buildRequest and Request are customised', () => {
