@@ -253,11 +253,13 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
           this.setAtomicState(prop, startedAt, mapping, initPS(meta))
 
           const fetched = mapping.fetch(request)
-          return fetched.then(response => {
-            meta.response = response
-            return fetched.then(mapping.handleResponse)
-              .then(onFulfillment(meta), onRejection(meta))
-          })
+          return fetched
+            .then(response => {
+              meta.response = response
+              return response
+            })
+            .then(mapping.handleResponse)
+            .then(onFulfillment(meta), onRejection(meta))
         }
       }
 
