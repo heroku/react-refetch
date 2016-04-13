@@ -735,7 +735,9 @@ describe('React', () => {
         render() {
           return (
             <div>
-              <WithProps {...this.state} />
+              <WithProps {...this.state}>
+                <span>children</span>
+              </WithProps>
             </div>
           )
         }
@@ -760,7 +762,7 @@ describe('React', () => {
       outerComponent.setFoo({ blah: 2 })
       expect(invocationCount).toEqual(5)
 
-      expect(propsPassedIn).toEqual({
+      expect(propsPassedIn).toIncludeKeyValues({
         foo: { blah: 2 }
       })
     })

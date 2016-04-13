@@ -8,6 +8,7 @@ import PromiseState from '../PromiseState'
 import hoistStatics from 'hoist-non-react-statics'
 import invariant from 'invariant'
 import warning from 'warning'
+import omit from 'lodash/fp/omit'
 
 const defaultMapPropsToRequestsToProps = () => ({})
 
@@ -58,6 +59,8 @@ export default connectFactory({
     'Content-Type': 'application/json'
   }
 })
+
+const omitChildren = omit('children')
 
 function connect(mapPropsToRequestsToProps, defaults, options) {
   const finalMapPropsToRequestsToProps = mapPropsToRequestsToProps || defaultMapPropsToRequestsToProps
@@ -180,7 +183,7 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
 
       componentWillReceiveProps(nextProps, nextContext) {
         if (
-          (dependsOnProps && !shallowEqual(this.props, nextProps)) ||
+          (dependsOnProps && !shallowEqual(omitChildren(this.props), omitChildren(nextProps))) ||
           (dependsOnContext && !shallowEqual(this.context, nextContext))
         ) {
           this.refetchDataFromProps(nextProps, nextContext)
@@ -208,7 +211,7 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
       }
 
       refetchDataFromProps(props = this.props, context = this.context) {
-        this.refetchDataFromMappings(finalMapPropsToRequestsToProps(props, context) || {})
+        this.refetchDataFromMappings(finalMapPropsToRequestsToProps(omitChildren(props), context) || {})
       }
 
       refetchDataFromMappings(mappings) {
