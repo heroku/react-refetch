@@ -1120,7 +1120,6 @@ describe('React', () => {
           expect(fetchSpy.calls.length).toBe(2)
 
           // set BAR again, but will not be refetched
-          // TODO: no need to re-render here
           outerComponent.setFoo('BAR')
           expect(renderSpy.calls.length).toBe(5)
           setImmediate(() => {
@@ -1198,7 +1197,6 @@ describe('React', () => {
           expect(fetchSpy.calls.length).toBe(2)
 
           // set BAR again, but will not be refetched
-          // TODO: no need to re-render here
           outerComponent.setFoo('BAR')
           expect(renderSpy.calls.length).toBe(5)
           setImmediate(() => {
@@ -1217,37 +1215,37 @@ describe('React', () => {
     })
 
     it('should compare requests using provided comparison of parent request if then is also provided', (done) => {
-      const fetchSpy = expect.createSpy(() => ({}))
+      const fetchSpy = expect.createSpy()
       fetchSpies.push(fetchSpy)
 
-      const renderSpy = expect.createSpy(() => ({}))
-
-      function render() {
-        renderSpy()
-        return <Passthrough/>
-      }
+      const renderSpy = expect.createSpy()
 
       @connect(({ foo }) => ({
         testFetch: {
           url: '/resource-without-foo',
-          comparison: foo,
+          comparison: foo.FOO,
           then: (v, m) => ({ value: v, meta: m })
         }
       }))
       class WithProps extends Component {
         render() {
-          return render(this.props)
+          renderSpy()
+          return <Passthrough {...this.props} />
         }
       }
 
       class OuterComponent extends Component {
         constructor() {
           super()
-          this.state = { foo: 'FOO' }
+          this.state = {
+            foo: {
+              FOO: 'FOO'
+            }
+          }
         }
 
-        setFoo(foo) {
-          this.setState({ foo })
+        setFoo(FOO) {
+          this.setState({ foo: { FOO } })
         }
 
         render() {
@@ -1275,7 +1273,6 @@ describe('React', () => {
             expect(fetchSpy.calls.length).toBe(2)
 
             // set BAR again, but will not be refetched
-            // TODO: no need to re-render here
             outerComponent.setFoo('BAR')
             expect(renderSpy.calls.length).toBe(5)
             setImmediate(() => {
