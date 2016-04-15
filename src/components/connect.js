@@ -223,20 +223,20 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
 
       refetchDataFromMappings(mappings) {
         mappings = coerceMappings(mappings)
-        Object.keys(mappings).forEach(prop => {
+        return Promise.all(Object.keys(mappings).map(prop => {
           const mapping = mappings[prop]
 
           if (Function.prototype.isPrototypeOf(mapping)) {
             this.setAtomicState(prop, new Date(), mapping, (...args) => {
-              this.refetchDataFromMappings(mapping(...args))
+              return this.refetchDataFromMappings(mapping(...args))
             })
             return
           }
 
           if (mapping.force || !mapping.equals(this.state.mappings[prop] || {})) {
-            this.refetchDatum(prop, mapping)
+            return this.refetchDatum(prop, mapping)
           }
-        })
+        }))
       }
 
       refetchDatum(prop, mapping) {
@@ -262,8 +262,7 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
           meta.request = request
           this.setAtomicState(prop, startedAt, mapping, initPS(meta))
 
-          const fetched = mapping.fetch(request)
-          return fetched
+          return mapping.fetch(request)
             .then(response => {
               meta.response = response
               return response
@@ -290,8 +289,7 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
             }
 
             if (mapping.then) {
-              this.refetchDatum(prop, coerceMapping(null, mapping.then(value, meta), mapping))
-              return
+              return this.refetchDatum(prop, coerceMapping(null, mapping.then(value, meta), mapping))
             }
 
             this.setAtomicState(prop, startedAt, mapping, PromiseState.resolve(value, meta), refreshTimeout, () => {
@@ -299,6 +297,8 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
                 this.refetchDataFromMappings(mapping.andThen(value, meta))
               }
             })
+
+            return value
           }
         }
       }
@@ -307,8 +307,7 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
         return (meta) => {
           return (reason) => {
             if (mapping.catch) {
-              this.refetchDatum(prop, coerceMapping(null, mapping.catch(reason, meta), mapping))
-              return
+              return this.refetchDatum(prop, coerceMapping(null, mapping.catch(reason, meta), mapping))
             }
 
             this.setAtomicState(prop, startedAt, mapping, PromiseState.reject(reason, meta), null, () => {
@@ -316,6 +315,8 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
                 this.refetchDataFromMappings(mapping.andCatch(reason, meta))
               }
             })
+
+            throw reason
           }
         }
       }
