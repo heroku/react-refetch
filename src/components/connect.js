@@ -96,7 +96,8 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
   checkTypes(defaults)
 
   options = Object.assign({
-    withRef: false
+    withRef: false,
+    pure: true
   }, options)
 
   // Helps track hot reloading.
@@ -183,11 +184,17 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
 
       componentWillReceiveProps(nextProps, nextContext) {
         if (
+          !options.pure ||
           (dependsOnProps && !shallowEqual(omitChildren(this.props), omitChildren(nextProps))) ||
           (dependsOnContext && !shallowEqual(this.context, nextContext))
         ) {
           this.refetchDataFromProps(nextProps, nextContext)
         }
+      }
+
+      shouldComponentUpdate(nextProps, nextState) {
+        return !options.pure ||
+          this.state.data != nextState.data || !shallowEqual(this.props, nextProps)
       }
 
       componentWillUnmount() {
@@ -325,18 +332,22 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
 
           return {
             startedAts: Object.assign(
+              {},
               prevState.startedAts, {
                 [prop]: startedAt
               }),
             mappings: Object.assign(
+              {},
               prevState.mappings, {
                 [prop]: mapping
               }),
             data: Object.assign(
+              {},
               prevState.data, {
                 [prop]: datum
               }),
             refreshTimeouts: Object.assign(
+              {},
               prevState.refreshTimeouts, {
                 [prop]: refreshTimeout
               })
