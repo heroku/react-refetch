@@ -31,7 +31,7 @@ describe('React', () => {
       }
     }
 
-    it('should should props and promise state to the given component', (done) => {
+    it('should pass props and promise state to the given component', (done) => {
       const props = ({
         foo: 'bar',
         baz: 42
