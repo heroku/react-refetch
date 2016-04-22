@@ -1,2 +1,4 @@
-export { default as connect } from './components/connect'
-export { default as PromiseState } from './PromiseState'
+import connect from './components/connect'
+import PromiseState from './PromiseState'
+
+export { connect, PromiseState }
