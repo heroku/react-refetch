@@ -8,6 +8,7 @@ import PromiseState from '../PromiseState'
 import hoistStatics from 'hoist-non-react-statics'
 import invariant from 'invariant'
 import warning from 'warning'
+import omit from 'lodash/fp/omit'
 
 const defaultMapPropsToRequestsToProps = () => ({})
 
@@ -59,6 +60,8 @@ export default connectFactory({
   }
 })
 
+const omitChildren = omit('children')
+
 function connect(mapPropsToRequestsToProps, defaults, options) {
   const finalMapPropsToRequestsToProps = mapPropsToRequestsToProps || defaultMapPropsToRequestsToProps
   const dependsOnProps = finalMapPropsToRequestsToProps.length >= 1
@@ -93,7 +96,8 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
   checkTypes(defaults)
 
   options = Object.assign({
-    withRef: false
+    withRef: false,
+    pure: true
   }, options)
 
   // Helps track hot reloading.
@@ -180,11 +184,17 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
 
       componentWillReceiveProps(nextProps, nextContext) {
         if (
-          (dependsOnProps && !shallowEqual(this.props, nextProps)) ||
+          !options.pure ||
+          (dependsOnProps && !shallowEqual(omitChildren(this.props), omitChildren(nextProps))) ||
           (dependsOnContext && !shallowEqual(this.context, nextContext))
         ) {
           this.refetchDataFromProps(nextProps, nextContext)
         }
+      }
+
+      shouldComponentUpdate(nextProps, nextState) {
+        return !options.pure ||
+          this.state.data != nextState.data || !shallowEqual(this.props, nextProps)
       }
 
       componentWillUnmount() {
@@ -208,7 +218,7 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
       }
 
       refetchDataFromProps(props = this.props, context = this.context) {
-        this.refetchDataFromMappings(finalMapPropsToRequestsToProps(props, context) || {})
+        this.refetchDataFromMappings(finalMapPropsToRequestsToProps(omitChildren(props), context) || {})
       }
 
       refetchDataFromMappings(mappings) {
@@ -322,18 +332,22 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
 
           return {
             startedAts: Object.assign(
+              {},
               prevState.startedAts, {
                 [prop]: startedAt
               }),
             mappings: Object.assign(
+              {},
               prevState.mappings, {
                 [prop]: mapping
               }),
             data: Object.assign(
+              {},
               prevState.data, {
                 [prop]: datum
               }),
             refreshTimeouts: Object.assign(
+              {},
               prevState.refreshTimeouts, {
                 [prop]: refreshTimeout
               })
