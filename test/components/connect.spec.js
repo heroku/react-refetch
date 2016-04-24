@@ -31,6 +31,25 @@ describe('React', () => {
       }
     }
 
+    class ContainerWithSetters extends Component {
+      componentWillMount() {
+        this.state = {
+          propsForChild: {}
+        }
+      }
+
+      setPropsForChild(propsForChild) {
+        this.setState({ propsForChild })
+      }
+
+      render() {
+        const Component = this.props.component
+        return <Component {...this.state.propsForChild} />
+      }
+    }
+
+    const immediatePromise = () => new Promise((resolve) => setImmediate(resolve))
+
     it('should pass props and promise state to the given component', (done) => {
       const props = ({
         foo: 'bar',
@@ -707,7 +726,7 @@ describe('React', () => {
       expect('x' in propsAfter).toEqual(false, 'x prop must be removed')
     })
 
-    it('should invoke mapPropsToRequestsToProps if props changed', () => {
+    it('should invoke mapPropsToRequestsToProps if props changed (pure: true) (default)', () => {
       let propsPassedIn
       let invocationCount = 0
 
@@ -735,7 +754,9 @@ describe('React', () => {
         render() {
           return (
             <div>
-              <WithProps {...this.state} />
+              <WithProps {...this.state}>
+                <span>children</span>
+              </WithProps>
             </div>
           )
         }
@@ -760,12 +781,72 @@ describe('React', () => {
       outerComponent.setFoo({ blah: 2 })
       expect(invocationCount).toEqual(5)
 
-      expect(propsPassedIn).toEqual({
+      expect(propsPassedIn).toIncludeKeyValues({
         foo: { blah: 2 }
       })
     })
 
-    it("should not re-invoke mapPropsToRequestsToProps if it doesn't depend on props or context", () => {
+    it('should invoke mapPropsToRequestsToProps if props changed (pure: false)', () => {
+      let propsPassedIn
+      let invocationCount = 0
+
+      @connect.options({ pure: false })((props) => {
+        invocationCount++
+        propsPassedIn = props
+        return {}
+      })
+      class WithProps extends Component {
+        render() {
+          return <Passthrough {...this.props}/>
+        }
+      }
+
+      class OuterComponent extends Component {
+        constructor() {
+          super()
+          this.state = { foo: 'FOO' }
+        }
+
+        setFoo(foo) {
+          this.setState({ foo })
+        }
+
+        render() {
+          return (
+            <div>
+              <WithProps {...this.state}>
+                <span>children</span>
+              </WithProps>
+            </div>
+          )
+        }
+      }
+
+      let outerComponent
+      TestUtils.renderIntoDocument(
+        <OuterComponent ref={c => outerComponent = c} />
+      )
+
+      const obj = { blah: 2 }
+
+      expect(invocationCount).toEqual(1)
+      outerComponent.setFoo('BAR')
+      expect(invocationCount).toEqual(2)
+      outerComponent.setFoo('BAR')
+      expect(invocationCount).toEqual(3)
+      outerComponent.setFoo('BAZ')
+      expect(invocationCount).toEqual(4)
+      outerComponent.setFoo(obj)
+      expect(invocationCount).toEqual(5)
+      outerComponent.setFoo({ blah: 2 })
+      expect(invocationCount).toEqual(6)
+
+      expect(propsPassedIn).toIncludeKeyValues({
+        foo: { blah: 2 }
+      })
+    })
+
+    it("should not re-invoke mapPropsToRequestsToProps if it doesn't depend on props or context (pure: true) (default)", () => {
       let invocationCount = 0
 
       @connect(() => {
@@ -807,7 +888,49 @@ describe('React', () => {
       expect(invocationCount).toEqual(1)
     })
 
-    it('should invoke mapPropsToRequestsToProps with context (used as decorator)', () => {
+    it("should re-invoke mapPropsToRequestsToProps even if it doesn't depend on props or context (pure: false)", () => {
+      let invocationCount = 0
+
+      @connect.options({ pure: false })(() => {
+        invocationCount++
+        return {}
+      })
+      class WithProps extends Component {
+        render() {
+          return <Passthrough {...this.props}/>
+        }
+      }
+
+      class OuterComponent extends Component {
+        constructor() {
+          super()
+          this.state = { foo: 'FOO' }
+        }
+
+        setFoo(foo) {
+          this.setState({ foo })
+        }
+
+        render() {
+          return (
+            <div>
+              <WithProps {...this.state} />
+            </div>
+          )
+        }
+      }
+
+      let outerComponent
+      TestUtils.renderIntoDocument(
+        <OuterComponent ref={c => outerComponent = c} />
+      )
+
+      expect(invocationCount).toEqual(1)
+      outerComponent.setFoo('BAR')
+      expect(invocationCount).toEqual(2)
+    })
+
+    it('should invoke mapPropsToRequestsToProps with context (used as decorator) (pure: true) (default)', () => {
       let invocationCount = 0
       let contextPassedIn = []
       let propsPassedIn = []
@@ -898,7 +1021,7 @@ describe('React', () => {
       ])
     })
 
-    it('should invoke mapPropsToRequestsToProps with context (used as function)', () => {
+    it('should invoke mapPropsToRequestsToProps with context (used as function) (pure: true) (default)', () => {
       let invocationCount = 0
       let contextPassedIn = []
       let propsPassedIn = []
@@ -989,7 +1112,213 @@ describe('React', () => {
       ])
     })
 
-    it("should not re-invoke mapPropsToRequestsToProps when context changes if it doesn't depend on context", () => {
+    it('should invoke mapPropsToRequestsToProps with context (used as decorator) (pure: false)', () => {
+      let invocationCount = 0
+      let contextPassedIn = []
+      let propsPassedIn = []
+
+      @connect.options({ pure: false })((props, context) => {
+        invocationCount++
+        contextPassedIn.push(context)
+        propsPassedIn.push(props)
+        return {}
+      })
+      class InnerComponent extends Component {
+        render() {
+          return <div />
+        }
+      }
+      InnerComponent.contextTypes = {
+        foo: React.PropTypes.string
+      }
+
+      class OuterComponent extends Component {
+        constructor(props) {
+          super(props)
+          this.state = {
+            foo: 'bar',
+            bar: 'foo'
+          }
+        }
+
+        getChildContext() {
+          return {
+            foo: this.state.foo
+          }
+        }
+
+        setContext(foo) {
+          this.setState({ foo })
+        }
+
+        setProp(bar) {
+          this.setState({ bar })
+        }
+
+        render() {
+          return <InnerComponent bar={this.state.bar} />
+        }
+      }
+      OuterComponent.childContextTypes = {
+        foo: React.PropTypes.string
+      }
+
+      let outerComponent
+      TestUtils.renderIntoDocument(
+        <OuterComponent ref={c => outerComponent = c} />
+      )
+
+      expect(invocationCount).toEqual(1)
+      outerComponent.setContext('baz')
+      expect(invocationCount).toEqual(2)
+      outerComponent.setContext('baz')
+      expect(invocationCount).toEqual(3)
+      outerComponent.setProp('baz')
+      expect(invocationCount).toEqual(4)
+      outerComponent.setProp('baz')
+      expect(invocationCount).toEqual(5)
+
+      expect(contextPassedIn).toEqual([
+        {
+          foo: 'bar'
+        },
+        {
+          foo: 'baz'
+        },
+        {
+          foo: 'baz'
+        },
+        {
+          foo: 'baz'
+        },
+        {
+          foo: 'baz'
+        }
+      ])
+
+      expect(propsPassedIn).toEqual([
+        {
+          bar: 'foo'
+        },
+        {
+          bar: 'foo'
+        },
+        {
+          bar: 'foo'
+        },
+        {
+          bar: 'baz'
+        },
+        {
+          bar: 'baz'
+        }
+      ])
+    })
+
+    it('should invoke mapPropsToRequestsToProps with context (used as function) (pure: false)', () => {
+      let invocationCount = 0
+      let contextPassedIn = []
+      let propsPassedIn = []
+
+      class InnerComponent extends Component {
+        render() {
+          return <div />
+        }
+      }
+      InnerComponent.contextTypes = {
+        foo: React.PropTypes.string
+      }
+      InnerComponent = connect.options({ pure: false })((props, context) => {
+        invocationCount++
+        contextPassedIn.push(context)
+        propsPassedIn.push(props)
+        return {}
+      })(InnerComponent)
+
+      class OuterComponent extends Component {
+        constructor(props) {
+          super(props)
+          this.state = {
+            foo: 'bar',
+            bar: 'foo'
+          }
+        }
+
+        getChildContext() {
+          return {
+            foo: this.state.foo
+          }
+        }
+
+        setContext(foo) {
+          this.setState({ foo })
+        }
+
+        setProp(bar) {
+          this.setState({ bar })
+        }
+
+        render() {
+          return <InnerComponent bar={this.state.bar} />
+        }
+      }
+      OuterComponent.childContextTypes = {
+        foo: React.PropTypes.string
+      }
+
+      let outerComponent
+      TestUtils.renderIntoDocument(
+        <OuterComponent ref={c => outerComponent = c} />
+      )
+
+      expect(invocationCount).toEqual(1)
+      outerComponent.setContext('baz')
+      expect(invocationCount).toEqual(2)
+      outerComponent.setContext('baz')
+      expect(invocationCount).toEqual(3)
+      outerComponent.setProp('baz')
+      expect(invocationCount).toEqual(4)
+      outerComponent.setProp('baz')
+      expect(invocationCount).toEqual(5)
+
+      expect(contextPassedIn).toEqual([
+        {
+          foo: 'bar'
+        },
+        {
+          foo: 'baz'
+        },
+        {
+          foo: 'baz'
+        },
+        {
+          foo: 'baz'
+        },
+        {
+          foo: 'baz'
+        }
+      ])
+
+      expect(propsPassedIn).toEqual([
+        {
+          bar: 'foo'
+        },
+        {
+          bar: 'foo'
+        },
+        {
+          bar: 'foo'
+        },
+        {
+          bar: 'baz'
+        },
+        {
+          bar: 'baz'
+        }
+      ])
+    })
+
+    it("should not re-invoke mapPropsToRequestsToProps when context changes if it doesn't depend on context (pure: true) (default)", () => {
       let invocationCount = 0
       let propsPassedIn = []
 
@@ -1063,6 +1392,89 @@ describe('React', () => {
       ])
     })
 
+    it("should re-invoke mapPropsToRequestsToProps when context changes even if it doesn't depend on context (pure: false)", () => {
+      let invocationCount = 0
+      let propsPassedIn = []
+
+      @connect.options({ pure: false })((props) => {
+        invocationCount++
+        propsPassedIn.push(props)
+        return {}
+      })
+      class InnerComponent extends Component {
+        render() {
+          return <div />
+        }
+      }
+      InnerComponent.contextTypes = {
+        foo: React.PropTypes.string
+      }
+
+      class OuterComponent extends Component {
+        constructor(props) {
+          super(props)
+          this.state = {
+            foo: 'bar',
+            bar: 'foo'
+          }
+        }
+
+        getChildContext() {
+          return {
+            foo: this.state.foo
+          }
+        }
+
+        setContext(foo) {
+          this.setState({ foo })
+        }
+
+        setProp(bar) {
+          this.setState({ bar })
+        }
+
+        render() {
+          return <InnerComponent bar={this.state.bar} />
+        }
+      }
+      OuterComponent.childContextTypes = {
+        foo: React.PropTypes.string
+      }
+
+      let outerComponent
+      TestUtils.renderIntoDocument(
+        <OuterComponent ref={c => outerComponent = c} />
+      )
+
+      expect(invocationCount).toEqual(1)
+      outerComponent.setContext('baz')
+      expect(invocationCount).toEqual(2)
+      outerComponent.setContext('baz')
+      expect(invocationCount).toEqual(3)
+      outerComponent.setProp('baz')
+      expect(invocationCount).toEqual(4)
+      outerComponent.setProp('baz')
+      expect(invocationCount).toEqual(5)
+
+      expect(propsPassedIn).toEqual([
+        {
+          bar: 'foo'
+        },
+        {
+          bar: 'foo'
+        },
+        {
+          bar: 'foo'
+        },
+        {
+          bar: 'baz'
+        },
+        {
+          bar: 'baz'
+        }
+      ])
+    })
+
     it('should shallowly compare the requests to prevent unnecessary fetches', (done) => {
       const fetchSpy = expect.createSpy(() => ({}))
       fetchSpies.push(fetchSpy)
@@ -1118,7 +1530,6 @@ describe('React', () => {
           expect(fetchSpy.calls.length).toBe(2)
 
           // set BAR again, but will not be refetched
-          // TODO: no need to re-render here
           outerComponent.setFoo('BAR')
           expect(renderSpy.calls.length).toBe(5)
           setImmediate(() => {
@@ -1196,7 +1607,6 @@ describe('React', () => {
           expect(fetchSpy.calls.length).toBe(2)
 
           // set BAR again, but will not be refetched
-          // TODO: no need to re-render here
           outerComponent.setFoo('BAR')
           expect(renderSpy.calls.length).toBe(5)
           setImmediate(() => {
@@ -1215,37 +1625,37 @@ describe('React', () => {
     })
 
     it('should compare requests using provided comparison of parent request if then is also provided', (done) => {
-      const fetchSpy = expect.createSpy(() => ({}))
+      const fetchSpy = expect.createSpy()
       fetchSpies.push(fetchSpy)
 
-      const renderSpy = expect.createSpy(() => ({}))
-
-      function render() {
-        renderSpy()
-        return <Passthrough/>
-      }
+      const renderSpy = expect.createSpy()
 
       @connect(({ foo }) => ({
         testFetch: {
           url: '/resource-without-foo',
-          comparison: foo,
+          comparison: foo.FOO,
           then: (v, m) => ({ value: v, meta: m })
         }
       }))
       class WithProps extends Component {
         render() {
-          return render(this.props)
+          renderSpy()
+          return <Passthrough {...this.props} />
         }
       }
 
       class OuterComponent extends Component {
         constructor() {
           super()
-          this.state = { foo: 'FOO' }
+          this.state = {
+            foo: {
+              FOO: 'FOO'
+            }
+          }
         }
 
-        setFoo(foo) {
-          this.setState({ foo })
+        setFoo(FOO) {
+          this.setState({ foo: { FOO } })
         }
 
         render() {
@@ -1273,7 +1683,6 @@ describe('React', () => {
             expect(fetchSpy.calls.length).toBe(2)
 
             // set BAR again, but will not be refetched
-            // TODO: no need to re-render here
             outerComponent.setFoo('BAR')
             expect(renderSpy.calls.length).toBe(5)
             setImmediate(() => {
@@ -1563,39 +1972,75 @@ describe('React', () => {
       spy.restore()
     })
 
-    // TODO
-    //it('should not render the wrapped component when mapState does not produce change', () => {
-    //  const store = createStore(stringBuilder)
-    //  let renderCalls = 0
-    //  let mapStateCalls = 0
-    //
-    //  @connect(() => {
-    //    mapStateCalls++
-    //    return {} // no change!
-    //  })
-    //  class Container extends Component {
-    //    render() {
-    //      renderCalls++
-    //      return <Passthrough {...this.props} />
-    //    }
-    //  }
-    //
-    //  TestUtils.renderIntoDocument(
-    //    <ProviderMock store={store}>
-    //      <Container />
-    //    </ProviderMock>
-    //  )
-    //
-    //  expect(renderCalls).toBe(1)
-    //  expect(mapStateCalls).toBe(2)
-    //
-    //  store.dispatch({ type: 'APPEND', body: 'a' })
-    //
-    //  // After store a change mapState has been called
-    //  expect(mapStateCalls).toBe(3)
-    //  // But render is not because it did not make any actual changes
-    //  expect(renderCalls).toBe(1)
-    //})
+    it('should re-render only when props or requests materially change (pure: true) (default)', () => {
+      const Connected = connect(({ foo }) => foo ? { testFetch: `/resource/${foo}` } : {})(Passthrough)
+      const renderSpy = expect.spyOn(Connected.prototype, 'render').andCallThrough()
+      const fooDiv = <div>foo</div>
+
+      const container = TestUtils.renderIntoDocument(<ContainerWithSetters component={Connected} />)
+
+      expect(renderSpy.calls.length).toBe(1)
+      container.setPropsForChild({ bar: 1 })
+      expect(renderSpy.calls.length).toBe(2)
+      container.setPropsForChild({ bar: 1 })
+      expect(renderSpy.calls.length).toBe(2)
+      container.setPropsForChild({ foo: 2 })
+      expect(renderSpy.calls.length).toBe(3)
+
+      return immediatePromise()
+        .then(() => {
+          expect(renderSpy.calls.length).toBe(4)
+          container.setPropsForChild({ foo: 2 })
+          expect(renderSpy.calls.length).toBe(4)
+          container.setPropsForChild({ bar: 3 })
+          expect(renderSpy.calls.length).toBe(5)
+          container.setPropsForChild({ bar: 3, children: fooDiv })
+          expect(renderSpy.calls.length).toBe(6)
+          container.setPropsForChild({ bar: 3, children: fooDiv })
+          expect(renderSpy.calls.length).toBe(6)
+          container.setPropsForChild({ bar: 3, children: <div>foo</div> })
+          expect(renderSpy.calls.length).toBe(7)
+        })
+        .then(immediatePromise)
+        .then(() => {
+          expect(renderSpy.calls.length).toBe(7)
+        })
+    })
+
+    it('should re-render every time props or requests change (pure: false)', () => {
+      const Connected = connect.options({ pure: false })(({ foo }) => foo ? { testFetch: `/resource/${foo}` } : {})(Passthrough)
+      const renderSpy = expect.spyOn(Connected.prototype, 'render').andCallThrough()
+      const fooDiv = <div>foo</div>
+
+      const container = TestUtils.renderIntoDocument(<ContainerWithSetters component={Connected} />)
+
+      expect(renderSpy.calls.length).toBe(1)
+      container.setPropsForChild({ bar: 1 })
+      expect(renderSpy.calls.length).toBe(2)
+      container.setPropsForChild({ bar: 1 })
+      expect(renderSpy.calls.length).toBe(3)
+      container.setPropsForChild({ foo: 2 })
+      expect(renderSpy.calls.length).toBe(4)
+
+      return immediatePromise()
+        .then(() => {
+          expect(renderSpy.calls.length).toBe(5)
+          container.setPropsForChild({ foo: 2 })
+          expect(renderSpy.calls.length).toBe(6)
+          container.setPropsForChild({ bar: 3 })
+          expect(renderSpy.calls.length).toBe(7)
+          container.setPropsForChild({ bar: 3, children: fooDiv })
+          expect(renderSpy.calls.length).toBe(8)
+          container.setPropsForChild({ bar: 3, children: fooDiv })
+          expect(renderSpy.calls.length).toBe(9)
+          container.setPropsForChild({ bar: 3, children: <div>foo</div> })
+          expect(renderSpy.calls.length).toBe(10)
+        })
+        .then(immediatePromise)
+        .then(() => {
+          expect(renderSpy.calls.length).toBe(10)
+        })
+    })
 
     context('.defaults', () => {
       // Escape characters that have special meaning in RegExps, then create a
