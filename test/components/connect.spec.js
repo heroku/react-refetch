@@ -9,10 +9,8 @@ import handleResponse from '../../src/utils/handleResponse'
 describe('React', () => {
   describe('connect', () => {
 
-    const fetchSpies = []
-    before(() => {
-      window.fetch = (request) => {
-        fetchSpies.forEach((spy) => spy())
+    beforeEach(() => {
+      expect.spyOn(window, 'fetch').andCall(request => {
         return new Promise((resolve, reject) => {
           if (request.url == '/error') {
             resolve(new window.Response(JSON.stringify({ error: 'e', id: 'not_found' }), { status: 404 }))
@@ -22,7 +20,11 @@ describe('React', () => {
             resolve(new window.Response(JSON.stringify({ T: 't' }), { status: 200, headers: { A: 'a', B: 'b' } }))
           }
         })
-      }
+      })
+    })
+
+    afterEach(() => {
+      expect.restoreSpies()
     })
 
     class Passthrough extends Component {
@@ -1644,9 +1646,6 @@ describe('React', () => {
     })
 
     it('should shallowly compare the requests to prevent unnecessary fetches', (done) => {
-      const fetchSpy = expect.createSpy(() => ({}))
-      fetchSpies.push(fetchSpy)
-
       const renderSpy = expect.createSpy(() => ({}))
       function render() {
         renderSpy()
@@ -1690,23 +1689,23 @@ describe('React', () => {
 
       expect(renderSpy.calls.length).toBe(1)
       setImmediate(() => {
-        expect(fetchSpy.calls.length).toBe(1)
+        expect(window.fetch.calls.length).toBe(1)
 
         outerComponent.setFoo('BAR')
         expect(renderSpy.calls.length).toBe(3)
         setImmediate(() => {
-          expect(fetchSpy.calls.length).toBe(2)
+          expect(window.fetch.calls.length).toBe(2)
 
           // set BAR again, but will not be refetched
           outerComponent.setFoo('BAR')
           expect(renderSpy.calls.length).toBe(5)
           setImmediate(() => {
-            expect(fetchSpy.calls.length).toBe(2)
+            expect(window.fetch.calls.length).toBe(2)
 
             outerComponent.setFoo('BAZ')
             expect(renderSpy.calls.length).toBe(6)
             setImmediate(() => {
-              expect(fetchSpy.calls.length).toBe(3)
+              expect(window.fetch.calls.length).toBe(3)
 
               done()
             })
@@ -1716,9 +1715,6 @@ describe('React', () => {
     })
 
     it('should compare requests using provided comparison if provided', (done) => {
-      const fetchSpy = expect.createSpy(() => ({}))
-      fetchSpies.push(fetchSpy)
-
       const renderSpy = expect.createSpy(() => ({}))
       function render() {
         renderSpy()
@@ -1767,23 +1763,23 @@ describe('React', () => {
 
       expect(renderSpy.calls.length).toBe(1)
       setImmediate(() => {
-        expect(fetchSpy.calls.length).toBe(1)
+        expect(window.fetch.calls.length).toBe(1)
 
         outerComponent.setFoo('BAR')
         expect(renderSpy.calls.length).toBe(3)
         setImmediate(() => {
-          expect(fetchSpy.calls.length).toBe(2)
+          expect(window.fetch.calls.length).toBe(2)
 
           // set BAR again, but will not be refetched
           outerComponent.setFoo('BAR')
           expect(renderSpy.calls.length).toBe(5)
           setImmediate(() => {
-            expect(fetchSpy.calls.length).toBe(2)
+            expect(window.fetch.calls.length).toBe(2)
 
             outerComponent.setFoo('BAZ')
             expect(renderSpy.calls.length).toBe(6)
             setImmediate(() => {
-              expect(fetchSpy.calls.length).toBe(3)
+              expect(window.fetch.calls.length).toBe(3)
 
               done()
             })
@@ -1793,9 +1789,6 @@ describe('React', () => {
     })
 
     it('should compare requests using provided comparison of parent request if then is also provided', (done) => {
-      const fetchSpy = expect.createSpy()
-      fetchSpies.push(fetchSpy)
-
       const renderSpy = expect.createSpy()
 
       @connect(({ foo }) => ({
@@ -1842,24 +1835,24 @@ describe('React', () => {
 
       expect(renderSpy.calls.length).toBe(1)
       setImmediate(() => {
-        expect(fetchSpy.calls.length).toBe(1)
+        expect(window.fetch.calls.length).toBe(1)
 
         outerComponent.setFoo('BAR')
         setImmediate(() => {
           expect(renderSpy.calls.length).toBe(4)
           setImmediate(() => {
-            expect(fetchSpy.calls.length).toBe(2)
+            expect(window.fetch.calls.length).toBe(2)
 
             // set BAR again, but will not be refetched
             outerComponent.setFoo('BAR')
             expect(renderSpy.calls.length).toBe(5)
             setImmediate(() => {
-              expect(fetchSpy.calls.length).toBe(2)
+              expect(window.fetch.calls.length).toBe(2)
 
               outerComponent.setFoo('BAZ')
               expect(renderSpy.calls.length).toBe(6)
               setImmediate(() => {
-                expect(fetchSpy.calls.length).toBe(3)
+                expect(window.fetch.calls.length).toBe(3)
 
                 done()
               })
@@ -2062,11 +2055,11 @@ describe('React', () => {
     })
 
     it('should not parse the body if response is a 204', (done) => {
-      window.fetch = () => {
+      window.fetch.andCall(() => {
         return new Promise((resolve) => {
           resolve(new window.Response('', { status: 204 }))
         })
-      }
+      })
 
       @connect(() => ({ testFetch: `/empty` }))
       class Container extends Component {
@@ -2094,11 +2087,11 @@ describe('React', () => {
     })
 
     it('should not parse the body if response has Content-Length: 0', (done) => {
-      window.fetch = () => {
+      window.fetch.andCall(() => {
         return new Promise((resolve) => {
           resolve(new window.Response('', { status: 200, headers: { 'Content-Length': 0 } }))
         })
-      }
+      })
 
       @connect(() => ({ testFetch: `/empty` }))
       class Container extends Component {
@@ -2400,18 +2393,13 @@ describe('React', () => {
       })
 
       it('should set the default fetch', (done) => {
-        const customSpy = expect.createSpy(() => ({}))
-        const customFetch = () => {
-          customSpy()
+        const customFetch = expect.createSpy(() => {
           return new Promise((resolve) => {
             resolve(new window.Response(JSON.stringify({ T: 't' })))
           })
-        }
+        }).andCallThrough()
 
         const custom = connect.defaults({ fetch: customFetch })
-
-        const fetchSpy = expect.createSpy(() => ({}))
-        fetchSpies.push(fetchSpy)
 
         @custom(() => ({ testFetch: `/example` }))
         class Container extends Component {
@@ -2422,8 +2410,8 @@ describe('React', () => {
 
         TestUtils.renderIntoDocument(<Container />)
         setImmediate(() => {
-          expect(fetchSpy.calls.length).toBe(0)
-          expect(customSpy.calls.length).toBe(1)
+          expect(window.fetch.calls.length).toBe(0)
+          expect(customFetch.calls.length).toBe(1)
           done()
         })
       })
