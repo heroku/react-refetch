@@ -275,7 +275,15 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
 
       createInitialPromiseState(prop, mapping) {
         return (meta) => {
-          return mapping.refreshing ? PromiseState.refresh(this.state.data[prop], meta) : PromiseState.create(meta)
+          if (typeof mapping.refreshing == 'function') {
+            const current = this.state.data[prop]
+            current.value = mapping.refreshing(current.value)
+            return PromiseState.refresh(current, meta)
+          } else if (mapping.refreshing) {
+            return PromiseState.refresh(this.state.data[prop], meta)
+          } else {
+            return PromiseState.create(meta)
+          }
         }
       }
 
