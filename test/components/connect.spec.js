@@ -325,7 +325,7 @@ describe('React', () => {
       })
     })
 
-    it('should allow functional mappings', () => {
+    it('should allow functional mappings', (done) => {
       const props = ({
         foo: 'bar',
         baz: 42
@@ -351,12 +351,20 @@ describe('React', () => {
       expect(decorated.state.data.testFunc).toBeA('function')
       expect(decorated.state.data.deferredFetch).toEqual(undefined)
 
-      decorated.state.data.testFunc('A', 'B')
+      decorated.state.data.testFunc('A', 'B').then(value => expect(value).toEqual({ T: 't' }))
 
       expect(decorated.state.mappings.deferredFetch.url).toEqual('/bar/42/deferred/A/B')
       expect(decorated.state.data.deferredFetch).toIncludeKeyValues(
         { fulfilled: false, pending: true, reason: null, refreshing: false, rejected: false, settled: false, value: null }
       )
+
+      setImmediate(() => {
+        expect(decorated.state.data.deferredFetch).toIncludeKeyValues(
+          { fulfilled: true, pending: false, reason: null, refreshing: false, rejected: false, settled: true, value: { T: 't' } }
+        )
+
+        done()
+      })
     })
 
     it('should allow functional mappings to overwrite existing prop', () => {
@@ -527,10 +535,12 @@ describe('React', () => {
           { fulfilled: true, pending: false, reason: null, refreshing: false, rejected: false, settled: true, value: { 'T': 't' } }
         )
 
-        expect(decorated.state.mappings.thenFetch.url).toEqual('/second/42')
-        expect(decorated.state.data.thenFetch).toIncludeKeyValues(
-          { fulfilled: true, pending: false, reason: null, refreshing: false, rejected: false, settled: true, value: { 'T': 't' } }
-        )
+        setImmediate(() => {
+          expect(decorated.state.mappings.thenFetch.url).toEqual('/second/42')
+          expect(decorated.state.data.thenFetch).toIncludeKeyValues(
+            { fulfilled: true, pending: false, reason: null, refreshing: false, rejected: false, settled: true, value: { 'T': 't' } }
+          )
+        })
 
         done()
       })
