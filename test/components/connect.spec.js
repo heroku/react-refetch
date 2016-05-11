@@ -396,6 +396,50 @@ describe('React', () => {
       )
     })
 
+    it('should ignore then mappings that return undefined', (done) => {
+      const props = ({
+        foo: 'bar',
+        baz: 42
+      })
+
+      const sideEffect = expect.createSpy()
+
+      @connect(({ foo }) => ({
+        firstFetch: {
+          url: `/first/${foo}`,
+          then: () => {
+            sideEffect()
+          }
+        }
+      }))
+      class Container extends Component {
+        render() {
+          return <Passthrough {...this.props} />
+        }
+      }
+
+      const container = TestUtils.renderIntoDocument(
+        <Container {...props} />
+      )
+
+      const decorated = TestUtils.findRenderedComponentWithType(container, Container)
+      expect(decorated.state.mappings.firstFetch.url).toEqual('/first/bar')
+      expect(decorated.state.mappings.firstFetch.then).toBeA('function')
+      expect(decorated.state.data.firstFetch).toIncludeKeyValues(
+        { fulfilled: false, pending: true, reason: null, refreshing: false, rejected: false, settled: false, value: null }
+      )
+
+      setImmediate(() => {
+        expect(sideEffect.calls.length).toEqual(1)
+        expect(decorated.state.mappings.firstFetch.url).toEqual('/first/bar')
+        expect(decorated.state.data.firstFetch).toIncludeKeyValues(
+          { fulfilled: true, pending: false, reason: null, refreshing: false, rejected: false, settled: true, value: { 'T': 't' } }
+        )
+
+        done()
+      })
+    })
+
     it('should call then mappings', (done) => {
       const props = ({
         foo: 'bar',
@@ -482,6 +526,67 @@ describe('React', () => {
         expect(decorated.state.mappings.secondFetch.url).toEqual('/second/42/e')
         expect(decorated.state.data.secondFetch).toIncludeKeyValues(
           { fulfilled: true, pending: false, reason: null, refreshing: false, rejected: false, settled: true, value: { 'T': 't' } }
+        )
+
+        done()
+      })
+    })
+
+    it('should ignore catch mappings that return undefined', (done) => {
+      const props = ({
+        foo: 'bar',
+        baz: 42
+      })
+
+      const firstSideEffect = expect.createSpy()
+      const secondSideEffect = expect.createSpy()
+
+      @connect(() => ({
+        firstFetch: {
+          url: `/error`,
+          catch: () => {
+            firstSideEffect()
+          }
+        },
+        secondFetch: {
+          url: `/reject`,
+          catch: secondSideEffect
+        }
+      }))
+      class Container extends Component {
+        render() {
+          return <Passthrough {...this.props} />
+        }
+      }
+
+      const container = TestUtils.renderIntoDocument(
+        <Container {...props} />
+      )
+
+      const decorated = TestUtils.findRenderedComponentWithType(container, Container)
+      expect(decorated.state.mappings.firstFetch.url).toEqual('/error')
+      expect(decorated.state.mappings.firstFetch.catch).toBeA('function')
+      expect(decorated.state.data.firstFetch).toIncludeKeyValues(
+        { fulfilled: false, pending: true, reason: null, refreshing: false, rejected: false, settled: false, value: null }
+      )
+
+      expect(decorated.state.mappings.secondFetch.url).toEqual('/reject')
+      expect(decorated.state.mappings.secondFetch.catch).toBeA('function')
+      expect(decorated.state.data.secondFetch).toIncludeKeyValues(
+        { fulfilled: false, pending: true, reason: null, refreshing: false, rejected: false, settled: false, value: null }
+      )
+
+      setImmediate(() => {
+        expect(firstSideEffect.calls.length).toEqual(1)
+        expect(decorated.state.mappings.firstFetch.url).toEqual('/error')
+        expect(decorated.state.data.firstFetch).toIncludeKeyValues(
+          { fulfilled: false, pending: false, reason: { message: 'e', cause: { error: 'e', id: 'not_found' } }, refreshing: false, rejected: true, settled: true, value: null }
+        )
+
+        expect(secondSideEffect.calls.length).toEqual(1)
+        expect(decorated.state.mappings.secondFetch.url).toEqual('/reject')
+        expect(decorated.state.data.secondFetch).toIncludeKeyValues(
+          { fulfilled: false, pending: false, reason: { message: 'response rejected' }, refreshing: false, rejected: true, settled: true, value: null }
         )
 
         done()

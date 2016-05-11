@@ -290,8 +290,11 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
             }
 
             if (mapping.then) {
-              this.refetchDatum(prop, coerceMapping(null, mapping.then(value, meta), mapping))
-              return
+              const thenMapping = mapping.then(value, meta)
+              if (typeof thenMapping !== 'undefined') {
+                this.refetchDatum(prop, coerceMapping(null, thenMapping, mapping))
+                return
+              }
             }
 
             this.setAtomicState(prop, startedAt, mapping, PromiseState.resolve(value, meta), refreshTimeout, () => {
@@ -307,8 +310,11 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
         return (meta) => {
           return (reason) => {
             if (mapping.catch) {
-              this.refetchDatum(prop, coerceMapping(null, mapping.catch(reason, meta), mapping))
-              return
+              const catchMapping = mapping.catch(reason, meta)
+              if (typeof catchMapping !== 'undefined') {
+                this.refetchDatum(prop, coerceMapping(null, catchMapping, mapping))
+                return
+              }
             }
 
             this.setAtomicState(prop, startedAt, mapping, PromiseState.reject(reason, meta), null, () => {
