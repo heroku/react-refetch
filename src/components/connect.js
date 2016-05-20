@@ -275,7 +275,17 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
 
       createInitialPromiseState(prop, mapping) {
         return (meta) => {
-          return mapping.refreshing ? PromiseState.refresh(this.state.data[prop], meta) : PromiseState.create(meta)
+          if (typeof mapping.refreshing == 'function') {
+            const current = this.state.data[prop]
+            if (current) {
+              current.value = mapping.refreshing(current.value)
+            }
+            return PromiseState.refresh(current, meta)
+          } else if (mapping.refreshing) {
+            return PromiseState.refresh(this.state.data[prop], meta)
+          } else {
+            return PromiseState.create(meta)
+          }
         }
       }
 
@@ -290,8 +300,11 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
             }
 
             if (mapping.then) {
-              this.refetchDatum(prop, coerceMapping(null, mapping.then(value, meta), mapping))
-              return
+              const thenMapping = mapping.then(value, meta)
+              if (typeof thenMapping !== 'undefined') {
+                this.refetchDatum(prop, coerceMapping(null, thenMapping, mapping))
+                return
+              }
             }
 
             this.setAtomicState(prop, startedAt, mapping, PromiseState.resolve(value, meta), refreshTimeout, () => {
@@ -307,8 +320,11 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
         return (meta) => {
           return (reason) => {
             if (mapping.catch) {
-              this.refetchDatum(prop, coerceMapping(null, mapping.catch(reason, meta), mapping))
-              return
+              const catchMapping = mapping.catch(reason, meta)
+              if (typeof catchMapping !== 'undefined') {
+                this.refetchDatum(prop, coerceMapping(null, catchMapping, mapping))
+                return
+              }
             }
 
             this.setAtomicState(prop, startedAt, mapping, PromiseState.reject(reason, meta), null, () => {
