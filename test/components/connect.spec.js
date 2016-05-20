@@ -6,6 +6,8 @@ import { connect, PromiseState } from '../../src/index'
 import buildRequest from '../../src/utils/buildRequest'
 import handleResponse from '../../src/utils/handleResponse'
 
+process.on('unhandledRejection', e => { throw e })
+
 describe('React', () => {
   describe('connect', () => {
 
