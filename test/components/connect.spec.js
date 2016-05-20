@@ -160,6 +160,31 @@ describe('React', () => {
       })
     })
 
+    it('should support refreshing function on before first fulfillment', (done) => {
+      @connect(() => ({ testFetch: { url: `/example`, refreshing: (value) => value } }))
+      class Container extends Component {
+        render() {
+          return <Passthrough {...this.props} />
+        }
+      }
+
+      const container = TestUtils.renderIntoDocument(
+        <Container />
+      )
+
+      const init = TestUtils.findRenderedComponentWithType(container, Container)
+      expect(init.state.data.testFetch).toIncludeKeyValues(
+        { fulfilled: false, pending: true, reason: null, refreshing: true, rejected: false, settled: false, value: null }
+      )
+      setImmediate(() => {
+        const fulfilled = TestUtils.findRenderedComponentWithType(container, Container)
+        expect(fulfilled.state.data.testFetch).toIncludeKeyValues(
+          { fulfilled: true, pending: false, reason: null, refreshing: false, rejected: false, settled: true, value: { T: 't' } }
+        )
+        done()
+      })
+    })
+
     it('should set startedAt', (done) => {
       @connect(() => ({ testFetch: `/example` }))
       class Container extends Component {
@@ -683,6 +708,44 @@ describe('React', () => {
         expect(decoratedFulfilled.state.data.testFetch.fulfilled).toEqual(true)
         expect(decoratedFulfilled.state.refreshTimeouts.testFetch).toEqual(null)
         done()
+      })
+    })
+
+    it('should support refreshing function to optimisticly update value before request', (done) => {
+      @connect(() => ({
+        testFetch: `/example`,
+        updateTestFetch: (body) => ({
+          testFetch: {
+            url: `/example`,
+            method: 'PATCH',
+            refreshing: (value) => ({ ...value, ...body })
+          }
+        })
+      }))
+      class Container extends Component {
+        render() {
+          return <Passthrough {...this.props} />
+        }
+      }
+
+      const container = TestUtils.renderIntoDocument(
+        <Container />
+      )
+
+      const decoratedFulfilled = TestUtils.findRenderedComponentWithType(container, Container)
+
+      setImmediate(() => {
+        expect(decoratedFulfilled.state.data.testFetch.fulfilled).toEqual(true)
+        expect(decoratedFulfilled.state.data.testFetch.value).toEqual({ T: 't' })
+        decoratedFulfilled.state.data.updateTestFetch({ more: 'stuff' })
+        expect(decoratedFulfilled.state.data.testFetch.value).toEqual({ T: 't', more: 'stuff' })
+        expect(decoratedFulfilled.state.data.testFetch.refreshing).toEqual(true)
+        setImmediate(() => {
+          expect(decoratedFulfilled.state.data.testFetch.refreshing).toEqual(false)
+          // because the request returns { T: 't'}
+          expect(decoratedFulfilled.state.data.testFetch.value).toEqual({ T: 't' })
+          done()
+        })
       })
     })
 
