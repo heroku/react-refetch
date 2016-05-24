@@ -2679,7 +2679,7 @@ describe('React', () => {
       })
 
       it('should set the default andThen', () => {
-        const custom = connect.defaults({ andThen: (v) => `/second/${v['T']}` })
+        const custom = connect.defaults({ andThen: (v) => ({ secondFetch: `/second/${v['T']}` }) })
         @custom(({ foo }) => ({ firstFetch: `/first/${foo}` }))
         class Container extends Component {
           render() {
@@ -2707,7 +2707,7 @@ describe('React', () => {
       })
 
       it('should set the default andCatch', () => {
-        const custom = connect.defaults({ andCatch: (v) => `/second/${v['T']}` })
+        const custom = connect.defaults({ andCatch: (v) => ({ secondFetch: `/second/${v['T']}` }) })
         @custom(({ foo }) => ({ firstFetch: `/first/${foo}` }))
         class Container extends Component {
           render() {
@@ -2726,19 +2726,19 @@ describe('React', () => {
         const buildRequestDefault = expect.createSpy().andCall(buildRequest)
 
         const custom = connect.defaults({
-          then: (v) => `/second/${v['T']}`,
-          andThen: (v) => `/second/${v['T']}`,
-          catch: (v) => `/second/${v['T']}`,
-          andCatch: (v) => `/second/${v['T']}`,
+          then: (v) => `/second/default/then/${v['T']}`,
+          andThen: (v) => ({ secondFetch: `/second/default/andThen/${v['T']}` }),
+          catch: (v) => `/second/default/catch/${v['T']}`,
+          andCatch: (v) => ({ secondFetch: `/second/default/andCatch/${v['T']}` }),
           fetch: fetchDefault,
           handleResponse: handleResponseDefault,
           buildRequest: buildRequestDefault
         })
 
-        const then = (v) => `/second/${v['T']}`
-        const andThen = (v) => `/second/${v['T']}`
-        const ccatch = (v) => `/second/${v['T']}`
-        const andCatch = (v) => `/second/${v['T']}`
+        const then = (v) => `/second/inline/then/${v['T']}`
+        const andThen = (v) => ({ secondFetch: `/second/inline/andThen/${v['T']}` })
+        const ccatch = (v) => `/second/inline/catch/${v['T']}`
+        const andCatch = (v) => ({ secondFetch: `/second/inline/andCatch/${v['T']}` })
 
         const fetchSpy = expect.createSpy().andCall(window.fetch)
         const handleResponseSpy = expect.createSpy().andCall(handleResponse)
@@ -2773,9 +2773,9 @@ describe('React', () => {
           expect(fetchDefault.calls.length).toBe(0)
           expect(handleResponseDefault.calls.length).toBe(0)
           expect(buildRequestDefault.calls.length).toBe(0)
-          expect(fetchSpy.calls.length).toBe(1)
-          expect(handleResponseSpy.calls.length).toBe(1)
-          expect(buildRequestSpy.calls.length).toBe(1)
+          expect(fetchSpy.calls.length).toBe(2)
+          expect(handleResponseSpy.calls.length).toBe(2)
+          expect(buildRequestSpy.calls.length).toBe(2)
           done()
         })
       })
