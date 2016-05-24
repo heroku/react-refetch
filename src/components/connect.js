@@ -168,6 +168,7 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
         fetch: parent.fetch,
         buildRequest: parent.buildRequest,
         handleResponse: parent.handleResponse,
+        Request: parent.Request,
         comparison: parent.comparison,
         then: undefined,
         andThen: undefined

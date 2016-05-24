@@ -79,7 +79,7 @@ const c = b.defaults({ refreshInterval: 10000 })
 
 #### Arguments
 
-* `[newDefaults = {}]` *(Object)*: An object with any of the following keys:
+* `[newDefaults = {}]` *(Object)*: An object with any of the following keys. They are all inherited from the parent request in chains:
      - `buildRequest(mapping): Request` *(Function)*: Takes a mapping and returns a `Request`. If setting this, make sure it interoperates with either the default `fetch` and `Request` or the `fetch` and `Request` you've provided. The `mapping` will always be an Object, even if the URL-only short form is used. Defaults to the internal implementation, see the source for details.
      - `fetch(url|Request, options): Promise<Request>` *(Function)*: The function to use when performing requests. It should conform to the [`Fetch` API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API). If setting this, make sure it interoperates with either the default `Request` or the `Request` you've provided. Defaults to the global `fetch`, if available, checking on `window`, `global`, and `self` in that order.
      - `handleResponse(Response): Promise<Object>` *(Function)*: Takes a `Response` (the [native one](https://developer.mozilla.org/en-US/docs/Web/API/Response) or whatever is returned by your custom `fetch`) and returns a `Promise` that resolves to an object representation of the response. If setting this, make sure it interoperates with either the default `fetch` and `Request` or the `fetch` and `Request` you've provided. Defaults to the internal implementation, see the source for details.
@@ -97,9 +97,9 @@ const c = b.defaults({ refreshInterval: 10000 })
      - `force`
      - `comparison`
      - `andCatch`
-     - `andThen`
+     - `andThen` (except in chains)
      - `catch`
-     - `then`
+     - `then` (except in chains)
      - `value`
      - `meta`
 
