@@ -164,7 +164,14 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
         meta: {}
       },
       defaults,
-      parent ? { comparison: parent.comparison } : {},
+      parent ? {
+        fetch: parent.fetch,
+        buildRequest: parent.buildRequest,
+        handleResponse: parent.handleResponse,
+        comparison: parent.comparison,
+        then: undefined,
+        andThen: undefined
+      } : {},
       mapping,
       { headers }
     )
