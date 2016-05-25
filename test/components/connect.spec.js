@@ -1,4 +1,3 @@
-import 'whatwg-fetch'
 import expect from 'expect'
 import React, { createClass, Component } from 'react'
 import TestUtils from 'react-addons-test-utils'
@@ -203,8 +202,8 @@ describe('React', () => {
 
       const pending = TestUtils.findRenderedComponentWithType(container, Container)
       const startedAt = pending.state.startedAts.testFetch
-      expect(startedAt.getTime()).toBeLessThan(new Date().getTime())
       setImmediate(() => {
+        expect(startedAt.getTime()).toBeLessThan(new Date().getTime())
         const fulfilled = TestUtils.findRenderedComponentWithType(container, Container)
         expect(fulfilled.state.startedAts.testFetch).toEqual(startedAt)
         done()
