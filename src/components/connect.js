@@ -144,7 +144,7 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
       return [ 'value', 'url', 'method', 'headers', 'body' ].every((c) => {
         return shallowEqual(this[c], that[c])
       })
-    }.bind(mapping)
+    }.bind(parent || mapping)
 
     return mapping
   }
