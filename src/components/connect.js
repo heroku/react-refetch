@@ -141,6 +141,8 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
     invariant(isPlainObject(mapping.meta), 'meta for `%s` must be a plain object. Instead received %s', prop, mapping.meta)
 
     mapping.equals = function (that) {
+      that = that.parent || that
+
       if (this.comparison !== undefined) {
         return this.comparison === that.comparison
       }
@@ -148,7 +150,7 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
       return [ 'value', 'url', 'method', 'headers', 'body' ].every((c) => {
         return shallowEqual(this[c], that[c])
       })
-    }.bind(mapping.parent || mapping)
+    }.bind(mapping)
 
     return mapping
   }
