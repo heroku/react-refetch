@@ -132,6 +132,10 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
 
     checkTypes(mapping)
 
+    if (parent) {
+      mapping.parent = parent.parent || parent
+    }
+
     mapping = assignDefaults(mapping, parent)
 
     invariant(isPlainObject(mapping.meta), 'meta for `%s` must be a plain object. Instead received %s', prop, mapping.meta)
@@ -144,7 +148,7 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
       return [ 'value', 'url', 'method', 'headers', 'body' ].every((c) => {
         return shallowEqual(this[c], that[c])
       })
-    }.bind(mapping)
+    }.bind(mapping.parent || mapping)
 
     return mapping
   }
