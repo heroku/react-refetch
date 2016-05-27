@@ -1647,16 +1647,27 @@ describe('React', () => {
     })
 
     it('should shallowly compare the requests to prevent unnecessary fetches', (done) => {
-      const renderSpy = expect.createSpy(() => ({}))
-      function render() {
-        renderSpy()
-        return <Passthrough/>
-      }
-
-      @connect(({ foo }) => ({ testFetch: `/resource/${foo.FOO}` }))
+      @connect(({ foo }) => ({
+        testFetch: `/resource/${foo.FOO}`,
+        nestedFetch: {
+          url: `/resource/${foo.FOO}/bar`,
+          then: () => ({
+            value: Date.now()
+          })
+        },
+        veryNestedFetch: {
+          url: `/resource/${foo.FOO}/bar`,
+          then: () => ({
+            value: Date.now(),
+            then: () => ({
+              url: `/resource/${Math.random()}/bar`
+            })
+          })
+        }
+      }))
       class WithProps extends Component {
         render() {
-          return render(this.props)
+          return <Passthrough />
         }
       }
 
@@ -1688,25 +1699,40 @@ describe('React', () => {
         <OuterComponent ref={c => outerComponent = c} />
       )
 
-      expect(renderSpy.calls.length).toBe(1)
+      const render = expect.spyOn(WithProps.prototype, 'render').andCallThrough()
+
       setImmediate(() => {
-        expect(window.fetch.calls.length).toBe(1)
+        // 4 because there are in total 4 non-identity requests
+        expect(window.fetch.calls.length).toBe(4)
+        window.fetch.reset()
+        expect(render.calls.length).toBe(4)
+        render.reset()
 
         outerComponent.setFoo('BAR')
-        expect(renderSpy.calls.length).toBe(3)
-        setImmediate(() => {
-          expect(window.fetch.calls.length).toBe(2)
+        expect(render.calls.length).toBe(1)
+        render.reset()
 
-          // set BAR again, but will not be refetched
+        setImmediate(() => {
+          expect(window.fetch.calls.length).toBe(4)
+          window.fetch.reset()
+          expect(render.calls.length).toBe(4)
+          render.reset()
+
+          // set BAR again, but neither request will be refetched
           outerComponent.setFoo('BAR')
-          expect(renderSpy.calls.length).toBe(5)
+          expect(render.calls.length).toBe(1)
+          render.reset()
+
           setImmediate(() => {
-            expect(window.fetch.calls.length).toBe(2)
+            expect(window.fetch.calls.length).toBe(0)
+            expect(render.calls.length).toBe(0)
 
             outerComponent.setFoo('BAZ')
-            expect(renderSpy.calls.length).toBe(6)
+            expect(render.calls.length).toBe(1)
+            render.reset()
+
             setImmediate(() => {
-              expect(window.fetch.calls.length).toBe(3)
+              expect(window.fetch.calls.length).toBe(4)
 
               done()
             })
