@@ -16,8 +16,14 @@ export default class PromiseState {
     return ps
   }
 
-  // creates a PromiseState that is resolved with the given value
+  // creates a PromiseState that is resolved with the given value.
+  // if the given value is already a PromiseState,
+  // it will be returned as is and ignore the provided meta.
   static resolve(value, meta) {
+    if (value instanceof PromiseState) {
+      return value
+    }
+
     return new PromiseState({
       fulfilled: true,
       value: value,

@@ -1,12 +1,14 @@
 import React, { Component } from 'react'
 import isPlainObject from '../utils/isPlainObject'
-import deepValue from '../utils/deepValue'
 import shallowEqual from '../utils/shallowEqual'
-import newError from '../utils/errors'
+import handleResponse from '../utils/handleResponse'
+import buildRequest from '../utils/buildRequest'
+import checkTypes from '../utils/checkTypes'
 import PromiseState from '../PromiseState'
 import hoistStatics from 'hoist-non-react-statics'
 import invariant from 'invariant'
 import warning from 'warning'
+import omit from 'lodash/fp/omit'
 
 const defaultMapPropsToRequestsToProps = () => ({})
 
@@ -17,35 +19,35 @@ function getDisplayName(WrappedComponent) {
 // Helps track hot reloading.
 let nextVersion = 0
 
-function connectFactory(defaults = {}) {
-  function mergeHeaders(options) {
-    if (options.hasOwnProperty('headers')) {
-      checks.headers(options.headers)
+function connectFactory(defaults = {}, options = {}) {
+  function connectImpl(map, deprecatedOptionsArgument = {}) {
+    let finalOptions = options
+    if ('withRef' in deprecatedOptionsArgument) {
+      warning(false, 'The options argument is deprecated in favor of `connect.options()`. In a future release, support will be removed.')
+      finalOptions = Object.assign({}, options, { withRef: deprecatedOptionsArgument.withRef })
     }
-    return Object.assign({}, defaults.headers, options.headers)
-  }
 
-  function connectImpl(map, options = {}) {
-    warning(Object.getOwnPropertyNames(options).length === 0,
-      'The options argument is deprecated in favor of `connect.defaults()` ' +
-      'calls. In a future release, support will be removed.'
-    )
-
-    options.headers = mergeHeaders(options)
-    const finalOptions = Object.assign({}, defaults, options)
-
-    warning(!(Function.prototype.isPrototypeOf(finalOptions.buildRequest) &&
-      Function.prototype.isPrototypeOf(finalOptions.Request)),
+    warning(!(Function.prototype.isPrototypeOf(defaults.buildRequest) &&
+      Function.prototype.isPrototypeOf(defaults.Request)),
       'Both buildRequest and Request were provided in `connect.defaults()`. ' +
-      'However this custom Request would only be used in the default buildRequest.'
+      'However, this custom Request would only be used in the default buildRequest.'
     )
 
-    return connect(map, finalOptions)
+    return connect(map, defaults, finalOptions)
   }
 
   connectImpl.defaults = function (overrides = {}) {
-    overrides.headers = mergeHeaders(overrides)
-    return connectFactory(Object.assign({}, defaults, overrides))
+    checkTypes(overrides)
+    return connectFactory(Object.assign(
+      {},
+      defaults,
+      overrides,
+      { headers: Object.assign({}, defaults.headers, overrides.headers) }
+    ), options)
+  }
+
+  connectImpl.options = function (overrides = {}) {
+    return connectFactory(defaults, Object.assign({}, options, overrides))
   }
 
   return connectImpl
@@ -58,70 +60,12 @@ export default connectFactory({
   }
 })
 
-function typecheck(type, name, obj) {
-  invariant(
-    typeof obj === type,
-    `${name} must be a ${type}. Instead received a %s.`,
-    typeof obj
-  )
-}
+const omitChildren = omit('children')
 
-const checks = {
-  buildRequest(fn) {
-    typecheck('function', 'buildRequest', fn)
-  },
-
-  credentials(str) {
-    const allowed = [ 'omit', 'same-origin', 'include' ]
-    invariant(
-      allowed.indexOf(str) !== -1,
-      `credentials must be one of ${allowed.join(', ')}. Instead got %s.`,
-      str ? str.toString() : str
-    )
-  },
-
-  fetch(fn) {
-    typecheck('function', 'fetch', fn)
-  },
-
-  handleResponse(fn) {
-    typecheck('function', 'handleResponse', fn)
-  },
-
-  headers(obj) {
-    invariant(
-      isPlainObject(obj),
-      'headers must be a plain object with string values. Instead received a %s.',
-      typeof obj
-    )
-  },
-
-  method(str) {
-    typecheck('string', 'method', str)
-  },
-
-  redirect(str) {
-    const allowed = [ 'follow', 'error', 'manual' ]
-    invariant(
-      allowed.indexOf(str) !== -1,
-      `redirect must be one of ${allowed.join(', ')}. Instead got %s.`,
-      str ? str.toString() : str
-    )
-  },
-
-  refreshInterval(num) {
-    typecheck('number', 'refreshInterval', num)
-    invariant(num >= 0, 'refreshInterval must be positive or 0.')
-    invariant(num !== Infinity, 'refreshInterval must not be Infinity.')
-  },
-
-  Request(fn) {
-    typecheck('function', 'Request', fn)
-  }
-}
-
-function connect(mapPropsToRequestsToProps, defaults) {
+function connect(mapPropsToRequestsToProps, defaults, options) {
   const finalMapPropsToRequestsToProps = mapPropsToRequestsToProps || defaultMapPropsToRequestsToProps
+  const dependsOnProps = finalMapPropsToRequestsToProps.length >= 1
+  const dependsOnContext = finalMapPropsToRequestsToProps.length == 2
 
   let topFetch
   let topRequest
@@ -137,30 +81,24 @@ function connect(mapPropsToRequestsToProps, defaults) {
   }
 
   defaults = Object.assign({
-    andCatch: undefined,
-    andThen: undefined,
     buildRequest,
-    catch: undefined,
-    comparison: undefined,
     credentials: 'same-origin',
     fetch: topFetch,
     force: false,
     handleResponse,
-    headers: {},
     method: 'GET',
     redirect: 'follow',
     refreshing: false,
     refreshInterval: 0,
-    Request: topRequest,
-    then: undefined,
-    withRef: false
+    Request: topRequest
   }, defaults)
 
-  Object.keys(defaults).forEach(key => {
-    if (checks[key]) {
-      checks[key](defaults[key])
-    }
-  })
+  checkTypes(defaults)
+
+  options = Object.assign({
+    withRef: false,
+    pure: true
+  }, options)
 
   // Helps track hot reloading.
   const version = nextVersion++
@@ -192,17 +130,25 @@ function connect(mapPropsToRequestsToProps, defaults) {
     invariant(mapping.hasOwnProperty('url') || mapping.hasOwnProperty('value'), 'Request object for `%s` must have `url` (or `value`) attribute.', prop)
     invariant(!(mapping.hasOwnProperty('url') && mapping.hasOwnProperty('value')), 'Request object for `%s` must not have both `url` and `value` attributes.', prop)
 
+    checkTypes(mapping)
+
+    if (parent) {
+      mapping.parent = parent.parent || parent
+    }
+
     mapping = assignDefaults(mapping, parent)
 
     invariant(isPlainObject(mapping.meta), 'meta for `%s` must be a plain object. Instead received %s', prop, mapping.meta)
 
     mapping.equals = function (that) {
+      that = that.parent || that
+
       if (this.comparison !== undefined) {
         return this.comparison === that.comparison
       }
 
       return [ 'value', 'url', 'method', 'headers', 'body' ].every((c) => {
-        return shallowEqual(deepValue(this, c), deepValue(that, c))
+        return shallowEqual(this[c], that[c])
       })
     }.bind(mapping)
 
@@ -220,50 +166,22 @@ function connect(mapPropsToRequestsToProps, defaults) {
     }
 
     return Object.assign(
-      { comparison: defaults.comparison },
-      parent ? {
-        comparison: parent.comparison
-      } : {},
       {
-        andCatch: defaults.andCatch,
-        andThen: defaults.andThen,
-        catch: defaults.catch,
-        credentials: defaults.credentials,
-        force: defaults.force,
-        meta: {},
-        method: defaults.method,
-        redirect: defaults.redirect,
-        refreshing: defaults.refreshing,
-        refreshInterval: defaults.refreshInterval,
-        then: defaults.then
+        meta: {}
       },
+      defaults,
+      parent ? {
+        fetch: parent.fetch,
+        buildRequest: parent.buildRequest,
+        handleResponse: parent.handleResponse,
+        Request: parent.Request,
+        comparison: parent.comparison,
+        then: undefined,
+        andThen: undefined
+      } : {},
       mapping,
       { headers }
     )
-  }
-
-  function buildRequest(mapping) {
-    return new defaults.Request(mapping.url, {
-      method: mapping.method,
-      headers: mapping.headers,
-      credentials: mapping.credentials,
-      redirect: mapping.redirect,
-      body: mapping.body
-    })
-  }
-
-  function handleResponse(response) {
-    if (response.headers.get('content-length') === '0' || response.status === 204) {
-      return
-    }
-
-    const json = response.json() // TODO: support other response types
-
-    if (response.status >= 200 && response.status < 300) { // TODO: support custom acceptable statuses
-      return json
-    } else {
-      return json.then(cause => Promise.reject(newError(cause)))
-    }
   }
 
   return function wrapWithConnect(WrappedComponent) {
@@ -279,7 +197,18 @@ function connect(mapPropsToRequestsToProps, defaults) {
       }
 
       componentWillReceiveProps(nextProps, nextContext) {
-        this.refetchDataFromProps(nextProps, nextContext)
+        if (
+          !options.pure ||
+          (dependsOnProps && !shallowEqual(omitChildren(this.props), omitChildren(nextProps))) ||
+          (dependsOnContext && !shallowEqual(this.context, nextContext))
+        ) {
+          this.refetchDataFromProps(nextProps, nextContext)
+        }
+      }
+
+      shouldComponentUpdate(nextProps, nextState) {
+        return !options.pure ||
+          this.state.data != nextState.data || !shallowEqual(this.props, nextProps)
       }
 
       componentWillUnmount() {
@@ -288,23 +217,22 @@ function connect(mapPropsToRequestsToProps, defaults) {
       }
 
       render() {
-        const ref = defaults.withRef ? 'wrappedInstance' : null
+        const ref = options.withRef ? 'wrappedInstance' : null
         return (
           <WrappedComponent { ...this.state.data } { ...this.props } ref={ref}/>
         )
       }
 
       getWrappedInstance() {
-        invariant(defaults.withRef,
-          `To access the wrapped instance, you need to specify { withRef: true } ` +
-          `in .defaults().`
+        invariant(options.withRef,
+          `To access the wrapped instance, you need to specify { withRef: true } in .options().`
         )
 
         return this.refs.wrappedInstance
       }
 
       refetchDataFromProps(props = this.props, context = this.context) {
-        this.refetchDataFromMappings(finalMapPropsToRequestsToProps(props, context) || {})
+        this.refetchDataFromMappings(finalMapPropsToRequestsToProps(omitChildren(props), context) || {})
       }
 
       refetchDataFromMappings(mappings) {
@@ -314,7 +242,7 @@ function connect(mapPropsToRequestsToProps, defaults) {
 
           if (Function.prototype.isPrototypeOf(mapping)) {
             this.setAtomicState(prop, new Date(), mapping, (...args) => {
-              this.refetchDataFromMappings(mapping(...args || {}))
+              this.refetchDataFromMappings(mapping(...args))
             })
             return
           }
@@ -349,21 +277,34 @@ function connect(mapPropsToRequestsToProps, defaults) {
             return onFulfillment(meta)(mapping.value)
           }
         } else {
-          const request = defaults.buildRequest(mapping)
+          const request = mapping.buildRequest(mapping)
           meta.request = request
           this.setAtomicState(prop, startedAt, mapping, initPS(meta))
 
-          const fetched = defaults.fetch(request)
-          return fetched.then(response => {
-            meta.response = response
-            return fetched.then(defaults.handleResponse).then(onFulfillment(meta), onRejection(meta))
-          })
+          const fetched = mapping.fetch(request)
+          return fetched
+            .then(response => {
+              meta.response = response
+              return response
+            })
+            .then(mapping.handleResponse)
+            .then(onFulfillment(meta), onRejection(meta))
         }
       }
 
       createInitialPromiseState(prop, mapping) {
         return (meta) => {
-          return mapping.refreshing ? PromiseState.refresh(this.state.data[prop], meta) : PromiseState.create(meta)
+          if (typeof mapping.refreshing == 'function') {
+            const current = this.state.data[prop]
+            if (current) {
+              current.value = mapping.refreshing(current.value)
+            }
+            return PromiseState.refresh(current, meta)
+          } else if (mapping.refreshing) {
+            return PromiseState.refresh(this.state.data[prop], meta)
+          } else {
+            return PromiseState.create(meta)
+          }
         }
       }
 
@@ -377,13 +318,16 @@ function connect(mapPropsToRequestsToProps, defaults) {
               }, mapping.refreshInterval)
             }
 
-            if (Function.prototype.isPrototypeOf(mapping.then)) {
-              this.refetchDatum(prop, coerceMapping(null, mapping.then(value, meta), mapping))
-              return
+            if (mapping.then) {
+              const thenMapping = mapping.then(value, meta)
+              if (typeof thenMapping !== 'undefined') {
+                this.refetchDatum(prop, coerceMapping(null, thenMapping, mapping))
+                return
+              }
             }
 
             this.setAtomicState(prop, startedAt, mapping, PromiseState.resolve(value, meta), refreshTimeout, () => {
-              if (Function.prototype.isPrototypeOf(mapping.andThen)) {
+              if (mapping.andThen) {
                 this.refetchDataFromMappings(mapping.andThen(value, meta))
               }
             })
@@ -394,13 +338,16 @@ function connect(mapPropsToRequestsToProps, defaults) {
       createPromiseStateOnRejection(prop, mapping, startedAt) {
         return (meta) => {
           return (reason) => {
-            if (Function.prototype.isPrototypeOf(mapping.catch)) {
-              this.refetchDatum(prop, coerceMapping(null, mapping.catch(reason, meta), mapping))
-              return
+            if (mapping.catch) {
+              const catchMapping = mapping.catch(reason, meta)
+              if (typeof catchMapping !== 'undefined') {
+                this.refetchDatum(prop, coerceMapping(null, catchMapping, mapping))
+                return
+              }
             }
 
             this.setAtomicState(prop, startedAt, mapping, PromiseState.reject(reason, meta), null, () => {
-              if (Function.prototype.isPrototypeOf(mapping.andCatch)) {
+              if (mapping.andCatch) {
                 this.refetchDataFromMappings(mapping.andCatch(reason, meta))
               }
             })
@@ -420,18 +367,22 @@ function connect(mapPropsToRequestsToProps, defaults) {
 
           return {
             startedAts: Object.assign(
+              {},
               prevState.startedAts, {
                 [prop]: startedAt
               }),
             mappings: Object.assign(
+              {},
               prevState.mappings, {
                 [prop]: mapping
               }),
             data: Object.assign(
+              {},
               prevState.data, {
                 [prop]: datum
               }),
             refreshTimeouts: Object.assign(
+              {},
               prevState.refreshTimeouts, {
                 [prop]: refreshTimeout
               })
@@ -449,6 +400,10 @@ function connect(mapPropsToRequestsToProps, defaults) {
 
     RefetchConnect.displayName = `Refetch.connect(${getDisplayName(WrappedComponent)})`
     RefetchConnect.WrappedComponent = WrappedComponent
+
+    if (dependsOnContext && WrappedComponent.contextTypes) {
+      RefetchConnect.contextTypes = WrappedComponent.contextTypes
+    }
 
     if (process.env.NODE_ENV !== 'production') {
       RefetchConnect.prototype.componentWillUpdate = function componentWillUpdate() {

@@ -1,6 +1,6 @@
 {
   "name": "react-refetch",
-  "version": "1.0.0-beta.0",
+  "version": "1.0.0-beta.7",
   "description": "A simple, declarative, and composable way to fetch data for React components.",
   "main": "./lib/index.js",
   "scripts": {
@@ -51,9 +51,9 @@
     "istanbul": "^0.3.17",
     "jsdom": "~5.4.3",
     "mocha": "^2.2.5",
-    "react": "^0.14.0",
-    "react-addons-test-utils": "^0.14.0",
-    "react-dom": "^0.14.0",
+    "react": "^15.0.1",
+    "react-addons-test-utils": "^15.0.1",
+    "react-dom": "^15.0.1",
     "rimraf": "^2.3.4",
     "webpack": "^1.11.0",
     "whatwg-fetch": "*"
@@ -61,9 +61,10 @@
   "dependencies": {
     "hoist-non-react-statics": "^1.0.3",
     "invariant": "^2.0.0",
+    "lodash": "^4.11.0",
     "warning": "^2.1.0"
   },
   "peerDependencies": {
-    "react": "^0.14.0 || ^15.0.0-rc"
+    "react": "^0.14.0 || ^15.0.0"
   }
 }

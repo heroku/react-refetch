@@ -1,24 +1,31 @@
-import 'whatwg-fetch'
 import expect from 'expect'
 import React, { createClass, Component } from 'react'
 import TestUtils from 'react-addons-test-utils'
 import { connect, PromiseState } from '../../src/index'
+import buildRequest from '../../src/utils/buildRequest'
+import handleResponse from '../../src/utils/handleResponse'
+
+process.on('unhandledRejection', e => { throw e })
 
 describe('React', () => {
   describe('connect', () => {
 
-    const fetchSpies = []
-    before(() => {
-      window.fetch = (request) => {
-        fetchSpies.forEach((spy) => spy())
-        return new Promise((resolve) => {
+    beforeEach(() => {
+      expect.spyOn(window, 'fetch').andCall(request => {
+        return new Promise((resolve, reject) => {
           if (request.url == '/error') {
             resolve(new window.Response(JSON.stringify({ error: 'e', id: 'not_found' }), { status: 404 }))
+          } else if (request.url == '/reject') {
+            reject(new TypeError('response rejected'))
           } else {
             resolve(new window.Response(JSON.stringify({ T: 't' }), { status: 200, headers: { A: 'a', B: 'b' } }))
           }
         })
-      }
+      })
+    })
+
+    afterEach(() => {
+      expect.restoreSpies()
     })
 
     class Passthrough extends Component {
@@ -27,7 +34,26 @@ describe('React', () => {
       }
     }
 
-    it('should should props and promise state to the given component', (done) => {
+    class ContainerWithSetters extends Component {
+      componentWillMount() {
+        this.state = {
+          propsForChild: {}
+        }
+      }
+
+      setPropsForChild(propsForChild) {
+        this.setState({ propsForChild })
+      }
+
+      render() {
+        const Component = this.props.component
+        return <Component {...this.state.propsForChild} />
+      }
+    }
+
+    const immediatePromise = () => new Promise((resolve) => setImmediate(resolve))
+
+    it('should pass props and promise state to the given component', (done) => {
       const props = ({
         foo: 'bar',
         baz: 42
@@ -41,6 +67,7 @@ describe('React', () => {
           }
         },
         errorFetch: `/error`,
+        rejectFetch: `/reject`,
         testFunc: (arg1, arg2) => ({
           deferredFetch: `/${foo}/${baz}/deferred/${arg1}/${arg2}`
         })
@@ -67,6 +94,11 @@ describe('React', () => {
         fulfilled: false, pending: true, refreshing: false, reason: null, rejected: false, settled: false, value: null, meta: {}
       })
       expect(stubPending.props.errorFetch.constructor).toEqual(PromiseState)
+
+      expect(stubPending.props.rejectFetch).toIncludeKeyValues({
+        fulfilled: false, pending: true, refreshing: false, reason: null, rejected: false, settled: false, value: null, meta: {}
+      })
+      expect(stubPending.props.rejectFetch.constructor).toEqual(PromiseState)
 
       expect(stubPending.props.testFunc).toBeA('function')
       expect(stubPending.props.deferredFetch).toEqual(undefined)
@@ -98,6 +130,9 @@ describe('React', () => {
         expect(stubFulfilled.props.errorFetch.meta.request.headers.get('Accept')).toEqual('application/json')
         expect(stubFulfilled.props.errorFetch.meta.response.status).toEqual(404)
         expect(stubFulfilled.props.errorFetch.meta.response.bodyUsed).toEqual(true)
+        expect(stubFulfilled.props.rejectFetch).toIncludeKeyValues({
+          fulfilled: false, pending: false, refreshing: false, reason: { message: 'response rejected' }, rejected: true, settled: true, value: null
+        })
 
         done()
       })
@@ -105,6 +140,31 @@ describe('React', () => {
 
     it('should support refreshing on before first fulfillment', (done) => {
       @connect(() => ({ testFetch: { url: `/example`, refreshing: true } }))
+      class Container extends Component {
+        render() {
+          return <Passthrough {...this.props} />
+        }
+      }
+
+      const container = TestUtils.renderIntoDocument(
+        <Container />
+      )
+
+      const init = TestUtils.findRenderedComponentWithType(container, Container)
+      expect(init.state.data.testFetch).toIncludeKeyValues(
+        { fulfilled: false, pending: true, reason: null, refreshing: true, rejected: false, settled: false, value: null }
+      )
+      setImmediate(() => {
+        const fulfilled = TestUtils.findRenderedComponentWithType(container, Container)
+        expect(fulfilled.state.data.testFetch).toIncludeKeyValues(
+          { fulfilled: true, pending: false, reason: null, refreshing: false, rejected: false, settled: true, value: { T: 't' } }
+        )
+        done()
+      })
+    })
+
+    it('should support refreshing function on before first fulfillment', (done) => {
+      @connect(() => ({ testFetch: { url: `/example`, refreshing: (value) => value } }))
       class Container extends Component {
         render() {
           return <Passthrough {...this.props} />
@@ -142,8 +202,8 @@ describe('React', () => {
 
       const pending = TestUtils.findRenderedComponentWithType(container, Container)
       const startedAt = pending.state.startedAts.testFetch
-      expect(startedAt.getTime()).toBeLessThan(new Date().getTime())
       setImmediate(() => {
+        expect(startedAt.getTime()).toBeLessThan(new Date().getTime())
         const fulfilled = TestUtils.findRenderedComponentWithType(container, Container)
         expect(fulfilled.state.startedAts.testFetch).toEqual(startedAt)
         done()
@@ -186,7 +246,7 @@ describe('React', () => {
       )
 
       const decorated = TestUtils.findRenderedComponentWithType(container, Container)
-      expect(Object.keys(decorated.state.mappings.testFetch).length).toEqual(15)
+      expect(Object.keys(decorated.state.mappings.testFetch).length).toEqual(14)
       expect(decorated.state.mappings.testFetch.method).toEqual('POST')
       expect(decorated.state.mappings.testFetch.headers).toEqual({ Accept: 'application/json', 'Content-Type': 'overwrite-default', 'X-Foo': 'custom-foo' })
       expect(decorated.state.mappings.testFetch.credentials).toEqual('same-origin')
@@ -391,6 +451,50 @@ describe('React', () => {
       )
     })
 
+    it('should ignore then mappings that return undefined', (done) => {
+      const props = ({
+        foo: 'bar',
+        baz: 42
+      })
+
+      const sideEffect = expect.createSpy()
+
+      @connect(({ foo }) => ({
+        firstFetch: {
+          url: `/first/${foo}`,
+          then: () => {
+            sideEffect()
+          }
+        }
+      }))
+      class Container extends Component {
+        render() {
+          return <Passthrough {...this.props} />
+        }
+      }
+
+      const container = TestUtils.renderIntoDocument(
+        <Container {...props} />
+      )
+
+      const decorated = TestUtils.findRenderedComponentWithType(container, Container)
+      expect(decorated.state.mappings.firstFetch.url).toEqual('/first/bar')
+      expect(decorated.state.mappings.firstFetch.then).toBeA('function')
+      expect(decorated.state.data.firstFetch).toIncludeKeyValues(
+        { fulfilled: false, pending: true, reason: null, refreshing: false, rejected: false, settled: false, value: null }
+      )
+
+      setImmediate(() => {
+        expect(sideEffect.calls.length).toEqual(1)
+        expect(decorated.state.mappings.firstFetch.url).toEqual('/first/bar')
+        expect(decorated.state.data.firstFetch).toIncludeKeyValues(
+          { fulfilled: true, pending: false, reason: null, refreshing: false, rejected: false, settled: true, value: { 'T': 't' } }
+        )
+
+        done()
+      })
+    })
+
     it('should call then mappings', (done) => {
       const props = ({
         foo: 'bar',
@@ -424,6 +528,120 @@ describe('React', () => {
         expect(decorated.state.mappings.firstFetch.url).toEqual('/second/42/t')
         expect(decorated.state.data.firstFetch).toIncludeKeyValues(
           { fulfilled: true, pending: false, reason: null, refreshing: false, rejected: false, settled: true, value: { 'T': 't' } }
+        )
+
+        done()
+      })
+    })
+
+    it('should call catch mappings', (done) => {
+      const props = ({
+        baz: 42
+      })
+
+      @connect(({ baz }) => ({
+        firstFetch: {
+          url: `/error`,
+          catch: (v) => `/second/${baz}/${v.cause.error}`
+        },
+        secondFetch: {
+          url: `/reject`,
+          catch: () => `/second/${baz}/e`
+        }
+      }))
+      class Container extends Component {
+        render() {
+          return <Passthrough {...this.props} />
+        }
+      }
+
+      const container = TestUtils.renderIntoDocument(
+        <Container {...props} />
+      )
+
+      const decorated = TestUtils.findRenderedComponentWithType(container, Container)
+      expect(decorated.state.mappings.firstFetch.url).toEqual('/error')
+      expect(decorated.state.mappings.firstFetch.catch).toBeA('function')
+      expect(decorated.state.data.firstFetch).toIncludeKeyValues(
+        { fulfilled: false, pending: true, reason: null, refreshing: false, rejected: false, settled: false, value: null }
+      )
+
+      expect(decorated.state.mappings.secondFetch.url).toEqual('/reject')
+      expect(decorated.state.mappings.secondFetch.catch).toBeA('function')
+      expect(decorated.state.data.secondFetch).toIncludeKeyValues(
+        { fulfilled: false, pending: true, reason: null, refreshing: false, rejected: false, settled: false, value: null }
+      )
+
+      setImmediate(() => {
+        expect(decorated.state.mappings.firstFetch.url).toEqual('/second/42/e')
+        expect(decorated.state.data.firstFetch).toIncludeKeyValues(
+          { fulfilled: true, pending: false, reason: null, refreshing: false, rejected: false, settled: true, value: { 'T': 't' } }
+        )
+
+        expect(decorated.state.mappings.secondFetch.url).toEqual('/second/42/e')
+        expect(decorated.state.data.secondFetch).toIncludeKeyValues(
+          { fulfilled: true, pending: false, reason: null, refreshing: false, rejected: false, settled: true, value: { 'T': 't' } }
+        )
+
+        done()
+      })
+    })
+
+    it('should ignore catch mappings that return undefined', (done) => {
+      const props = ({
+        foo: 'bar',
+        baz: 42
+      })
+
+      const firstSideEffect = expect.createSpy()
+      const secondSideEffect = expect.createSpy()
+
+      @connect(() => ({
+        firstFetch: {
+          url: `/error`,
+          catch: () => {
+            firstSideEffect()
+          }
+        },
+        secondFetch: {
+          url: `/reject`,
+          catch: secondSideEffect
+        }
+      }))
+      class Container extends Component {
+        render() {
+          return <Passthrough {...this.props} />
+        }
+      }
+
+      const container = TestUtils.renderIntoDocument(
+        <Container {...props} />
+      )
+
+      const decorated = TestUtils.findRenderedComponentWithType(container, Container)
+      expect(decorated.state.mappings.firstFetch.url).toEqual('/error')
+      expect(decorated.state.mappings.firstFetch.catch).toBeA('function')
+      expect(decorated.state.data.firstFetch).toIncludeKeyValues(
+        { fulfilled: false, pending: true, reason: null, refreshing: false, rejected: false, settled: false, value: null }
+      )
+
+      expect(decorated.state.mappings.secondFetch.url).toEqual('/reject')
+      expect(decorated.state.mappings.secondFetch.catch).toBeA('function')
+      expect(decorated.state.data.secondFetch).toIncludeKeyValues(
+        { fulfilled: false, pending: true, reason: null, refreshing: false, rejected: false, settled: false, value: null }
+      )
+
+      setImmediate(() => {
+        expect(firstSideEffect.calls.length).toEqual(1)
+        expect(decorated.state.mappings.firstFetch.url).toEqual('/error')
+        expect(decorated.state.data.firstFetch).toIncludeKeyValues(
+          { fulfilled: false, pending: false, reason: { message: 'e', cause: { error: 'e', id: 'not_found' } }, refreshing: false, rejected: true, settled: true, value: null }
+        )
+
+        expect(secondSideEffect.calls.length).toEqual(1)
+        expect(decorated.state.mappings.secondFetch.url).toEqual('/reject')
+        expect(decorated.state.data.secondFetch).toIncludeKeyValues(
+          { fulfilled: false, pending: false, reason: { message: 'response rejected' }, refreshing: false, rejected: true, settled: true, value: null }
         )
 
         done()
@@ -471,6 +689,80 @@ describe('React', () => {
 
         expect(decorated.state.mappings.thenFetch.url).toEqual('/second/42')
         expect(decorated.state.data.thenFetch).toIncludeKeyValues(
+          { fulfilled: true, pending: false, reason: null, refreshing: false, rejected: false, settled: true, value: { 'T': 't' } }
+        )
+
+        done()
+      })
+    })
+
+    it('should call andCatch mappings', (done) => {
+      const props = ({
+        baz: 42
+      })
+
+      @connect(({ baz }) => ({
+        firstFetch: {
+          url: `/error`,
+          andCatch: () => ({
+            catchFetch: `/second/${baz}`
+          })
+        },
+        secondFetch: {
+          url: `/reject`,
+          andCatch: () => ({
+            catchSecondFetch: `/second/${baz}`
+          })
+        }
+      }))
+      class Container extends Component {
+        render() {
+          return <Passthrough {...this.props} />
+        }
+      }
+
+      const container = TestUtils.renderIntoDocument(
+        <Container {...props} />
+      )
+
+      const decorated = TestUtils.findRenderedComponentWithType(container, Container)
+      expect(decorated.state.mappings.firstFetch.url).toEqual('/error')
+      expect(decorated.state.mappings.firstFetch.andCatch).toBeA('function')
+      expect(decorated.state.data.firstFetch).toIncludeKeyValues(
+        { fulfilled: false, pending: true, reason: null, refreshing: false, rejected: false, settled: false, value: null }
+      )
+
+      expect(decorated.state.mappings.catchFetch).toEqual(undefined)
+      expect(decorated.state.data.catchFetch).toEqual(undefined)
+
+      expect(decorated.state.mappings.secondFetch.url).toEqual('/reject')
+      expect(decorated.state.mappings.secondFetch.andCatch).toBeA('function')
+      expect(decorated.state.data.secondFetch).toIncludeKeyValues(
+        { fulfilled: false, pending: true, reason: null, refreshing: false, rejected: false, settled: false, value: null }
+      )
+
+      expect(decorated.state.mappings.catchSecondFetch).toEqual(undefined)
+      expect(decorated.state.data.catchSecondFetch).toEqual(undefined)
+
+      setImmediate(() => {
+        expect(decorated.state.data.firstFetch).toIncludeKeyValues(
+          { fulfilled: false, pending: false, refreshing: false, rejected: true, settled: true, value: null }
+        )
+        expect(decorated.state.data.firstFetch.reason).toBeA(Error)
+        expect(decorated.state.data.firstFetch.reason.cause).toEqual({ error: 'e', id: 'not_found' })
+
+        expect(decorated.state.mappings.catchFetch.url).toEqual('/second/42')
+        expect(decorated.state.data.catchFetch).toIncludeKeyValues(
+          { fulfilled: true, pending: false, reason: null, refreshing: false, rejected: false, settled: true, value: { 'T': 't' } }
+        )
+
+        expect(decorated.state.data.secondFetch).toIncludeKeyValues(
+          { fulfilled: false, pending: false, refreshing: false, rejected: true, settled: true, value: null }
+        )
+        expect(decorated.state.data.secondFetch.reason).toBeA(Error)
+
+        expect(decorated.state.mappings.catchSecondFetch.url).toEqual('/second/42')
+        expect(decorated.state.data.catchSecondFetch).toIncludeKeyValues(
           { fulfilled: true, pending: false, reason: null, refreshing: false, rejected: false, settled: true, value: { 'T': 't' } }
         )
 
@@ -554,6 +846,44 @@ describe('React', () => {
       })
     })
 
+    it('should support refreshing function to optimisticly update value before request', (done) => {
+      @connect(() => ({
+        testFetch: `/example`,
+        updateTestFetch: (body) => ({
+          testFetch: {
+            url: `/example`,
+            method: 'PATCH',
+            refreshing: (value) => ({ ...value, ...body })
+          }
+        })
+      }))
+      class Container extends Component {
+        render() {
+          return <Passthrough {...this.props} />
+        }
+      }
+
+      const container = TestUtils.renderIntoDocument(
+        <Container />
+      )
+
+      const decoratedFulfilled = TestUtils.findRenderedComponentWithType(container, Container)
+
+      setImmediate(() => {
+        expect(decoratedFulfilled.state.data.testFetch.fulfilled).toEqual(true)
+        expect(decoratedFulfilled.state.data.testFetch.value).toEqual({ T: 't' })
+        decoratedFulfilled.state.data.updateTestFetch({ more: 'stuff' })
+        expect(decoratedFulfilled.state.data.testFetch.value).toEqual({ T: 't', more: 'stuff' })
+        expect(decoratedFulfilled.state.data.testFetch.refreshing).toEqual(true)
+        setImmediate(() => {
+          expect(decoratedFulfilled.state.data.testFetch.refreshing).toEqual(false)
+          // because the request returns { T: 't'}
+          expect(decoratedFulfilled.state.data.testFetch.value).toEqual({ T: 't' })
+          done()
+        })
+      })
+    })
+
     it('should remove undefined props', () => {
       let props = { x: true }
       let container
@@ -594,13 +924,131 @@ describe('React', () => {
       expect('x' in propsAfter).toEqual(false, 'x prop must be removed')
     })
 
-    it('should invoke mapPropsToRequestsToProps every time props are changed', () => {
+    it('should invoke mapPropsToRequestsToProps if props changed (pure: true) (default)', () => {
       let propsPassedIn
       let invocationCount = 0
 
       @connect((props) => {
         invocationCount++
         propsPassedIn = props
+        return {}
+      })
+      class WithProps extends Component {
+        render() {
+          return <Passthrough {...this.props}/>
+        }
+      }
+
+      class OuterComponent extends Component {
+        constructor() {
+          super()
+          this.state = { foo: 'FOO' }
+        }
+
+        setFoo(foo) {
+          this.setState({ foo })
+        }
+
+        render() {
+          return (
+            <div>
+              <WithProps {...this.state}>
+                <span>children</span>
+              </WithProps>
+            </div>
+          )
+        }
+      }
+
+      let outerComponent
+      TestUtils.renderIntoDocument(
+        <OuterComponent ref={c => outerComponent = c} />
+      )
+
+      const obj = { blah: 2 }
+
+      expect(invocationCount).toEqual(1)
+      outerComponent.setFoo('BAR')
+      expect(invocationCount).toEqual(2)
+      outerComponent.setFoo('BAR')
+      expect(invocationCount).toEqual(2)
+      outerComponent.setFoo('BAZ')
+      expect(invocationCount).toEqual(3)
+      outerComponent.setFoo(obj)
+      expect(invocationCount).toEqual(4)
+      outerComponent.setFoo({ blah: 2 })
+      expect(invocationCount).toEqual(5)
+
+      expect(propsPassedIn).toIncludeKeyValues({
+        foo: { blah: 2 }
+      })
+    })
+
+    it('should invoke mapPropsToRequestsToProps if props changed (pure: false)', () => {
+      let propsPassedIn
+      let invocationCount = 0
+
+      @connect.options({ pure: false })((props) => {
+        invocationCount++
+        propsPassedIn = props
+        return {}
+      })
+      class WithProps extends Component {
+        render() {
+          return <Passthrough {...this.props}/>
+        }
+      }
+
+      class OuterComponent extends Component {
+        constructor() {
+          super()
+          this.state = { foo: 'FOO' }
+        }
+
+        setFoo(foo) {
+          this.setState({ foo })
+        }
+
+        render() {
+          return (
+            <div>
+              <WithProps {...this.state}>
+                <span>children</span>
+              </WithProps>
+            </div>
+          )
+        }
+      }
+
+      let outerComponent
+      TestUtils.renderIntoDocument(
+        <OuterComponent ref={c => outerComponent = c} />
+      )
+
+      const obj = { blah: 2 }
+
+      expect(invocationCount).toEqual(1)
+      outerComponent.setFoo('BAR')
+      expect(invocationCount).toEqual(2)
+      outerComponent.setFoo('BAR')
+      expect(invocationCount).toEqual(3)
+      outerComponent.setFoo('BAZ')
+      expect(invocationCount).toEqual(4)
+      outerComponent.setFoo(obj)
+      expect(invocationCount).toEqual(5)
+      outerComponent.setFoo({ blah: 2 })
+      expect(invocationCount).toEqual(6)
+
+      expect(propsPassedIn).toIncludeKeyValues({
+        foo: { blah: 2 }
+      })
+    })
+
+    it("should not re-invoke mapPropsToRequestsToProps if it doesn't depend on props or context (pure: true) (default)", () => {
+      let invocationCount = 0
+
+      @connect(() => {
+        invocationCount++
         return {}
       })
       class WithProps extends Component {
@@ -633,21 +1081,62 @@ describe('React', () => {
         <OuterComponent ref={c => outerComponent = c} />
       )
 
+      expect(invocationCount).toEqual(1)
       outerComponent.setFoo('BAR')
-      outerComponent.setFoo('BAR')
-      outerComponent.setFoo('BAZ')
-
-      expect(invocationCount).toEqual(4)
-      expect(propsPassedIn).toEqual({
-        foo: 'BAZ'
-      })
+      expect(invocationCount).toEqual(1)
     })
 
-    it('should invoke mapPropsToRequestsToProps with context', () => {
+    it("should re-invoke mapPropsToRequestsToProps even if it doesn't depend on props or context (pure: false)", () => {
+      let invocationCount = 0
+
+      @connect.options({ pure: false })(() => {
+        invocationCount++
+        return {}
+      })
+      class WithProps extends Component {
+        render() {
+          return <Passthrough {...this.props}/>
+        }
+      }
+
+      class OuterComponent extends Component {
+        constructor() {
+          super()
+          this.state = { foo: 'FOO' }
+        }
+
+        setFoo(foo) {
+          this.setState({ foo })
+        }
+
+        render() {
+          return (
+            <div>
+              <WithProps {...this.state} />
+            </div>
+          )
+        }
+      }
+
+      let outerComponent
+      TestUtils.renderIntoDocument(
+        <OuterComponent ref={c => outerComponent = c} />
+      )
+
+      expect(invocationCount).toEqual(1)
+      outerComponent.setFoo('BAR')
+      expect(invocationCount).toEqual(2)
+    })
+
+    it('should invoke mapPropsToRequestsToProps with context (used as decorator) (pure: true) (default)', () => {
+      let invocationCount = 0
       let contextPassedIn = []
+      let propsPassedIn = []
 
       @connect((props, context) => {
+        invocationCount++
         contextPassedIn.push(context)
+        propsPassedIn.push(props)
         return {}
       })
       class InnerComponent extends Component {
@@ -663,7 +1152,8 @@ describe('React', () => {
         constructor(props) {
           super(props)
           this.state = {
-            foo: 'bar'
+            foo: 'bar',
+            bar: 'foo'
           }
         }
 
@@ -673,12 +1163,16 @@ describe('React', () => {
           }
         }
 
-        setFoo(foo) {
+        setContext(foo) {
           this.setState({ foo })
         }
 
+        setProp(bar) {
+          this.setState({ bar })
+        }
+
         render() {
-          return <InnerComponent />
+          return <InnerComponent bar={this.state.bar} />
         }
       }
       OuterComponent.childContextTypes = {
@@ -690,7 +1184,15 @@ describe('React', () => {
         <OuterComponent ref={c => outerComponent = c} />
       )
 
-      outerComponent.setFoo('baz')
+      expect(invocationCount).toEqual(1)
+      outerComponent.setContext('baz')
+      expect(invocationCount).toEqual(2)
+      outerComponent.setContext('baz')
+      expect(invocationCount).toEqual(2)
+      outerComponent.setProp('baz')
+      expect(invocationCount).toEqual(3)
+      outerComponent.setProp('baz')
+      expect(invocationCount).toEqual(3)
 
       expect(contextPassedIn).toEqual([
         {
@@ -698,35 +1200,516 @@ describe('React', () => {
         },
         {
           foo: 'baz'
+        },
+        {
+          foo: 'baz'
+        }
+      ])
+
+      expect(propsPassedIn).toEqual([
+        {
+          bar: 'foo'
+        },
+        {
+          bar: 'foo'
+        },
+        {
+          bar: 'baz'
+        }
+      ])
+    })
+
+    it('should invoke mapPropsToRequestsToProps with context (used as function) (pure: true) (default)', () => {
+      let invocationCount = 0
+      let contextPassedIn = []
+      let propsPassedIn = []
+
+      class InnerComponent extends Component {
+        render() {
+          return <div />
+        }
+      }
+      InnerComponent.contextTypes = {
+        foo: React.PropTypes.string
+      }
+      InnerComponent = connect((props, context) => {
+        invocationCount++
+        contextPassedIn.push(context)
+        propsPassedIn.push(props)
+        return {}
+      })(InnerComponent)
+
+      class OuterComponent extends Component {
+        constructor(props) {
+          super(props)
+          this.state = {
+            foo: 'bar',
+            bar: 'foo'
+          }
+        }
+
+        getChildContext() {
+          return {
+            foo: this.state.foo
+          }
+        }
+
+        setContext(foo) {
+          this.setState({ foo })
+        }
+
+        setProp(bar) {
+          this.setState({ bar })
+        }
+
+        render() {
+          return <InnerComponent bar={this.state.bar} />
+        }
+      }
+      OuterComponent.childContextTypes = {
+        foo: React.PropTypes.string
+      }
+
+      let outerComponent
+      TestUtils.renderIntoDocument(
+        <OuterComponent ref={c => outerComponent = c} />
+      )
+
+      expect(invocationCount).toEqual(1)
+      outerComponent.setContext('baz')
+      expect(invocationCount).toEqual(2)
+      outerComponent.setContext('baz')
+      expect(invocationCount).toEqual(2)
+      outerComponent.setProp('baz')
+      expect(invocationCount).toEqual(3)
+      outerComponent.setProp('baz')
+      expect(invocationCount).toEqual(3)
+
+      expect(contextPassedIn).toEqual([
+        {
+          foo: 'bar'
+        },
+        {
+          foo: 'baz'
+        },
+        {
+          foo: 'baz'
+        }
+      ])
+
+      expect(propsPassedIn).toEqual([
+        {
+          bar: 'foo'
+        },
+        {
+          bar: 'foo'
+        },
+        {
+          bar: 'baz'
+        }
+      ])
+    })
+
+    it('should invoke mapPropsToRequestsToProps with context (used as decorator) (pure: false)', () => {
+      let invocationCount = 0
+      let contextPassedIn = []
+      let propsPassedIn = []
+
+      @connect.options({ pure: false })((props, context) => {
+        invocationCount++
+        contextPassedIn.push(context)
+        propsPassedIn.push(props)
+        return {}
+      })
+      class InnerComponent extends Component {
+        render() {
+          return <div />
+        }
+      }
+      InnerComponent.contextTypes = {
+        foo: React.PropTypes.string
+      }
+
+      class OuterComponent extends Component {
+        constructor(props) {
+          super(props)
+          this.state = {
+            foo: 'bar',
+            bar: 'foo'
+          }
+        }
+
+        getChildContext() {
+          return {
+            foo: this.state.foo
+          }
+        }
+
+        setContext(foo) {
+          this.setState({ foo })
+        }
+
+        setProp(bar) {
+          this.setState({ bar })
+        }
+
+        render() {
+          return <InnerComponent bar={this.state.bar} />
+        }
+      }
+      OuterComponent.childContextTypes = {
+        foo: React.PropTypes.string
+      }
+
+      let outerComponent
+      TestUtils.renderIntoDocument(
+        <OuterComponent ref={c => outerComponent = c} />
+      )
+
+      expect(invocationCount).toEqual(1)
+      outerComponent.setContext('baz')
+      expect(invocationCount).toEqual(2)
+      outerComponent.setContext('baz')
+      expect(invocationCount).toEqual(3)
+      outerComponent.setProp('baz')
+      expect(invocationCount).toEqual(4)
+      outerComponent.setProp('baz')
+      expect(invocationCount).toEqual(5)
+
+      expect(contextPassedIn).toEqual([
+        {
+          foo: 'bar'
+        },
+        {
+          foo: 'baz'
+        },
+        {
+          foo: 'baz'
+        },
+        {
+          foo: 'baz'
+        },
+        {
+          foo: 'baz'
+        }
+      ])
+
+      expect(propsPassedIn).toEqual([
+        {
+          bar: 'foo'
+        },
+        {
+          bar: 'foo'
+        },
+        {
+          bar: 'foo'
+        },
+        {
+          bar: 'baz'
+        },
+        {
+          bar: 'baz'
+        }
+      ])
+    })
+
+    it('should invoke mapPropsToRequestsToProps with context (used as function) (pure: false)', () => {
+      let invocationCount = 0
+      let contextPassedIn = []
+      let propsPassedIn = []
+
+      class InnerComponent extends Component {
+        render() {
+          return <div />
+        }
+      }
+      InnerComponent.contextTypes = {
+        foo: React.PropTypes.string
+      }
+      InnerComponent = connect.options({ pure: false })((props, context) => {
+        invocationCount++
+        contextPassedIn.push(context)
+        propsPassedIn.push(props)
+        return {}
+      })(InnerComponent)
+
+      class OuterComponent extends Component {
+        constructor(props) {
+          super(props)
+          this.state = {
+            foo: 'bar',
+            bar: 'foo'
+          }
+        }
+
+        getChildContext() {
+          return {
+            foo: this.state.foo
+          }
+        }
+
+        setContext(foo) {
+          this.setState({ foo })
+        }
+
+        setProp(bar) {
+          this.setState({ bar })
+        }
+
+        render() {
+          return <InnerComponent bar={this.state.bar} />
+        }
+      }
+      OuterComponent.childContextTypes = {
+        foo: React.PropTypes.string
+      }
+
+      let outerComponent
+      TestUtils.renderIntoDocument(
+        <OuterComponent ref={c => outerComponent = c} />
+      )
+
+      expect(invocationCount).toEqual(1)
+      outerComponent.setContext('baz')
+      expect(invocationCount).toEqual(2)
+      outerComponent.setContext('baz')
+      expect(invocationCount).toEqual(3)
+      outerComponent.setProp('baz')
+      expect(invocationCount).toEqual(4)
+      outerComponent.setProp('baz')
+      expect(invocationCount).toEqual(5)
+
+      expect(contextPassedIn).toEqual([
+        {
+          foo: 'bar'
+        },
+        {
+          foo: 'baz'
+        },
+        {
+          foo: 'baz'
+        },
+        {
+          foo: 'baz'
+        },
+        {
+          foo: 'baz'
+        }
+      ])
+
+      expect(propsPassedIn).toEqual([
+        {
+          bar: 'foo'
+        },
+        {
+          bar: 'foo'
+        },
+        {
+          bar: 'foo'
+        },
+        {
+          bar: 'baz'
+        },
+        {
+          bar: 'baz'
+        }
+      ])
+    })
+
+    it("should not re-invoke mapPropsToRequestsToProps when context changes if it doesn't depend on context (pure: true) (default)", () => {
+      let invocationCount = 0
+      let propsPassedIn = []
+
+      @connect((props) => {
+        invocationCount++
+        propsPassedIn.push(props)
+        return {}
+      })
+      class InnerComponent extends Component {
+        render() {
+          return <div />
+        }
+      }
+      InnerComponent.contextTypes = {
+        foo: React.PropTypes.string
+      }
+
+      class OuterComponent extends Component {
+        constructor(props) {
+          super(props)
+          this.state = {
+            foo: 'bar',
+            bar: 'foo'
+          }
+        }
+
+        getChildContext() {
+          return {
+            foo: this.state.foo
+          }
+        }
+
+        setContext(foo) {
+          this.setState({ foo })
+        }
+
+        setProp(bar) {
+          this.setState({ bar })
+        }
+
+        render() {
+          return <InnerComponent bar={this.state.bar} />
+        }
+      }
+      OuterComponent.childContextTypes = {
+        foo: React.PropTypes.string
+      }
+
+      let outerComponent
+      TestUtils.renderIntoDocument(
+        <OuterComponent ref={c => outerComponent = c} />
+      )
+
+      expect(invocationCount).toEqual(1)
+      outerComponent.setContext('baz')
+      expect(invocationCount).toEqual(1)
+      outerComponent.setContext('baz')
+      expect(invocationCount).toEqual(1)
+      outerComponent.setProp('baz')
+      expect(invocationCount).toEqual(2)
+      outerComponent.setProp('baz')
+      expect(invocationCount).toEqual(2)
+
+      expect(propsPassedIn).toEqual([
+        {
+          bar: 'foo'
+        },
+        {
+          bar: 'baz'
+        }
+      ])
+    })
+
+    it("should re-invoke mapPropsToRequestsToProps when context changes even if it doesn't depend on context (pure: false)", () => {
+      let invocationCount = 0
+      let propsPassedIn = []
+
+      @connect.options({ pure: false })((props) => {
+        invocationCount++
+        propsPassedIn.push(props)
+        return {}
+      })
+      class InnerComponent extends Component {
+        render() {
+          return <div />
+        }
+      }
+      InnerComponent.contextTypes = {
+        foo: React.PropTypes.string
+      }
+
+      class OuterComponent extends Component {
+        constructor(props) {
+          super(props)
+          this.state = {
+            foo: 'bar',
+            bar: 'foo'
+          }
+        }
+
+        getChildContext() {
+          return {
+            foo: this.state.foo
+          }
+        }
+
+        setContext(foo) {
+          this.setState({ foo })
+        }
+
+        setProp(bar) {
+          this.setState({ bar })
+        }
+
+        render() {
+          return <InnerComponent bar={this.state.bar} />
+        }
+      }
+      OuterComponent.childContextTypes = {
+        foo: React.PropTypes.string
+      }
+
+      let outerComponent
+      TestUtils.renderIntoDocument(
+        <OuterComponent ref={c => outerComponent = c} />
+      )
+
+      expect(invocationCount).toEqual(1)
+      outerComponent.setContext('baz')
+      expect(invocationCount).toEqual(2)
+      outerComponent.setContext('baz')
+      expect(invocationCount).toEqual(3)
+      outerComponent.setProp('baz')
+      expect(invocationCount).toEqual(4)
+      outerComponent.setProp('baz')
+      expect(invocationCount).toEqual(5)
+
+      expect(propsPassedIn).toEqual([
+        {
+          bar: 'foo'
+        },
+        {
+          bar: 'foo'
+        },
+        {
+          bar: 'foo'
+        },
+        {
+          bar: 'baz'
+        },
+        {
+          bar: 'baz'
         }
       ])
     })
 
     it('should shallowly compare the requests to prevent unnecessary fetches', (done) => {
-      const fetchSpy = expect.createSpy(() => ({}))
-      fetchSpies.push(fetchSpy)
-
-      const renderSpy = expect.createSpy(() => ({}))
-      function render() {
-        renderSpy()
-        return <Passthrough/>
-      }
-
-      @connect(({ foo }) => ({ testFetch: `/resource/${foo}` }))
+      @connect(({ foo }) => ({
+        testFetch: `/resource/${foo.FOO}`,
+        nestedFetch: {
+          url: `/resource/${foo.FOO}/bar`,
+          then: () => ({
+            value: Date.now()
+          })
+        },
+        veryNestedFetch: {
+          url: `/resource/${foo.FOO}/bar`,
+          then: () => ({
+            value: Date.now(),
+            then: () => ({
+              url: `/resource/${Math.random()}/bar`
+            })
+          })
+        }
+      }))
       class WithProps extends Component {
         render() {
-          return render(this.props)
+          return <Passthrough />
         }
       }
 
       class OuterComponent extends Component {
         constructor() {
           super()
-          this.state = { foo: 'FOO' }
+          this.state = {
+            foo: {
+              FOO: 'FOO'
+            }
+          }
         }
 
-        setFoo(foo) {
-          this.setState({ foo })
+        setFoo(FOO) {
+          this.setState({ foo: { FOO } })
         }
 
         render() {
@@ -743,26 +1726,40 @@ describe('React', () => {
         <OuterComponent ref={c => outerComponent = c} />
       )
 
-      expect(renderSpy.calls.length).toBe(1)
+      const render = expect.spyOn(WithProps.prototype, 'render').andCallThrough()
+
       setImmediate(() => {
-        expect(fetchSpy.calls.length).toBe(1)
+        // 4 because there are in total 4 non-identity requests
+        expect(window.fetch.calls.length).toBe(4)
+        window.fetch.reset()
+        expect(render.calls.length).toBe(4)
+        render.reset()
 
         outerComponent.setFoo('BAR')
-        expect(renderSpy.calls.length).toBe(3)
-        setImmediate(() => {
-          expect(fetchSpy.calls.length).toBe(2)
+        expect(render.calls.length).toBe(1)
+        render.reset()
 
-          // set BAR again, but will not be refetched
-          // TODO: no need to re-render here
+        setImmediate(() => {
+          expect(window.fetch.calls.length).toBe(4)
+          window.fetch.reset()
+          expect(render.calls.length).toBe(4)
+          render.reset()
+
+          // set BAR again, but neither request will be refetched
           outerComponent.setFoo('BAR')
-          expect(renderSpy.calls.length).toBe(5)
+          expect(render.calls.length).toBe(1)
+          render.reset()
+
           setImmediate(() => {
-            expect(fetchSpy.calls.length).toBe(2)
+            expect(window.fetch.calls.length).toBe(0)
+            expect(render.calls.length).toBe(0)
 
             outerComponent.setFoo('BAZ')
-            expect(renderSpy.calls.length).toBe(6)
+            expect(render.calls.length).toBe(1)
+            render.reset()
+
             setImmediate(() => {
-              expect(fetchSpy.calls.length).toBe(3)
+              expect(window.fetch.calls.length).toBe(4)
 
               done()
             })
@@ -772,9 +1769,6 @@ describe('React', () => {
     })
 
     it('should compare requests using provided comparison if provided', (done) => {
-      const fetchSpy = expect.createSpy(() => ({}))
-      fetchSpies.push(fetchSpy)
-
       const renderSpy = expect.createSpy(() => ({}))
       function render() {
         renderSpy()
@@ -784,7 +1778,7 @@ describe('React', () => {
       @connect(({ foo }) => ({
         testFetch: {
           url: '/resource-without-foo',
-          comparison: foo
+          comparison: foo.FOO
         }
       }))
       class WithProps extends Component {
@@ -796,11 +1790,15 @@ describe('React', () => {
       class OuterComponent extends Component {
         constructor() {
           super()
-          this.state = { foo: 'FOO' }
+          this.state = {
+            foo: {
+              FOO: 'FOO'
+            }
+          }
         }
 
-        setFoo(foo) {
-          this.setState({ foo })
+        setFoo(FOO) {
+          this.setState({ foo: { FOO } })
         }
 
         render() {
@@ -819,24 +1817,23 @@ describe('React', () => {
 
       expect(renderSpy.calls.length).toBe(1)
       setImmediate(() => {
-        expect(fetchSpy.calls.length).toBe(1)
+        expect(window.fetch.calls.length).toBe(1)
 
         outerComponent.setFoo('BAR')
         expect(renderSpy.calls.length).toBe(3)
         setImmediate(() => {
-          expect(fetchSpy.calls.length).toBe(2)
+          expect(window.fetch.calls.length).toBe(2)
 
           // set BAR again, but will not be refetched
-          // TODO: no need to re-render here
           outerComponent.setFoo('BAR')
           expect(renderSpy.calls.length).toBe(5)
           setImmediate(() => {
-            expect(fetchSpy.calls.length).toBe(2)
+            expect(window.fetch.calls.length).toBe(2)
 
             outerComponent.setFoo('BAZ')
             expect(renderSpy.calls.length).toBe(6)
             setImmediate(() => {
-              expect(fetchSpy.calls.length).toBe(3)
+              expect(window.fetch.calls.length).toBe(3)
 
               done()
             })
@@ -846,37 +1843,34 @@ describe('React', () => {
     })
 
     it('should compare requests using provided comparison of parent request if then is also provided', (done) => {
-      const fetchSpy = expect.createSpy(() => ({}))
-      fetchSpies.push(fetchSpy)
-
-      const renderSpy = expect.createSpy(() => ({}))
-
-      function render() {
-        renderSpy()
-        return <Passthrough/>
-      }
+      const renderSpy = expect.createSpy()
 
       @connect(({ foo }) => ({
         testFetch: {
           url: '/resource-without-foo',
-          comparison: foo,
+          comparison: foo.FOO,
           then: (v, m) => ({ value: v, meta: m })
         }
       }))
       class WithProps extends Component {
         render() {
-          return render(this.props)
+          renderSpy()
+          return <Passthrough {...this.props} />
         }
       }
 
       class OuterComponent extends Component {
         constructor() {
           super()
-          this.state = { foo: 'FOO' }
+          this.state = {
+            foo: {
+              FOO: 'FOO'
+            }
+          }
         }
 
-        setFoo(foo) {
-          this.setState({ foo })
+        setFoo(FOO) {
+          this.setState({ foo: { FOO } })
         }
 
         render() {
@@ -895,25 +1889,24 @@ describe('React', () => {
 
       expect(renderSpy.calls.length).toBe(1)
       setImmediate(() => {
-        expect(fetchSpy.calls.length).toBe(1)
+        expect(window.fetch.calls.length).toBe(1)
 
         outerComponent.setFoo('BAR')
         setImmediate(() => {
           expect(renderSpy.calls.length).toBe(4)
           setImmediate(() => {
-            expect(fetchSpy.calls.length).toBe(2)
+            expect(window.fetch.calls.length).toBe(2)
 
             // set BAR again, but will not be refetched
-            // TODO: no need to re-render here
             outerComponent.setFoo('BAR')
             expect(renderSpy.calls.length).toBe(5)
             setImmediate(() => {
-              expect(fetchSpy.calls.length).toBe(2)
+              expect(window.fetch.calls.length).toBe(2)
 
               outerComponent.setFoo('BAZ')
               expect(renderSpy.calls.length).toBe(6)
               setImmediate(() => {
-                expect(fetchSpy.calls.length).toBe(3)
+                expect(window.fetch.calls.length).toBe(3)
 
                 done()
               })
@@ -1031,7 +2024,7 @@ describe('React', () => {
 
       const decorated = TestUtils.findRenderedComponentWithType(tree, Decorated)
       expect(() => decorated.getWrappedInstance()).toThrow(
-        /To access the wrapped instance, you need to specify \{ withRef: true \} in \.defaults\(\)\./
+        /To access the wrapped instance, you need to specify \{ withRef: true \} in \.options\(\)\./
       )
     })
 
@@ -1050,7 +2043,7 @@ describe('React', () => {
         }
       }
 
-      const decorator = connect.defaults({ withRef: true })(() => {})
+      const decorator = connect.options({ withRef: true })(() => {})
       const Decorated = decorator(Container)
 
       const tree = TestUtils.renderIntoDocument(
@@ -1116,11 +2109,11 @@ describe('React', () => {
     })
 
     it('should not parse the body if response is a 204', (done) => {
-      window.fetch = () => {
+      window.fetch.andCall(() => {
         return new Promise((resolve) => {
           resolve(new window.Response('', { status: 204 }))
         })
-      }
+      })
 
       @connect(() => ({ testFetch: `/empty` }))
       class Container extends Component {
@@ -1148,11 +2141,11 @@ describe('React', () => {
     })
 
     it('should not parse the body if response has Content-Length: 0', (done) => {
-      window.fetch = () => {
+      window.fetch.andCall(() => {
         return new Promise((resolve) => {
           resolve(new window.Response('', { status: 200, headers: { 'Content-Length': 0 } }))
         })
-      }
+      })
 
       @connect(() => ({ testFetch: `/empty` }))
       class Container extends Component {
@@ -1181,7 +2174,7 @@ describe('React', () => {
 
     it('should warn if the options argument is used', () => {
       const spy = expect.spyOn(console, 'error')
-      @connect(() => ({}), { refreshInterval: 0 })
+      @connect(() => ({}), { withRef: true })
       class Container extends Component {
         render() {
           return <Passthrough {...this.props} />
@@ -1194,39 +2187,75 @@ describe('React', () => {
       spy.restore()
     })
 
-    // TODO
-    //it('should not render the wrapped component when mapState does not produce change', () => {
-    //  const store = createStore(stringBuilder)
-    //  let renderCalls = 0
-    //  let mapStateCalls = 0
-    //
-    //  @connect(() => {
-    //    mapStateCalls++
-    //    return {} // no change!
-    //  })
-    //  class Container extends Component {
-    //    render() {
-    //      renderCalls++
-    //      return <Passthrough {...this.props} />
-    //    }
-    //  }
-    //
-    //  TestUtils.renderIntoDocument(
-    //    <ProviderMock store={store}>
-    //      <Container />
-    //    </ProviderMock>
-    //  )
-    //
-    //  expect(renderCalls).toBe(1)
-    //  expect(mapStateCalls).toBe(2)
-    //
-    //  store.dispatch({ type: 'APPEND', body: 'a' })
-    //
-    //  // After store a change mapState has been called
-    //  expect(mapStateCalls).toBe(3)
-    //  // But render is not because it did not make any actual changes
-    //  expect(renderCalls).toBe(1)
-    //})
+    it('should re-render only when props or requests materially change (pure: true) (default)', () => {
+      const Connected = connect(({ foo }) => foo ? { testFetch: `/resource/${foo}` } : {})(Passthrough)
+      const renderSpy = expect.spyOn(Connected.prototype, 'render').andCallThrough()
+      const fooDiv = <div>foo</div>
+
+      const container = TestUtils.renderIntoDocument(<ContainerWithSetters component={Connected} />)
+
+      expect(renderSpy.calls.length).toBe(1)
+      container.setPropsForChild({ bar: 1 })
+      expect(renderSpy.calls.length).toBe(2)
+      container.setPropsForChild({ bar: 1 })
+      expect(renderSpy.calls.length).toBe(2)
+      container.setPropsForChild({ foo: 2 })
+      expect(renderSpy.calls.length).toBe(3)
+
+      return immediatePromise()
+        .then(() => {
+          expect(renderSpy.calls.length).toBe(4)
+          container.setPropsForChild({ foo: 2 })
+          expect(renderSpy.calls.length).toBe(4)
+          container.setPropsForChild({ bar: 3 })
+          expect(renderSpy.calls.length).toBe(5)
+          container.setPropsForChild({ bar: 3, children: fooDiv })
+          expect(renderSpy.calls.length).toBe(6)
+          container.setPropsForChild({ bar: 3, children: fooDiv })
+          expect(renderSpy.calls.length).toBe(6)
+          container.setPropsForChild({ bar: 3, children: <div>foo</div> })
+          expect(renderSpy.calls.length).toBe(7)
+        })
+        .then(immediatePromise)
+        .then(() => {
+          expect(renderSpy.calls.length).toBe(7)
+        })
+    })
+
+    it('should re-render every time props or requests change (pure: false)', () => {
+      const Connected = connect.options({ pure: false })(({ foo }) => foo ? { testFetch: `/resource/${foo}` } : {})(Passthrough)
+      const renderSpy = expect.spyOn(Connected.prototype, 'render').andCallThrough()
+      const fooDiv = <div>foo</div>
+
+      const container = TestUtils.renderIntoDocument(<ContainerWithSetters component={Connected} />)
+
+      expect(renderSpy.calls.length).toBe(1)
+      container.setPropsForChild({ bar: 1 })
+      expect(renderSpy.calls.length).toBe(2)
+      container.setPropsForChild({ bar: 1 })
+      expect(renderSpy.calls.length).toBe(3)
+      container.setPropsForChild({ foo: 2 })
+      expect(renderSpy.calls.length).toBe(4)
+
+      return immediatePromise()
+        .then(() => {
+          expect(renderSpy.calls.length).toBe(5)
+          container.setPropsForChild({ foo: 2 })
+          expect(renderSpy.calls.length).toBe(6)
+          container.setPropsForChild({ bar: 3 })
+          expect(renderSpy.calls.length).toBe(7)
+          container.setPropsForChild({ bar: 3, children: fooDiv })
+          expect(renderSpy.calls.length).toBe(8)
+          container.setPropsForChild({ bar: 3, children: fooDiv })
+          expect(renderSpy.calls.length).toBe(9)
+          container.setPropsForChild({ bar: 3, children: <div>foo</div> })
+          expect(renderSpy.calls.length).toBe(10)
+        })
+        .then(immediatePromise)
+        .then(() => {
+          expect(renderSpy.calls.length).toBe(10)
+        })
+    })
 
     context('.defaults', () => {
       // Escape characters that have special meaning in RegExps, then create a
@@ -1271,6 +2300,22 @@ describe('React', () => {
 
       it('should throw unless a function is given as handleResponse', () => {
         typecheckCheck('handleResponse', 'function')
+      })
+
+      it('should throw unless a function is given as then', () => {
+        typecheckCheck('then', 'function')
+      })
+
+      it('should throw unless a function is given as andThen', () => {
+        typecheckCheck('andThen', 'function')
+      })
+
+      it('should throw unless a function is given as catch', () => {
+        typecheckCheck('catch', 'function')
+      })
+
+      it('should throw unless a function is given as andCatch', () => {
+        typecheckCheck('andCatch', 'function')
       })
 
       it('should throw unless a function is given as fetch', () => {
@@ -1402,18 +2447,13 @@ describe('React', () => {
       })
 
       it('should set the default fetch', (done) => {
-        const customSpy = expect.createSpy(() => ({}))
-        const customFetch = () => {
-          customSpy()
+        const customFetch = expect.createSpy(() => {
           return new Promise((resolve) => {
             resolve(new window.Response(JSON.stringify({ T: 't' })))
           })
-        }
+        }).andCallThrough()
 
         const custom = connect.defaults({ fetch: customFetch })
-
-        const fetchSpy = expect.createSpy(() => ({}))
-        fetchSpies.push(fetchSpy)
 
         @custom(() => ({ testFetch: `/example` }))
         class Container extends Component {
@@ -1424,8 +2464,8 @@ describe('React', () => {
 
         TestUtils.renderIntoDocument(<Container />)
         setImmediate(() => {
-          expect(fetchSpy.calls.length).toBe(0)
-          expect(customSpy.calls.length).toBe(1)
+          expect(window.fetch.calls.length).toBe(0)
+          expect(customFetch.calls.length).toBe(1)
           done()
         })
       })
@@ -1604,19 +2644,9 @@ describe('React', () => {
       })
 
       it('should set the default buildRequest', (done) => {
-        const spy = expect.createSpy(() => {})
-        function buildRequest(mapping) {
-          spy()
-          return new window.Request(mapping.url, {
-            method: mapping.method,
-            headers: mapping.headers,
-            credentials: mapping.credentials,
-            redirect: mapping.redirect,
-            body: mapping.body
-          })
-        }
+        const spy = expect.createSpy().andCall(buildRequest)
 
-        const custom = connect.defaults({ buildRequest })
+        const custom = connect.defaults({ buildRequest: spy })
         @custom(() => ({ testFetch: `/example` }))
         class Container extends Component {
           render() {
@@ -1632,22 +2662,9 @@ describe('React', () => {
       })
 
       it('should set the default handleResponse', (done) => {
-        const spy = expect.createSpy(() => {})
-        function handleResponse(response) {
-          spy()
-          if (response.headers.get('content-length') === '0' || response.status === 204) {
-            return
-          }
+        const spy = expect.createSpy().andCall(handleResponse)
 
-          const json = response.json()
-          if (response.status >= 200 && response.status < 300) {
-            return json
-          } else {
-            return json.then(cause => Promise.reject(new Error(cause)))
-          }
-        }
-
-        const custom = connect.defaults({ handleResponse })
+        const custom = connect.defaults({ handleResponse: spy })
         @custom(() => ({ testFetch: `/example` }))
         class Container extends Component {
           render() {
@@ -1714,7 +2731,7 @@ describe('React', () => {
       })
 
       it('should set the default andThen', () => {
-        const custom = connect.defaults({ andThen: (v) => `/second/${v['T']}` })
+        const custom = connect.defaults({ andThen: (v) => ({ secondFetch: `/second/${v['T']}` }) })
         @custom(({ foo }) => ({ firstFetch: `/first/${foo}` }))
         class Container extends Component {
           render() {
@@ -1742,7 +2759,7 @@ describe('React', () => {
       })
 
       it('should set the default andCatch', () => {
-        const custom = connect.defaults({ andCatch: (v) => `/second/${v['T']}` })
+        const custom = connect.defaults({ andCatch: (v) => ({ secondFetch: `/second/${v['T']}` }) })
         @custom(({ foo }) => ({ firstFetch: `/first/${foo}` }))
         class Container extends Component {
           render() {
@@ -1753,6 +2770,97 @@ describe('React', () => {
         const container = TestUtils.renderIntoDocument(<Container foo="bar" />)
         const decorated = TestUtils.findRenderedComponentWithType(container, Container)
         expect(decorated.state.mappings.firstFetch.andCatch).toBeA('function')
+      })
+
+      it('options defined on a mapping should take precedence over defaults', (done) => {
+        const fetchDefault = expect.createSpy().andCall(window.fetch)
+        const handleResponseDefault = expect.createSpy().andCall(handleResponse)
+        const buildRequestDefault = expect.createSpy().andCall(buildRequest)
+
+        const custom = connect.defaults({
+          then: (v) => `/second/default/then/${v['T']}`,
+          andThen: (v) => ({ secondFetch: `/second/default/andThen/${v['T']}` }),
+          catch: (v) => `/second/default/catch/${v['T']}`,
+          andCatch: (v) => ({ secondFetch: `/second/default/andCatch/${v['T']}` }),
+          fetch: fetchDefault,
+          handleResponse: handleResponseDefault,
+          buildRequest: buildRequestDefault
+        })
+
+        const then = (v) => `/second/inline/then/${v['T']}`
+        const andThen = (v) => ({ secondFetch: `/second/inline/andThen/${v['T']}` })
+        const ccatch = (v) => `/second/inline/catch/${v['T']}`
+        const andCatch = (v) => ({ secondFetch: `/second/inline/andCatch/${v['T']}` })
+
+        const fetchSpy = expect.createSpy().andCall(window.fetch)
+        const handleResponseSpy = expect.createSpy().andCall(handleResponse)
+        const buildRequestSpy = expect.createSpy().andCall(buildRequest)
+
+        @custom(({ foo }) => ({
+          firstFetch: {
+            url: `/first/${foo}`,
+            then,
+            andThen,
+            catch: ccatch,
+            andCatch,
+            fetch: fetchSpy,
+            handleResponse: handleResponseSpy,
+            buildRequest: buildRequestSpy
+          }
+        }))
+        class Container extends Component {
+          render() {
+            return <Passthrough {...this.props} />
+          }
+        }
+
+        const container = TestUtils.renderIntoDocument(<Container />)
+        const decorated = TestUtils.findRenderedComponentWithType(container, Container)
+        const mapping = decorated.state.mappings.firstFetch
+        expect(mapping.then).toBe(then)
+        expect(mapping.andThen).toBe(andThen)
+        expect(mapping.catch).toBe(ccatch)
+        expect(mapping.andCatch).toBe(andCatch)
+        setImmediate(() => {
+          expect(fetchDefault.calls.length).toBe(0)
+          expect(handleResponseDefault.calls.length).toBe(0)
+          expect(buildRequestDefault.calls.length).toBe(0)
+          expect(fetchSpy.calls.length).toBe(2)
+          expect(handleResponseSpy.calls.length).toBe(2)
+          expect(buildRequestSpy.calls.length).toBe(2)
+          done()
+        })
+      })
+
+      it('defaults provided in .defaults() should not affect original connect', () => {
+        const then = (v) => `/second/${v['T']}`
+        const withThen = connect.defaults({ then })
+
+        @withThen(({ foo }) => ({
+          firstFetch: `/first/${foo}`
+        }))
+        class WithDefaults extends Component {
+          render() {
+            return <Passthrough {...this.props} />
+          }
+        }
+
+        @connect(({ foo }) => ({
+          firstFetch: `/first/${foo}`
+        }))
+        class Original extends Component {
+          render() {
+            return <Passthrough {...this.props} />
+          }
+        }
+
+        const containerForWithDefaults = TestUtils.renderIntoDocument(<WithDefaults />)
+        const withDefaults = TestUtils.findRenderedComponentWithType(containerForWithDefaults, WithDefaults)
+        expect(withDefaults.state.mappings.firstFetch.then).toBe(then)
+
+        const containerForOriginal = TestUtils.renderIntoDocument(<Original />)
+        const original = TestUtils.findRenderedComponentWithType(containerForOriginal, Original)
+        expect(original.state.mappings.firstFetch.then).toBe(undefined)
       })
 
       it('should warn if both buildRequest and Request are customised', () => {
