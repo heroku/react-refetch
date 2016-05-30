@@ -255,7 +255,7 @@ describe('React', () => {
       expect(decorated.state.mappings.testFetch.equals).toBeA('function')
     })
 
-    it('should passthrough value of identity requests', () => {
+    it('should passthrough value of non-Promise identity requests skipping pending', () => {
       @connect(() => ({ testFetch: { value: 'foo', meta: { test: 'voodoo' } } }))
       class Container extends Component {
         render() {
@@ -274,6 +274,33 @@ describe('React', () => {
       expect(stub.props.testFetch).toIncludeKeyValues({
         fulfilled: true, pending: false, refreshing: false, reason: null, rejected: false, settled: true, value: 'foo', meta: { test: 'voodoo' }
       })
+    })
+
+    it('should passthrough value of Promise identity requests after pending', (done) => {
+      @connect(() => ({ testFetch: { value: Promise.resolve('foo'), meta: { test: 'voodoo' } } }))
+      class Container extends Component {
+        render() {
+          return <Passthrough {...this.props} />
+        }
+      }
+
+      const container = TestUtils.renderIntoDocument(
+        <Container />
+      )
+
+      const stub = TestUtils.findRenderedComponentWithType(container, Passthrough)
+      expect(stub.props.testFetch).toIncludeKeyValues({
+        fulfilled: false, pending: true, refreshing: false, reason: null, rejected: false, settled: false, value: null, meta: { test: 'voodoo' }
+      })
+
+      setImmediate(() => {
+        const stub = TestUtils.findRenderedComponentWithType(container, Passthrough)
+        expect(stub.props.testFetch).toIncludeKeyValues({
+          fulfilled: true, pending: false, refreshing: false, reason: null, rejected: false, settled: true, value: 'foo', meta: { test: 'voodoo' }
+        })
+      })
+
+      done()
     })
 
     it('should support falsey values in identity requests', () => {

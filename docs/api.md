@@ -25,7 +25,7 @@ Instead, it *returns* a new, connected component class, for you to use.
      - `catch(reason, meta): request` *(Function)*: returns a request to fetch after rejection of this request and replaces this request. Takes the `value` and `meta` of this request as arguments. Return `undefined` in `catch` to do side-effects after a rejected request, leaving the request as is.
      - `andThen(value, meta): { prop: request, ... }` *(Function)*: returns an object of request mappings to fetch after fulfillment of this request but does not replace this request. Takes the `value` and `meta` of this request as arguments.
      - `andCatch(reason, meta): { prop: request, ... }` *(Function)*: returns an object of request mappings to fetch after rejection of this request but does not replace this request. Takes the `value` and `meta` of this request as arguments.
-     - `value` *(Any)*: Data to passthrough directly to `PromiseState` as an alternative to providing a URL. This is an advanced option used for static data and data transformations. Also consider setting `meta`.
+     - `value` *(Any)*: Data to passthrough directly to `PromiseState` as an alternative to providing a URL. If given a `Promise`, the `PromiseState` will be pending until the `value` or `reason` is settled; otherwise, the `PromiseState` will be resolved immediately. This is an advanced option used for static data and data transformations. Also consider setting `meta`.
      - `meta` *(Object)*: Metadata to passthrough directly to `PromiseState`. Keys `request`, `response`, and future keys may be overwritten.
 
   The following keys may also be defined on an individual request (see their description below at `connect.defaults()`):
