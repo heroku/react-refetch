@@ -2268,7 +2268,7 @@ describe('React', () => {
         expectedTypes = Array.isArray(expectedTypes) ? expectedTypes : [ expectedTypes ]
         typeException = typeException || function (type) {
           return regexpify(
-            `${name} must be a ${expectedTypes}. Instead received a ${type}.`
+            `${name} must be ${expectedTypes.length > 1 ? 'one of' : 'a'} ${expectedTypes}. Instead received a ${type}.`
           )
         }
 

@@ -6,7 +6,7 @@ function typecheck(types, name, obj) {
     Array.isArray(types)
       ? types.some(t => typeof obj === t)
       : typeof obj === types,
-    `${name} must be a ${types}. Instead received a %s.`,
+    `${name} must be ${Array.isArray(types) ? 'one of' : 'a'} ${types}. Instead received a %s.`,
     typeof obj
   )
 }
