@@ -2264,10 +2264,11 @@ describe('React', () => {
         return new RegExp(str.replace(/([\[\]\{\}\(\)\.\-\,\+\?\*])/g, '\\$1'))
       }
 
-      function typecheckCheck(name, expectedType, typeException = null) {
+      function typecheckCheck(name, expectedTypes, typeException = null) {
+        expectedTypes = Array.isArray(expectedTypes) ? expectedTypes : [ expectedTypes ]
         typeException = typeException || function (type) {
           return regexpify(
-            `${name} must be a ${expectedType}. Instead received a ${type}.`
+            `${name} must be ${expectedTypes.length > 1 ? 'one of' : 'a'} ${expectedTypes}. Instead received a ${type}.`
           )
         }
 
@@ -2283,8 +2284,8 @@ describe('React', () => {
 
         for (let type in checks) {
           let values = checks[type]
-          if (type === expectedType) { return }
-          if (expectedType === 'plain object with string values' &&
+          if (expectedTypes.some(t => t === type)) { return }
+          if (expectedTypes.some(t => t === 'plain object with string values') &&
             type === 'object') { values = values.slice(0, 3) }
 
           values.forEach(value => {
@@ -2302,20 +2303,20 @@ describe('React', () => {
         typecheckCheck('handleResponse', 'function')
       })
 
-      it('should throw unless a function is given as then', () => {
-        typecheckCheck('then', 'function')
+      it('should throw unless a function or undefined is given as then', () => {
+        typecheckCheck('then', [ 'function', 'undefined' ])
       })
 
-      it('should throw unless a function is given as andThen', () => {
-        typecheckCheck('andThen', 'function')
+      it('should throw unless a function or undefined is given as andThen', () => {
+        typecheckCheck('andThen', [ 'function', 'undefined' ])
       })
 
-      it('should throw unless a function is given as catch', () => {
-        typecheckCheck('catch', 'function')
+      it('should throw unless a function or undefined is given as catch', () => {
+        typecheckCheck('catch', [ 'function', 'undefined' ])
       })
 
-      it('should throw unless a function is given as andCatch', () => {
-        typecheckCheck('andCatch', 'function')
+      it('should throw unless a function or undefined is given as andCatch', () => {
+        typecheckCheck('andCatch', [ 'function', 'undefined' ])
       })
 
       it('should throw unless a function is given as fetch', () => {

@@ -1,10 +1,12 @@
 import invariant from 'invariant'
 import isPlainObject from './isPlainObject'
 
-function typecheck(type, name, obj) {
+function typecheck(types, name, obj) {
   invariant(
-    typeof obj === type,
-    `${name} must be a ${type}. Instead received a %s.`,
+    Array.isArray(types)
+      ? types.some(t => typeof obj === t)
+      : typeof obj === types,
+    `${name} must be ${Array.isArray(types) ? 'one of' : 'a'} ${types}. Instead received a %s.`,
     typeof obj
   )
 }
@@ -63,19 +65,19 @@ const checks = {
   },
 
   then(fn) {
-    typecheck('function', 'then', fn)
+    typecheck([ 'function', 'undefined' ], 'then', fn)
   },
 
   andThen(fn) {
-    typecheck('function', 'andThen', fn)
+    typecheck([ 'function', 'undefined' ], 'andThen', fn)
   },
 
   catch(fn) {
-    typecheck('function', 'catch', fn)
+    typecheck([ 'function', 'undefined' ], 'catch', fn)
   },
 
   andCatch(fn) {
-    typecheck('function', 'andCatch', fn)
+    typecheck([ 'function', 'undefined' ], 'andCatch', fn)
   }
 }
 
