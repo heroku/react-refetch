@@ -544,7 +544,7 @@ function cachingFetch(input, init) {
     cache.set(req.url, {
       time: now,
       response: response.clone()
-    });
+    })
 
     return response
   })
