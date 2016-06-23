@@ -123,10 +123,6 @@ export default class PromiseState {
   }
 
   _mapFlatMapValue(value) {
-    if (value instanceof PromiseState) {
-      return value
-    } else {
-      return PromiseState.resolve(value, this.meta)
-    }
+    return PromiseState.resolve(value, this.meta)
   }
 }
