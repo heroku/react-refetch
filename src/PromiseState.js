@@ -102,11 +102,11 @@ export default class PromiseState {
   // Note, unlike Promise.then(), these handlers are called immediately.
   then(onFulFilled, onRejected) {
     if (this.fulfilled && onFulFilled) {
-      return this._mapFlatMapValue(onFulFilled(this.value, this.meta))
+      return PromiseState.resolve(onFulFilled(this.value, this.meta), this.meta)
     }
 
     if (this.rejected && onRejected) {
-      return this._mapFlatMapValue(onRejected(this.reason, this.meta))
+      return PromiseState.resolve(onRejected(this.reason, this.meta), this.meta)
     }
 
     return this
@@ -120,9 +120,5 @@ export default class PromiseState {
   // this handlers is called immediately.
   catch(onRejected) {
     return this.then(undefined, onRejected)
-  }
-
-  _mapFlatMapValue(value) {
-    return PromiseState.resolve(value, this.meta)
   }
 }
