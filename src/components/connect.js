@@ -279,13 +279,14 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
         } else {
           const request = mapping.buildRequest(mapping)
           meta.request = request
-          meta.component = this.refs.wrappedInstance
           this.setAtomicState(prop, startedAt, mapping, initPS(meta))
 
           const fetched = mapping.fetch(request)
           return fetched
             .then(response => {
               meta.response = response
+              meta.component = this.refs.wrappedInstance
+
               return response
             })
             .then(mapping.handleResponse)
