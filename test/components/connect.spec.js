@@ -534,6 +534,36 @@ describe('React', () => {
       })
     })
 
+    it('should call then mappings with meta.component', (done) => {
+      const thenSpy = expect.createSpy()
+      const connectWithRef = connect.options({ withRef: true })
+
+      class Container extends Component {
+        render() {
+          return <Passthrough {...this.props} />
+        }
+      }
+
+      const DecoratedContainer = connectWithRef(() => ({
+        someFetch: {
+          url: `/foo`,
+          then: thenSpy
+        }
+      }))(Container)
+
+      const decoratedContainer = TestUtils.renderIntoDocument(
+        <DecoratedContainer/>
+      )
+
+      const container = TestUtils.findRenderedComponentWithType(decoratedContainer, Container)
+
+      setImmediate(() => {
+        const meta = thenSpy.calls[0].arguments[1]
+        expect(meta.component).toEqual(container)
+        done()
+      })
+    })
+
     it('should call catch mappings', (done) => {
       const props = ({
         baz: 42

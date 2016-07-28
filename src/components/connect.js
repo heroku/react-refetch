@@ -285,6 +285,8 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
           return fetched
             .then(response => {
               meta.response = response
+              meta.component = this.refs.wrappedInstance
+
               return response
             })
             .then(mapping.handleResponse)
