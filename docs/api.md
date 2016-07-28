@@ -22,12 +22,13 @@ Instead, it *returns* a new, connected component class, for you to use.
      - `force` *(Boolean)*: Forces the data to be always fetched when new props are received. Takes precedence over `comparison`.
      - `comparison` *(Any)*: Custom value for comparing this request and the previous request when the props change. If the `comparison` values are *not* strictly equal, the data will be fetched again. In general, it is preferred to rely on the default that compares material changes to the request (i.e. URL, headers, body, etc); however, this is helpful in cases where the request should or should not be fetched again based on some other value. If `force` is true, `comparison` is not considered.
      - `then(value, meta): request` *(Function)*: returns a request to fetch after fulfillment of this request and replaces this request. Takes the `value` and `meta` of this request as arguments. Return `undefined` in `then` to do side-effects after a successful request, leaving the request as is.
-      - `meta` is an object with keys `{ request, response, component, ...<your meta>}` where `component` is equal to the wrappedInstance. You can use it to create side effects on promise fulfillment. e.g. `then(value, meta) { meta.component.onDataLoaded(value); }`
      - `catch(reason, meta): request` *(Function)*: returns a request to fetch after rejection of this request and replaces this request. Takes the `value` and `meta` of this request as arguments. Return `undefined` in `catch` to do side-effects after a rejected request, leaving the request as is.
      - `andThen(value, meta): { prop: request, ... }` *(Function)*: returns an object of request mappings to fetch after fulfillment of this request but does not replace this request. Takes the `value` and `meta` of this request as arguments.
      - `andCatch(reason, meta): { prop: request, ... }` *(Function)*: returns an object of request mappings to fetch after rejection of this request but does not replace this request. Takes the `value` and `meta` of this request as arguments.
      - `value` *(Any)*: Data to passthrough directly to `PromiseState` as an alternative to providing a URL. If given a `Promise`, the `PromiseState` will be pending until the `value` or `reason` is settled; otherwise, the `PromiseState` will be resolved immediately. This is an advanced option used for static data and data transformations. Also consider setting `meta`.
-     - `meta` *(Object)*: Metadata to passthrough directly to `PromiseState`. Keys `request`, `response`, and future keys may be overwritten.
+     - `meta` *(Object)*: Metadata to passthrough directly to `PromiseState`. Keys `request`, `response`, `component`, and future keys may be overwritten.
+     
+   The arguments `then`, `andThen`, `catch`, `andCatch` above take  `value`/`reason` and `meta` as arguments. These coorespond to the properties of the `PromiseState` described below. `meta` contains a `component` property that is equal to the component being wrapped. You can use it to create side effects on promise fulfillment. e.g. `then(value, meta) { meta.component.onDataLoaded(value); }`. Note, `component` is only set if `withRef: true` in options; otherwise, it will be `undefined`.
 
   The following keys may also be defined on an individual request (see their description below at `connect.defaults()`):
      - `fetch`
@@ -136,7 +137,7 @@ A synchronous representation of a [`Promise`](https://developer.mozilla.org/en-U
   - `settled`: true if the data load completed, if successfully or unsuccessfully
   - `value`: value of successfully loaded data; otherwise, null
   - `reason`: error of unsuccessfully loaded data; otherwise, null
-  - `meta`: arbitrary metadata not tied to a particular state. Contains raw HTTP request or response for access to status and headers.
+  - `meta`: arbitrary metadata not tied to a particular state. Contains raw HTTP request or response for access to status and headers, the wrapped component, and other values passed in my the application.
 
 Properties should be treated as read-only and immutable. If the `Promise` enters a new state, a new `PromiseState` object is created.
 
