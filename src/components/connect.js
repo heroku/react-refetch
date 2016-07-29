@@ -189,7 +189,13 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
       constructor(props, context) {
         super(props, context)
         this.version = version
-        this.state = { mappings: {}, startedAts: {}, data: {}, refreshTimeouts: {} }
+        this.state = {
+          mappings: {},
+          startedAts: {},
+          data: {},
+          containerState: options.containerState || {},
+          refreshTimeouts: {}
+        }
       }
 
       componentWillMount() {
@@ -208,7 +214,9 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
 
       shouldComponentUpdate(nextProps, nextState) {
         return !options.pure ||
-          this.state.data != nextState.data || !shallowEqual(this.props, nextProps)
+          this.state.data != nextState.data ||
+          this.state.containerState != nextState.containerState ||
+          !shallowEqual(this.props, nextProps)
       }
 
       componentWillUnmount() {
@@ -216,10 +224,26 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
         this._unmounted = true
       }
 
+      setContainerState(nextContainerState) {
+
+        nextContainerState = {
+          ...this.state.containerState,
+          ...nextContainerState
+        }
+
+        this.setState(prevState => ({ ...prevState, containerState: nextContainerState }))
+
+        this.refetchDataFromProps(this.props, this.context, nextContainerState)
+      }
+
       render() {
         const ref = options.withRef ? 'wrappedInstance' : null
         return (
-          <WrappedComponent { ...this.state.data } { ...this.props } ref={ref}/>
+          <WrappedComponent { ...this.state.data }
+                            { ...this.state.containerState }
+                            { ...this.props }
+                            setContainerState={::this.setContainerState}
+                            ref={ref}/>
         )
       }
 
@@ -231,8 +255,9 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
         return this.refs.wrappedInstance
       }
 
-      refetchDataFromProps(props = this.props, context = this.context) {
-        this.refetchDataFromMappings(finalMapPropsToRequestsToProps(omitChildren(props), context) || {})
+      refetchDataFromProps(props = this.props, context = this.context, nextContainerState = this.state.containerState) {
+        const forwardedProps = { ...props, ...nextContainerState }
+        this.refetchDataFromMappings(finalMapPropsToRequestsToProps(omitChildren(forwardedProps), context) || {})
       }
 
       refetchDataFromMappings(mappings) {
