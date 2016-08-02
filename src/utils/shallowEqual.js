@@ -3,8 +3,10 @@ export default function shallowEqual(objA, objB) {
     return true
   }
 
-  if (objA === undefined || objB === undefined) {
-    return false
+  if (objA === undefined || objB === undefined ||
+    typeof objA !== 'object' || objA === null ||
+    typeof objB !== 'object' || objB === null) {
+    return false;
   }
 
   const keysA = Object.keys(objA)
