@@ -37,7 +37,7 @@ describe('Utils', () => {
 
       expect(
         shallowEqual(
-        	undefined,
+          undefined,
           { a: 1, b: 2 },
         )
       ).toBe(false)
@@ -51,10 +51,10 @@ describe('Utils', () => {
         )
       ).toBe(false)
 
-			expect(
+      expect(
         shallowEqual(
           { a: 1, b: 2 },
-        	undefined
+          undefined
         )
       ).toBe(false)
     })
