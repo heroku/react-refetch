@@ -42,6 +42,7 @@ describe('Utils', () => {
         )
       ).toBe(false)
     })
+
     it('should return false if first argument is null or undefined', () => {
 			expect(
         shallowEqual(
@@ -58,7 +59,7 @@ describe('Utils', () => {
       ).toBe(false)
     })
 
-    it('should return false if first argument has too many keys', () => {
+    it('should return false if second argument has too many keys', () => {
       expect(
         shallowEqual(
           { a: 1, b: 2, c: 3 },
