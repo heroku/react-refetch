@@ -37,24 +37,24 @@ describe('Utils', () => {
 
       expect(
         shallowEqual(
+        	undefined,
           { a: 1, b: 2 },
-          undefined
         )
       ).toBe(false)
     })
 
     it('should return false if second argument is null or undefined', () => {
-			expect(
-        shallowEqual(
-        	undefined,
-          { a: 1, b: 2 }
-        )
-      ).toBe(false)
-
       expect(
         shallowEqual(
           { a: 1, b: 2 },
           null
+        )
+      ).toBe(false)
+
+			expect(
+        shallowEqual(
+          { a: 1, b: 2 },
+        	undefined
         )
       ).toBe(false)
     })
