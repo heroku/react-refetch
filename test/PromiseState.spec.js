@@ -29,6 +29,25 @@ describe('PromiseState', () => {
     })
   })
 
+  describe('refresh', () => {
+    it('refreshes a resolved PromiseState', () => {
+      const ps1 = PromiseState.resolve('x')
+      const ps2 = PromiseState.refresh(ps1)
+      expect(ps2.fulfilled).toBe(true)
+      expect(ps2.refreshing).toBe(true)
+      expect(ps2.value).toBe('x')
+      expect(ps2).toNotBe(ps1)
+      expect(ps1.refreshing).toBe(false)
+    })
+
+    it('refreshes a new (pending) PromiseState', () => {
+      const ps = PromiseState.refresh()
+      expect(ps.pending).toBe(true)
+      expect(ps.refreshing).toBe(true)
+      expect(ps.value).toBe(null)
+    })
+  })
+
   describe('then', () => {
     it('pending', () => {
       const ps = PromiseState.create().then(onFulFilled, onRejected)

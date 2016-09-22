@@ -11,9 +11,17 @@ export default class PromiseState {
   // creates as PromiseState that is refreshing
   // can be called without a previous PromiseState and will be both pending and refreshing
   static refresh(previous, meta) {
-    const ps = previous || PromiseState.create(meta)
-    ps.refreshing = true
-    return ps
+    const p = previous || PromiseState.create(meta)
+
+    return new PromiseState({
+      pending: p.pending,
+      refreshing: true,
+      fulfilled: p.fulfilled,
+      rejected: p.rejected,
+      value: p.value,
+      reason: p.reason,
+      meta: p.meta
+    })
   }
 
   // creates a PromiseState that is resolved with the given value.
