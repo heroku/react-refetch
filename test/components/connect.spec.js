@@ -2604,8 +2604,8 @@ describe('React', () => {
         const requestSpy = expect.createSpy(() => ({}))
         class Request extends window.Request {
           constructor() {
-            super()
             requestSpy()
+            super()
           }
         }
 
