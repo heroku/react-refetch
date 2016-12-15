@@ -1,12 +1,13 @@
 React Refetch
 =========================
-
 A simple, declarative, and composable way to fetch data for React components.
+
+![React Refetch Logo](logo.png)
+
+## Installation
 
 [![build status](https://img.shields.io/travis/heroku/react-refetch/master.svg?style=flat-square)](https://travis-ci.org/heroku/react-refetch) [![npm version](https://img.shields.io/npm/v/react-refetch.svg?style=flat-square)](https://www.npmjs.com/package/react-refetch)
 [![npm downloads](https://img.shields.io/npm/dm/react-refetch.svg?style=flat-square)](https://www.npmjs.com/package/react-refetch)
-
-## Installation
 
 Requires **React 0.14 or later.**
 
