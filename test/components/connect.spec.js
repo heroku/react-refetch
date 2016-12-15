@@ -2603,9 +2603,9 @@ describe('React', () => {
       it('should set the default Request', (done) => {
         const requestSpy = expect.createSpy(() => ({}))
         class Request extends window.Request {
-          constructor() {
+          constructor(input, options) {
             requestSpy()
-            super()
+            super(input, options)
           }
         }
 
