@@ -560,6 +560,77 @@ When using this feature, make sure to read the [`fetch` API and interface docume
 
 This is an _advanced feature_. Use existing declarative functionality wherever possible. Customise `buildRequest` or `handleResponse` if these can work instead. Please be aware that changing the `fetch` (or `Request`) implementation could conflict with built-in current or future functionality.
 
+## Unit Testing Connected Components
+
+For unit testing components connected, a non-default export of the unconnected component can be exposed to allow unit tests to inject their own `PromiseState`(s) as props. This allows for unit tests to test both success and error scenarios without having to deal with mocking HTTP, timing of responses, or other details about how the `PromiseState`(s) is fulfilled -- instead, they can just focus on asserting that the component itself renders the `PromiseState`(s) correctly in various scenarios. 
+
+The recommended naming convention for the unconnected component is to prepend an underscore to the component name. For example, if there is a component called `Profile`, add a non-default export of `_Profile` before the default export with `connect`:
+
+```jsx
+class Profile extends React.Component {
+  static propTypes = {
+    userFetch: PropTypes.instanceOf(PromiseState).isRequired,
+  }
+
+  render() {
+    const { userFetch } = this.props
+    
+    if (userFetch.pending) {
+      return <LoadingAnimation/>
+    } else if (userFetch.rejected) {
+      return <ErrorBox error={userFetch.reason}/>
+    } else if (userFetch.fulfilled) {
+      return <User user={userFetch.value}/>
+    }
+  }
+}
+
+export { Profile as _Profile }
+
+export default connect(props => ({
+  userFetch: `/users/${props.userId}`
+}))(Profile)
+```
+
+Now, unit tests can use the static methods on `PromiseState` to inject their own `PromiseState`(s) as props. For example, here is a unit test using [Enzyme](https://github.com/airbnb/enzyme) to shallow render the unconnected `_Profile` and provides a pending `PromiseState` and asserts that the `LoadingAnimation` is present:
+
+```jsx
+const c = shallow(
+  <_Profile
+    userFetch={PromiseState.create()}
+  />
+)
+
+expect(wrapper.find(LoadingAnimation)).to.have.length(1)
+```
+
+Similarly, the rejected and fulfilled cases can be tested:
+
+```jsx
+const expectedError = new Error('boom')
+
+const c = shallow(
+  <_Profile
+    userFetch={PromiseState.reject(expectedError)}
+  />
+)
+
+expect(c.find(ErrorBox).first().prop().error).toEqual(expectedError)
+```
+
+
+```jsx
+const user = new User()
+
+const c = shallow(
+  <_Profile
+    userFetch={PromiseState.resolve(user)}
+  />
+)
+
+expect(wrapper.find(User)).to.have.length(1)
+```
+
 ## Complete Example
 
 This is a complex example demonstrating various feature at once:
