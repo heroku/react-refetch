@@ -147,8 +147,8 @@ Functions can also be used for post data to the server in response to a user act
 connect(props => ({
   postLike: subject => ({
     postLikeResponse: {
-      url: `/users/${props.userId}/likes`
-      method: 'POST'
+      url: `/users/${props.userId}/likes`,
+      method: 'POST',
       body: JSON.stringify({ subject })
     }
   })
