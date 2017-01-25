@@ -137,7 +137,7 @@ A synchronous representation of a [`Promise`](https://developer.mozilla.org/en-U
   - `settled`: true if the data load completed, if successfully or unsuccessfully
   - `value`: value of successfully loaded data; otherwise, null
   - `reason`: error of unsuccessfully loaded data; otherwise, null
-  - `meta`: arbitrary metadata not tied to a particular state. Contains raw HTTP request or response for access to status and headers, the wrapped component, and other values passed in my the application.
+  - `meta`: arbitrary metadata not tied to a particular state. Contains raw HTTP request or response for access to status and headers, the wrapped component, and other values passed in by the application.
 
 Properties should be treated as read-only and immutable. If the `Promise` enters a new state, a new `PromiseState` object is created.
 
