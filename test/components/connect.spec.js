@@ -203,7 +203,7 @@ describe('React', () => {
       const pending = TestUtils.findRenderedComponentWithType(container, Container)
       const startedAt = pending.state.startedAts.testFetch
       setImmediate(() => {
-        expect(startedAt.getTime()).toBeLessThan(new Date().getTime())
+        expect(startedAt.getTime()).toBeLessThanOrEqualTo(new Date().getTime())
         const fulfilled = TestUtils.findRenderedComponentWithType(container, Container)
         expect(fulfilled.state.startedAts.testFetch).toEqual(startedAt)
         done()
@@ -801,7 +801,7 @@ describe('React', () => {
     })
 
     it('should refresh when refreshInterval is provided', (done) => {
-      const interval = 100000 // set sufficently far out to not happen during test
+      const interval = 100000 // set sufficiently far out to not happen during test
 
       @connect(() => ({ testFetch: { url: `/example`, refreshInterval: interval } }))
       class Container extends Component {
@@ -851,6 +851,77 @@ describe('React', () => {
           expect(refreshTimeout).toBeTruthy()
           clearTimeout(refreshTimeout)
 
+          done()
+        })
+      })
+    })
+
+    it('should not set refreshTimeouts when component is unmounted', (done) => {
+      const interval = 100000 // set sufficiently far out to not happen during test
+
+      @connect(() => ({ testFetch: { url: `/example`, refreshInterval: interval } }))
+      class WithProps extends Component {
+        render() {
+          return <Passthrough {...this.props}/>
+        }
+      }
+
+      class OuterComponent extends Component {
+        constructor() {
+          super()
+          this.state = { render: true }
+        }
+
+        setRender(render) {
+          this.setState({ render })
+        }
+
+        render() {
+          if (this.state.render) {
+            return (
+              <div>
+                <WithProps {...this.state} />
+              </div>
+            )
+          } else {
+            return <div />
+          }
+        }
+      }
+
+      const outerComponent = TestUtils.renderIntoDocument(
+        <OuterComponent />
+      )
+
+      const container = TestUtils.findRenderedComponentWithType(outerComponent, WithProps)
+
+      expect(container.state.data.testFetch).toIncludeKeyValues({
+        fulfilled: false, pending: true, reason: null, refreshing: false, rejected: false, settled: false, value: null
+      })
+      expect(container.state.mappings.testFetch.refreshInterval).toEqual(interval)
+      expect(container.state.refreshTimeouts.testFetch).toEqual(undefined)
+
+      setImmediate(() => {
+        expect(container.state.data.testFetch).toIncludeKeyValues({
+          fulfilled: true, pending: false, reason: null, refreshing: false, rejected: false, settled: true, value: { T: 't' }
+        })
+        expect(container.state.mappings.testFetch.refreshInterval).toEqual(interval)
+        const refreshTimeout = container.state.refreshTimeouts.testFetch
+        expect(refreshTimeout).toBeTruthy()
+        const after = refreshTimeout._onTimeout
+
+        // Cancel scheduled refresh
+        clearTimeout(refreshTimeout)
+
+        outerComponent.setRender(false)
+
+        // force the refresh to happen now after it has been unmounted
+        after()
+
+        const spy = expect.spyOn(window, 'setTimeout')
+        setImmediate(() => {
+          spy.destroy()
+          expect(spy.calls.length).toBe(0)
           done()
         })
       })

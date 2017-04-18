@@ -314,7 +314,7 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
         return (meta) => {
           return (value) => {
             let refreshTimeout = null
-            if (mapping.refreshInterval > 0) {
+            if (mapping.refreshInterval > 0 && !this._unmounted) {
               refreshTimeout = window.setTimeout(() => {
                 this.refetchDatum(prop, Object.assign({}, mapping, { refreshing: true, force: true }))
               }, mapping.refreshInterval)
