@@ -915,12 +915,11 @@ describe('React', () => {
 
         outerComponent.setRender(false)
 
+        const spy = expect.spyOn(window, 'setTimeout')
+
         // force the refresh to happen now after it has been unmounted
         after()
-
-        const spy = expect.spyOn(window, 'setTimeout')
         setImmediate(() => {
-          spy.destroy()
           expect(spy.calls.length).toBe(0)
           done()
         })
@@ -2198,11 +2197,11 @@ describe('React', () => {
         <OuterComponent ref={c => outerComponent = c} />
       )
 
+      const spy = expect.spyOn(console, 'error')
+
       outerComponent.setRender(false)
 
-      const spy = expect.spyOn(console, 'error')
       setImmediate(() => {
-        spy.destroy()
         expect(spy.calls.length).toBe(0)
         done()
       })
