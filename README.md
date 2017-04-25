@@ -77,7 +77,7 @@ See the [composing responses](#composing-responses) to see how to handle `userFe
 
 When new props are received, the requests are re-calculated, and if they changed, the data is *refetched* and passed into the component as new `PromiseState`s. Using something like [React Router](https://github.com/rackt/react-router) to derive the props from the URL in the browser, the application can control state changes just by changing the URL. When the URL changes, the props change, which recalculates the requests, new data is fetched, and it is reinjected into the components:
 
-![react-refetch-flow](https://engineering.heroku.com/assets/images/react-refetch-flow.svg)
+![react-refetch-flow](https://heroku-blog-files.s3.amazonaws.com/posts/1488278436-react-refetch-flow.svg)
 
 By default, the requests are compared using their URL, headers, and body; however, if you want to use a custom value for the comparison, set the `comparison` attribute on the request. This can be helpful when the request should or should not be refetched in response to a prop change that is not in the request itself. A common situation where this occurs is when two different requests should be refetched together even though one of the requests does not actually include the prop. Note, this is using the request object syntax for `userStatsFetch` instead of just a plain URL string. This syntax allows for more advanced options. See the API documentation for details:
 
