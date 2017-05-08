@@ -255,6 +255,31 @@ describe('React', () => {
       expect(decorated.state.mappings.testFetch.equals).toBeA('function')
     })
 
+    it('should allow header values to be specified with functions', () => {
+      @connect(() => ({ testFetch: {
+        url: '/example',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'overwrite-default',
+          'X-Foo': () => 'test-function'
+        }
+      } }))
+      class Container extends Component {
+        render() {
+          return <Passthrough {...this.props} />
+        }
+      }
+
+      const container = TestUtils.renderIntoDocument(
+        <Container />
+      )
+
+      let decorated = TestUtils.findRenderedComponentWithType(container, Container)
+      expect(Object.keys(decorated.state.mappings.testFetch).length).toEqual(14)
+      expect(decorated.state.mappings.testFetch.method).toEqual('POST')
+      expect(decorated.state.mappings.testFetch.headers).toEqual({ Accept: 'application/json', 'Content-Type': 'overwrite-default', 'X-Foo': 'test-function' })
+    })
+
     it('should passthrough value of non-Promise identity requests skipping pending', () => {
       @connect(() => ({ testFetch: { value: 'foo', meta: { test: 'voodoo' } } }))
       class Container extends Component {
@@ -2597,6 +2622,61 @@ describe('React', () => {
           expect(headers.get('Accept')).toBe('application/json')
           expect(headers.get('Content-Type')).toBe('application/json')
           expect(headers.get('X-Foo')).toBe('bar')
+          done()
+        })
+      })
+
+      it('should allow header values specified as functions', (done) => {
+        const spy = expect.createSpy(() => {})
+        const customFetch = (request) => {
+          spy(request.headers)
+          return new Promise((resolve) => {
+            resolve(new window.Response(JSON.stringify({ T: 't' })))
+          })
+        }
+
+        let props = { abc: '123' }
+        let container
+
+        const headers = { 'X-Foo': () => props.abc }
+        const custom = connect.defaults({ fetch: customFetch, headers })
+        @custom((props) => ({ testFetch: { url:`/example`, force: true } }))
+        class Container extends Component {
+          render() {
+            return <Passthrough {...this.props} />
+          }
+        }
+
+        class HolderContainer extends Component {
+          render() {
+            return (
+              <Container {...props} />
+            )
+          }
+        }
+
+        TestUtils.renderIntoDocument(
+          <HolderContainer ref={instance => container = instance} />
+        )
+
+        setImmediate(() => {
+          expect(spy.calls.length).toBe(1)
+          let headers = spy.calls[0].arguments[0]
+          expect(headers).toBeA(window.Headers)
+          expect(headers.get('Accept')).toBe('application/json')
+          expect(headers.get('Content-Type')).toBe('application/json')
+          expect(headers.get('X-Foo')).toBe(props.abc)
+
+          props = { abc: 'def' }
+          container.forceUpdate()
+
+          expect(spy.calls.length).toBe(2)
+          headers = spy.calls[1].arguments[0]
+          expect(headers).toBeA(window.Headers)
+          expect(headers.get('Accept')).toBe('application/json')
+          expect(headers.get('Content-Type')).toBe('application/json')
+          expect(headers.get('X-Foo')).toBe(props.abc)
+
           done()
         })
       })
