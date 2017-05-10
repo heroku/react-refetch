@@ -2640,7 +2640,9 @@ describe('React', () => {
 
         const headers = { 'X-Foo': () => props.abc }
         const custom = connect.defaults({ fetch: customFetch, headers })
-        @custom((props) => ({ testFetch: { url:`/example`, force: true } }))
+
+        // Props is needed or else the component doesn't try and refresh
+        @custom((props) => ({ testFetch: { url:`/example` } })) // eslint-disable-line
         class Container extends Component {
           render() {
             return <Passthrough {...this.props} />
