@@ -27,7 +27,7 @@ Check the compatibility tables ([`Object.assign`](https://kangax.github.io/compa
 
 ## Introduction
 
-See [Introducing React Refetch](https://engineering.heroku.com/blogs/2015-12-16-react-refetch/) on the [Heroku Engineering Blog](https://engineering.heroku.com/) for background and a quick introduction to this project.
+See [Introducing React Refetch](https://blog.heroku.com/react-refetch) on the [Heroku Engineering Blog](https://blog.heroku.com/engineering) for background and a quick introduction to this project.
 
 ## Motivation
 
