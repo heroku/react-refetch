@@ -161,7 +161,9 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
     for (let key in rawHeaders) {
       // Discard headers with falsy values
       if (rawHeaders.hasOwnProperty(key) && rawHeaders[key]) {
-        headers[key] = rawHeaders[key]
+        // Get the value now if the header is specified as a function
+        const headerValue = typeof rawHeaders[key] == 'function' ? rawHeaders[key]() : rawHeaders[key]
+        headers[key] = headerValue
       }
     }
 
