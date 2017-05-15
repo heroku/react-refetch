@@ -5,11 +5,9 @@ export default function handleResponse(response) {
     return
   }
 
-  const json = response.json() // TODO: support other response types
-
   if (response.status >= 200 && response.status < 300) { // TODO: support custom acceptable statuses
-    return json
+    return response.json() // TODO: support other response types
   } else {
-    return json.then(cause => Promise.reject(newError(cause)))
+    return Promise.reject(newError(response.statusText))
   }
 }
