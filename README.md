@@ -222,12 +222,10 @@ render() {
   } else if (allFetches.rejected) {
     return <Error error={allFetches.reason}/>
   } else if (allFetches.fulfilled) {
-    // decompose the PromiseState back into individual
-    const [user, likes] = allFetches.value
     return (
       <div>
-          <User data={user}/>
-          <Likes data={likes}/>
+          <User data={userFetch.value}/>
+          <Likes data={likesFetch.value}/>
       </div>
     )
   }
@@ -662,12 +660,10 @@ class Profile extends React.Component {
     } else if (allFetches.rejected) {
       return <Error error={allFetches.reason}/>
     } else if (allFetches.fulfilled) {
-      // decompose the PromiseState back into individual
-      const [user, likes] = allFetches.value
       return (
         <div>
-          <User data={user}/>
-          <Likes data={likes}/>
+          <User data={userFetch.value}/>
+          <Likes data={likesFetch.value}/>
         </div>
       )
     }
