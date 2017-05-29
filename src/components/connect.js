@@ -8,6 +8,7 @@ import PromiseState from '../PromiseState'
 import hoistStatics from 'hoist-non-react-statics'
 import invariant from 'invariant'
 import warning from 'warning'
+import hasIn from 'lodash/hasIn'
 import omit from 'lodash/fp/omit'
 
 const defaultMapPropsToRequestsToProps = () => ({})
@@ -272,7 +273,7 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
         const onRejection = this.createPromiseStateOnRejection(prop, mapping, startedAt)
 
         if (mapping.hasOwnProperty('value')) {
-          if (mapping.value instanceof Promise) {
+          if (hasIn(mapping.value, 'then')) {
             this.setAtomicState(prop, startedAt, mapping, initPS(meta))
             return mapping.value.then(onFulfillment(meta), onRejection(meta))
           } else {
