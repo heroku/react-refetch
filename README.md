@@ -328,7 +328,7 @@ connect(props => ({
 
 Note, this form of transformation is similar to what is possible on the `PromiseState` (i.e. `this.props.usersFetch.then(users => users.filter(u => u.verified))`); however, this has the advantage of only being called when `usersFetch` changes and keeps the logic out of the component.
 
-Identity requests can also be provided a `Promise`. In this case, the `PromiseState` will be `pending` until the `Promise` is resolved. This can be helpful for asynchronous, non-fetch operations (e.g. file i/o) that want to use a similar pattern as fetch operations.
+**Identity requests can also be provided a `Promise` or thenable.** In this case, the `PromiseState` will be `pending` until the `Promise` is resolved. This can be helpful for asynchronous, non-fetch operations (e.g. file i/o) that want to use a similar pattern as fetch operations.
 
 ## Accessing Headers & Metadata
 
