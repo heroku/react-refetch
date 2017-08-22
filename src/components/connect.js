@@ -324,7 +324,7 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
             }
 
             if (mapping.then) {
-              const thenMapping = mapping.then(value, meta)
+              const thenMapping = mapping.then(value, meta, this.state.data)
               if (typeof thenMapping !== 'undefined') {
                 this.refetchDatum(prop, coerceMapping(null, thenMapping, mapping))
                 return
@@ -333,7 +333,7 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
 
             this.setAtomicState(prop, startedAt, mapping, PromiseState.resolve(value, meta), refreshTimeout, () => {
               if (mapping.andThen) {
-                this.refetchDataFromMappings(mapping.andThen(value, meta))
+                this.refetchDataFromMappings(mapping.andThen(value, meta, this.state.data))
               }
             })
           }
@@ -344,7 +344,7 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
         return (meta) => {
           return (reason) => {
             if (mapping.catch) {
-              const catchMapping = mapping.catch(reason, meta)
+              const catchMapping = mapping.catch(reason, meta, this.state.data)
               if (typeof catchMapping !== 'undefined') {
                 this.refetchDatum(prop, coerceMapping(null, catchMapping, mapping))
                 return
@@ -353,7 +353,7 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
 
             this.setAtomicState(prop, startedAt, mapping, PromiseState.reject(reason, meta), null, () => {
               if (mapping.andCatch) {
-                this.refetchDataFromMappings(mapping.andCatch(reason, meta))
+                this.refetchDataFromMappings(mapping.andCatch(reason, meta, this.state.data))
               }
             })
           }
