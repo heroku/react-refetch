@@ -559,7 +559,7 @@ describe('React', () => {
       })
     })
 
-    it('should call then mappings with meta.component', (done) => {
+    it('should call then mappings with meta.component and previous', (done) => {
       const thenSpy = expect.createSpy()
       const connectWithRef = connect.options({ withRef: true })
 
@@ -584,7 +584,12 @@ describe('React', () => {
 
       setImmediate(() => {
         const meta = thenSpy.calls[0].arguments[1]
+        const previous = thenSpy.calls[0].arguments[2]
         expect(meta.component).toEqual(container)
+        expect(previous.someFetch).toIncludeKeyValues(
+          { fulfilled: false, pending: true, reason: null, refreshing: false, rejected: false, settled: false, value: null }
+        )
+
         done()
       })
     })
@@ -637,6 +642,48 @@ describe('React', () => {
         expect(decorated.state.data.secondFetch).toIncludeKeyValues(
           { fulfilled: true, pending: false, reason: null, refreshing: false, rejected: false, settled: true, value: { 'T': 't' } }
         )
+
+        done()
+      })
+    })
+
+    it('should call catch mappings with previous', (done) => {
+      const catchSpy = expect.createSpy()
+
+      @connect(({ baz }) => ({
+        firstFetch: {
+          url: `/error`,
+          catch: catchSpy
+        },
+        secondFetch: {
+          url: `/reject`,
+          catch: catchSpy
+        }
+      }))
+      class Container extends Component {
+        render() {
+          return <Passthrough {...this.props} />
+        }
+      }
+
+      const container = TestUtils.renderIntoDocument(
+        <Container />
+      )
+
+      const decorated = TestUtils.findRenderedComponentWithType(container, Container)
+
+      setImmediate(() => {
+        const firstPrevious = catchSpy.calls[0].arguments[2]
+        expect(firstPrevious.firstFetch).toIncludeKeyValues(
+          { fulfilled: false, pending: true, reason: null, refreshing: false, rejected: false, settled: false, value: null }
+        )
+        expect(firstPrevious.secondFetch).toIncludeKeyValues(
+          { fulfilled: false, pending: true, reason: null, refreshing: false, rejected: false, settled: false, value: null }
+        )
+
+        const secondPrevious = catchSpy.calls[1].arguments[2]
+        expect(Object.keys(secondPrevious)).toContain('firstFetch')
+        expect(Object.keys(secondPrevious)).toContain('secondFetch')
 
         done()
       })
@@ -712,9 +759,15 @@ describe('React', () => {
       @connect(({ foo, baz }) => ({
         firstFetch: {
           url: `/first/${foo}`,
-          andThen: () => ({
-            thenFetch: `/second/${baz}`
+          andThen: (value, meta, previous) => ({
+            thenFetch: `/second/${baz}`,
+            staticFetch: {
+              value: previous.staticFetch.value.concat([3, 4])
+            }
           })
+        },
+        staticFetch: {
+          value: [1, 2]
         }
       }))
       class Container extends Component {
@@ -736,6 +789,9 @@ describe('React', () => {
 
       expect(decorated.state.mappings.thenFetch).toEqual(undefined)
       expect(decorated.state.data.thenFetch).toEqual(undefined)
+      expect(decorated.state.data.staticFetch).toIncludeKeyValues(
+        { fulfilled: true, pending: false, reason: null, refreshing: false, rejected: false, settled: true, value: [1, 2] }
+      )
 
       setImmediate(() => {
         expect(decorated.state.data.firstFetch).toIncludeKeyValues(
@@ -745,6 +801,9 @@ describe('React', () => {
         expect(decorated.state.mappings.thenFetch.url).toEqual('/second/42')
         expect(decorated.state.data.thenFetch).toIncludeKeyValues(
           { fulfilled: true, pending: false, reason: null, refreshing: false, rejected: false, settled: true, value: { 'T': 't' } }
+        )
+        expect(decorated.state.data.staticFetch).toIncludeKeyValues(
+          { fulfilled: true, pending: false, reason: null, refreshing: false, rejected: false, settled: true, value: [1, 2, 3, 4] }
         )
 
         done()
@@ -759,15 +818,24 @@ describe('React', () => {
       @connect(({ baz }) => ({
         firstFetch: {
           url: `/error`,
-          andCatch: () => ({
-            catchFetch: `/second/${baz}`
+          andCatch: (value, meta, previous) => ({
+            catchFetch: `/second/${baz}`,
+            staticFetch: {
+              value: previous.staticFetch.value.concat([2])
+            }
           })
         },
         secondFetch: {
           url: `/reject`,
-          andCatch: () => ({
-            catchSecondFetch: `/second/${baz}`
+          andCatch: (value, meta, previous) => ({
+            catchSecondFetch: `/second/${baz}`,
+            staticFetch: {
+              value: previous.staticFetch.value.concat([3])
+            }
           })
+        },
+        staticFetch: {
+          value: [1],
         }
       }))
       class Container extends Component {
@@ -798,6 +866,7 @@ describe('React', () => {
 
       expect(decorated.state.mappings.catchSecondFetch).toEqual(undefined)
       expect(decorated.state.data.catchSecondFetch).toEqual(undefined)
+      expect(decorated.state.data.staticFetch.value).toEqual([1])
 
       setImmediate(() => {
         expect(decorated.state.data.firstFetch).toIncludeKeyValues(
@@ -820,6 +889,9 @@ describe('React', () => {
         expect(decorated.state.data.catchSecondFetch).toIncludeKeyValues(
           { fulfilled: true, pending: false, reason: null, refreshing: false, rejected: false, settled: true, value: { 'T': 't' } }
         )
+        expect(decorated.state.data.staticFetch.value).toContain(1)
+        expect(decorated.state.data.staticFetch.value).toContain(2)
+        expect(decorated.state.data.staticFetch.value).toContain(3)
 
         done()
       })
