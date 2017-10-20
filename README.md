@@ -22,8 +22,9 @@ The following ES6 functions are required:
 - [`Object.assign`](https://developer.mozilla.org/en/docs/Web/JavaScript/Reference/Global_Objects/Object/assign)
 - [`Promise`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise)
 - [`fetch`](https://developer.mozilla.org/en-US/docs/Web/API/GlobalFetch)
+- [`Array.prototype.find`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/find)
 
-Check the compatibility tables ([`Object.assign`](https://kangax.github.io/compat-table/es6/#test-Object_static_methods_Object.assign), [`Promise`](https://kangax.github.io/compat-table/es6/#test-Promise), [`fetch`](http://caniuse.com/#feat=fetch)) to make sure all browsers and platforms you need to support have these, and include polyfills as necessary.
+Check the compatibility tables ([`Object.assign`](https://kangax.github.io/compat-table/es6/#test-Object_static_methods_Object.assign), [`Promise`](https://kangax.github.io/compat-table/es6/#test-Promise), [`fetch`](http://caniuse.com/#feat=fetch), [`Array.prototype.find`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/find)) to make sure all browsers and platforms you need to support have these, and include polyfills as necessary.
 
 ## Introduction
 
