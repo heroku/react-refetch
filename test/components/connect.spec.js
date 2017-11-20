@@ -246,11 +246,12 @@ describe('React', () => {
       )
 
       const decorated = TestUtils.findRenderedComponentWithType(container, Container)
-      expect(Object.keys(decorated.state.mappings.testFetch).length).toEqual(14)
+      expect(Object.keys(decorated.state.mappings.testFetch).length).toEqual(15)
       expect(decorated.state.mappings.testFetch.method).toEqual('POST')
       expect(decorated.state.mappings.testFetch.headers).toEqual({ Accept: 'application/json', 'Content-Type': 'overwrite-default', 'X-Foo': 'custom-foo' })
       expect(decorated.state.mappings.testFetch.credentials).toEqual('same-origin')
       expect(decorated.state.mappings.testFetch.redirect).toEqual('follow')
+      expect(decorated.state.mappings.testFetch.mode).toEqual('cors')
       expect(decorated.state.mappings.testFetch.url).toEqual('/example')
       expect(decorated.state.mappings.testFetch.equals).toBeA('function')
     })
@@ -275,7 +276,7 @@ describe('React', () => {
       )
 
       let decorated = TestUtils.findRenderedComponentWithType(container, Container)
-      expect(Object.keys(decorated.state.mappings.testFetch).length).toEqual(14)
+      expect(Object.keys(decorated.state.mappings.testFetch).length).toEqual(15)
       expect(decorated.state.mappings.testFetch.method).toEqual('POST')
       expect(decorated.state.mappings.testFetch.headers).toEqual({ Accept: 'application/json', 'Content-Type': 'overwrite-default', 'X-Foo': 'test-function' })
     })

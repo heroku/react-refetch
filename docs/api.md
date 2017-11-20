@@ -17,6 +17,7 @@ Instead, it *returns* a new, connected component class, for you to use.
      - `credentials` *(String)*: Policy for credential to include with request. One of `omit`, `same-origin`, `include`. See [`Request.credentials`](https://developer.mozilla.org/en-US/docs/Web/API/Request/credentials) for details. Defaults to `same-origin`.
      - `body`: Any body that you want to add to your request; however, it must be replayable (i.e. not a one time use stream). Note that a request using the `GET` or `HEAD` method cannot have a body.
      - `redirect` *(String)*: The redirect mode to use: `follow`, `error`, or `manual`. See [`Request.redirect`](https://developer.mozilla.org/en-US/docs/Web/API/Request/redirect) for details. Defaults to `follow`.
+     - `mode` *(String)*: Determines if cross-origin requests lead to valid responses, and which properties of the response are readable: `cors`, `no-cors`, `same-origin`, or `navigate`. See [`Request.mode`](https://developer.mozilla.org/en-US/docs/Web/API/Request/mode) for details. Defaults to `cors`.
      - `refreshInterval` *(Integer)*: Interval in milliseconds to poll for new data from the URL. Defaults to `0`, which disables it.
      - `refreshing` *(Boolean | Function)*: If true, the request is treated as a refresh. This is generally only used when overwriting an existing `PromiseState` and it is desired that the existing `value` not be cleared or changing into the `pending` state while the request is in flight. If no previous request was fulfilled, both `pending` and `refreshing` will be set. If `refreshing` is a function — `refreshing: value -> value` — then before the new request starts the value of the existing mapping will be replaced by the return value of this function, which is called with the existing value as its sole argument. This is useful to support optimistic updates with eg. `refreshing: value => ({...value, ...body})`.
      - `force` *(Boolean)*: Forces the data to be always fetched when new props are received. Takes precedence over `comparison`.
@@ -94,6 +95,7 @@ const c = b.defaults({ refreshInterval: 10000 })
      - `credentials`
      - `body`
      - `redirect`
+     - `mode`
      - `refreshing`
      - `refreshInterval`
      - `force`
