@@ -89,6 +89,7 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
     handleResponse,
     method: 'GET',
     redirect: 'follow',
+    mode: 'cors',
     refreshing: false,
     refreshInterval: 0,
     Request: topRequest

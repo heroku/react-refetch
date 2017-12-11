@@ -4,6 +4,7 @@ export default function buildRequest(mapping) {
     headers: mapping.headers,
     credentials: mapping.credentials,
     redirect: mapping.redirect,
+    mode: mapping.mode,
     body: mapping.body
   })
 }

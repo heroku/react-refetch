@@ -466,6 +466,7 @@ export default connect.defaults({
       headers: mapping.headers,
       credentials: mapping.credentials,
       redirect: mapping.redirect,
+      mode: mapping.mode,
       body: mapping.body
     }
 

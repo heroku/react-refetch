@@ -54,6 +54,15 @@ const checks = {
     )
   },
 
+  mode(str) {
+    const allowed = [ 'cors', 'no-cors', 'same-origin', 'navigate' ]
+    invariant(
+      allowed.indexOf(str) !== -1,
+      `mode must be one of ${allowed.join(', ')}. Instead got %s.`,
+      str ? str.toString() : str
+    )
+  },
+
   refreshInterval(num) {
     typecheck('number', 'refreshInterval', num)
     invariant(num >= 0, 'refreshInterval must be positive or 0.')
