@@ -329,6 +329,135 @@ describe('React', () => {
       done()
     })
 
+    it('should passthrough value of function identity requests after invoking function', (done) => {
+      @connect(() => ({ testFetch: { value: () => Promise.resolve('foo'), meta: { test: 'voodoo' } } }))
+      class Container extends Component {
+        render() {
+          return <Passthrough {...this.props} />
+        }
+      }
+
+      const container = TestUtils.renderIntoDocument(
+        <Container />
+      )
+
+      const stub = TestUtils.findRenderedComponentWithType(container, Passthrough)
+      expect(stub.props.testFetch).toIncludeKeyValues({
+        fulfilled: false, pending: true, refreshing: false, reason: null, rejected: false, settled: false, value: null, meta: { test: 'voodoo' }
+      })
+
+      setImmediate(() => {
+        const stub = TestUtils.findRenderedComponentWithType(container, Passthrough)
+        expect(stub.props.testFetch).toIncludeKeyValues({
+          fulfilled: true, pending: false, refreshing: false, reason: null, rejected: false, settled: true, value: 'foo', meta: { test: 'voodoo' }
+        })
+
+        done()
+      })
+    })
+
+    it('should invoke value() only if `comparison` changed', (done) => {
+      @connect(() => ({ testFetch: { value: () => Promise.resolve('foo'), meta: { test: 'voodoo' } } }))
+      class Container extends Component {
+        render() {
+          return <Passthrough {...this.props} />
+        }
+      }
+
+      const container = TestUtils.renderIntoDocument(
+        <Container />
+      )
+
+      const stub = TestUtils.findRenderedComponentWithType(container, Passthrough)
+      expect(stub.props.testFetch).toIncludeKeyValues({
+        fulfilled: false, pending: true, refreshing: false, reason: null, rejected: false, settled: false, value: null, meta: { test: 'voodoo' }
+      })
+
+      setImmediate(() => {
+        const stub = TestUtils.findRenderedComponentWithType(container, Passthrough)
+        expect(stub.props.testFetch).toIncludeKeyValues({
+          fulfilled: true, pending: false, refreshing: false, reason: null, rejected: false, settled: true, value: 'foo', meta: { test: 'voodoo' }
+        })
+
+        done()
+      })
+    })
+
+    it('should invoke value() only if `comparison` changed', (done) => {
+      const renderSpy = expect.createSpy(() => ({}))
+      function render() {
+        renderSpy()
+        return <Passthrough/>
+      }
+
+      const valueSpy = expect.createSpy(() => ({}))
+      @connect(({ foo }) => ({
+        testFetch: {
+          value: valueSpy,
+          comparison: foo.FOO
+        }
+      }))
+      class WithProps extends Component {
+        render() {
+          return render(this.props)
+        }
+      }
+
+      class OuterComponent extends Component {
+        constructor() {
+          super()
+          this.state = {
+            foo: {
+              FOO: 'FOO'
+            }
+          }
+        }
+
+        setFoo(FOO) {
+          this.setState({ foo: { FOO } })
+        }
+
+        render() {
+          return (
+            <div>
+              <WithProps {...this.state} />
+            </div>
+          )
+        }
+      }
+
+      let outerComponent
+      TestUtils.renderIntoDocument(
+        <OuterComponent ref={c => outerComponent = c} />
+      )
+
+      expect(renderSpy.calls.length).toBe(1)
+      setImmediate(() => {
+        expect(valueSpy.calls.length).toBe(1)
+
+        outerComponent.setFoo('BAR')
+        expect(renderSpy.calls.length).toBe(2)
+        setImmediate(() => {
+          expect(valueSpy.calls.length).toBe(2)
+
+          // set BAR again, but will not be refetched
+          outerComponent.setFoo('BAR')
+          expect(renderSpy.calls.length).toBe(3)
+          setImmediate(() => {
+            expect(valueSpy.calls.length).toBe(2)
+
+            outerComponent.setFoo('BAZ')
+            expect(renderSpy.calls.length).toBe(4)
+            setImmediate(() => {
+              expect(valueSpy.calls.length).toBe(3)
+
+              done()
+            })
+          })
+        })
+      })
+    })
+
     it('should support falsey values in identity requests', () => {
       @connect(() => ({ testFetch: { value: null } }))
       class Container extends Component {

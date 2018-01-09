@@ -329,7 +329,17 @@ connect(props => ({
 
 Note, this form of transformation is similar to what is possible on the `PromiseState` (i.e. `this.props.usersFetch.then(users => users.filter(u => u.verified))`); however, this has the advantage of only being called when `usersFetch` changes and keeps the logic out of the component.
 
-**Identity requests can also be provided a `Promise` or thenable.** In this case, the `PromiseState` will be `pending` until the `Promise` is resolved. This can be helpful for asynchronous, non-fetch operations (e.g. file i/o) that want to use a similar pattern as fetch operations.
+**Identity requests can also be provided a `Promise`/thenable or a `Function`.**
+In case of a `Promise`, the `PromiseState` will be `pending` until the `Promise` is resolved. This can be helpful for asynchronous, non-fetch operations (e.g. file i/o) that want to use a similar pattern as fetch operations.
+In case of a `Function`, value returned from it will be used instead, as in cases described above. `Function` will be only be called when `comparison` changed.
+
+```jsx
+connect(props => ({
+  usersFetch: {
+    value: () => someAPI.list('/users')
+  }
+}))(Users)
+```
 
 ## Accessing Headers & Metadata
 
@@ -564,7 +574,7 @@ This is an _advanced feature_. Use existing declarative functionality wherever p
 
 ## Unit Testing Connected Components
 
-For unit testing components connected, a non-default export of the unconnected component can be exposed to allow unit tests to inject their own `PromiseState`(s) as props. This allows for unit tests to test both success and error scenarios without having to deal with mocking HTTP, timing of responses, or other details about how the `PromiseState`(s) is fulfilled -- instead, they can just focus on asserting that the component itself renders the `PromiseState`(s) correctly in various scenarios. 
+For unit testing components connected, a non-default export of the unconnected component can be exposed to allow unit tests to inject their own `PromiseState`(s) as props. This allows for unit tests to test both success and error scenarios without having to deal with mocking HTTP, timing of responses, or other details about how the `PromiseState`(s) is fulfilled -- instead, they can just focus on asserting that the component itself renders the `PromiseState`(s) correctly in various scenarios.
 
 The recommended naming convention for the unconnected component is to prepend an underscore to the component name. For example, if there is a component called `Profile`, add a non-default export of `_Profile` before the default export with `connect`:
 
@@ -576,7 +586,7 @@ class Profile extends React.Component {
 
   render() {
     const { userFetch } = this.props
-    
+
     if (userFetch.pending) {
       return <LoadingAnimation/>
     } else if (userFetch.rejected) {

@@ -4,7 +4,7 @@
 
 Connects a React component to data from one or more URLs.
 
-It does not modify the component class passed to it.  
+It does not modify the component class passed to it.
 Instead, it *returns* a new, connected component class, for you to use.
 
 #### Arguments
@@ -26,10 +26,10 @@ Instead, it *returns* a new, connected component class, for you to use.
      - `catch(reason, meta): request` *(Function)*: returns a request to fetch after rejection of this request and replaces this request. Takes the `value` and `meta` of this request as arguments. Return `undefined` in `catch` to do side-effects after a rejected request, leaving the request as is.
      - `andThen(value, meta): { prop: request, ... }` *(Function)*: returns an object of request mappings to fetch after fulfillment of this request but does not replace this request. Takes the `value` and `meta` of this request as arguments.
      - `andCatch(reason, meta): { prop: request, ... }` *(Function)*: returns an object of request mappings to fetch after rejection of this request but does not replace this request. Takes the `value` and `meta` of this request as arguments.
-     - `value` *(Any)*: Data to passthrough directly to `PromiseState` as an alternative to providing a URL. If given a `Promise`, the `PromiseState` will be pending until the `value` or `reason` is settled; otherwise, the `PromiseState` will be resolved immediately. This is an advanced option used for static data and data transformations. Also consider setting `meta`.
+     - `value` *(Function => Any | Any)*: Data to passthrough directly to `PromiseState` as an alternative to providing a URL. Given a `Function`, its return value will be passed to `PromiseState`. If given a `Promise` (or `Promise` returned from `Function`), the `PromiseState` will be pending until the `value` or `reason` is settled; otherwise, the `PromiseState` will be resolved immediately. This is an advanced option used for static data and data transformations. Also consider setting `meta`.
      - `meta` *(Object)*: Metadata to passthrough directly to `PromiseState`. Keys `request`, `response`, `component`, and future keys may be overwritten.
-     
-   The arguments `then`, `andThen`, `catch`, `andCatch` above take  `value`/`reason` and `meta` as arguments. These coorespond to the properties of the `PromiseState` described below. `meta` contains a `component` property that is equal to the component being wrapped. You can use it to create side effects on promise fulfillment. e.g. `then(value, meta) { meta.component.onDataLoaded(value); }`. Note, `component` is only set if `withRef: true` in options; otherwise, it will be `undefined`.
+
+   The arguments `then`, `andThen`, `catch`, `andCatch` above take  `value`/`reason` and `meta` as arguments. These correspond to the properties of the `PromiseState` described below. `meta` contains a `component` property that is equal to the component being wrapped. You can use it to create side effects on promise fulfillment. e.g. `then(value, meta) { meta.component.onDataLoaded(value); }`. Note, `component` is only set if `withRef: true` in options; otherwise, it will be `undefined`.
 
   The following keys may also be defined on an individual request (see their description below at `connect.defaults()`):
      - `fetch`
