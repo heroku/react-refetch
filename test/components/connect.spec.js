@@ -357,33 +357,6 @@ describe('React', () => {
     })
 
     it('should invoke value() only if `comparison` changed', (done) => {
-      @connect(() => ({ testFetch: { value: () => Promise.resolve('foo'), meta: { test: 'voodoo' } } }))
-      class Container extends Component {
-        render() {
-          return <Passthrough {...this.props} />
-        }
-      }
-
-      const container = TestUtils.renderIntoDocument(
-        <Container />
-      )
-
-      const stub = TestUtils.findRenderedComponentWithType(container, Passthrough)
-      expect(stub.props.testFetch).toIncludeKeyValues({
-        fulfilled: false, pending: true, refreshing: false, reason: null, rejected: false, settled: false, value: null, meta: { test: 'voodoo' }
-      })
-
-      setImmediate(() => {
-        const stub = TestUtils.findRenderedComponentWithType(container, Passthrough)
-        expect(stub.props.testFetch).toIncludeKeyValues({
-          fulfilled: true, pending: false, refreshing: false, reason: null, rejected: false, settled: true, value: 'foo', meta: { test: 'voodoo' }
-        })
-
-        done()
-      })
-    })
-
-    it('should invoke value() only if `comparison` changed', (done) => {
       const renderSpy = expect.createSpy(() => ({}))
       function render() {
         renderSpy()
@@ -393,7 +366,7 @@ describe('React', () => {
       const valueSpy = expect.createSpy(() => ({}))
       @connect(({ foo }) => ({
         testFetch: {
-          value: valueSpy,
+          value: () => { valueSpy() },
           comparison: foo.FOO
         }
       }))

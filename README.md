@@ -314,7 +314,7 @@ connect(props => ({
 }))(Users)
 ```
 
-In this case the `userFetch` `PromiseState` will be set to the provided list of users. The use case for identity requests by themselves is limited to mostly injecting static data during development and testing; however, they can be quite powerful when used with [request chaining](#chaining-requests). For example, it is possible to fetch data from the server, filter it within a `then` function, and return an identity request:
+In this case, the `usersFetch` `PromiseState` will be set to the provided list of users. The use case for identity requests by themselves is limited to mostly injecting static data during development and testing; however, they can be quite powerful when used with [request chaining](#chaining-requests). For example, it is possible to fetch data from the server, filter it within a `then` function, and return an identity request:
 
 ```jsx
 connect(props => ({
@@ -329,14 +329,15 @@ connect(props => ({
 
 Note, this form of transformation is similar to what is possible on the `PromiseState` (i.e. `this.props.usersFetch.then(users => users.filter(u => u.verified))`); however, this has the advantage of only being called when `usersFetch` changes and keeps the logic out of the component.
 
-**Identity requests can also be provided a `Promise`/thenable or a `Function`.**
-In case of a `Promise`, the `PromiseState` will be `pending` until the `Promise` is resolved. This can be helpful for asynchronous, non-fetch operations (e.g. file i/o) that want to use a similar pattern as fetch operations.
-In case of a `Function`, value returned from it will be used instead, as in cases described above. `Function` will be only be called when `comparison` changed.
+**Identity requests can also be provided a `Promise` (or any "thenable") or a `Function`.**
+If `value` is a `Promise`, the `PromiseState` will be `pending` until the `Promise` is resolved. This can be helpful for asynchronous, non-fetch operations (e.g. file i/o) that want to use a similar pattern as fetch operations.
+If `value` is a `Function`, it will be evaluated with no arguments and its return value will be used instead, as in cases described above. The `Function` will be only be called when `comparison` changes. This can be helpful for cases where you want to provide an identify request, but it is expensive to evaluate. By wrapping it in a function, it is only evaluated when something changes.
 
 ```jsx
 connect(props => ({
-  usersFetch: {
-    value: () => someAPI.list('/users')
+  userFetch: {
+    comparison: props.userId,
+    value: () => SomeExternalAPI.getUser(`/users/${props.userId}`)
   }
 }))(Users)
 ```
