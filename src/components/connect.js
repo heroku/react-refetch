@@ -6,8 +6,8 @@ import buildRequest from '../utils/buildRequest'
 import checkTypes from '../utils/checkTypes'
 import PromiseState from '../PromiseState'
 import hoistStatics from 'hoist-non-react-statics'
-import invariant from 'invariant'
-import warning from 'warning'
+import invariant from 'fbjs/lib/invariant'
+import warning from 'fbjs/lib/warning'
 
 const defaultMapPropsToRequestsToProps = () => ({})
 

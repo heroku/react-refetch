@@ -1,4 +1,4 @@
-import invariant from 'invariant'
+import invariant from 'fbjs/lib/invariant'
 import isPlainObject from './isPlainObject'
 
 function typecheck(types, name, obj) {
