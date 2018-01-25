@@ -62,10 +62,8 @@
     "whatwg-fetch": "*"
   },
   "dependencies": {
-    "hoist-non-react-statics": "^2.2.1",
-    "invariant": "^2.0.0",
-    "lodash": "^4.2.0",
-    "warning": "^3.0.0"
+    "fbjs": "^0.8.16",
+    "hoist-non-react-statics": "^2.2.1"
   },
   "peerDependencies": {
     "react": "^0.14.0 || ^15.0.0-0 || ^16.0.0-0"
