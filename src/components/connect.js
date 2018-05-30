@@ -272,7 +272,7 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
         const initPS = this.createInitialPromiseState(prop, mapping)
         const onFulfillment = this.createPromiseStateOnFulfillment(prop, mapping, startedAt)
         const onRejection = this.createPromiseStateOnRejection(prop, mapping, startedAt)
-
+        meta.component = this.refs.wrappedInstance
         if (mapping.hasOwnProperty('value')) {
           return onFulfillment(meta)(mapping.value)
         } else {
