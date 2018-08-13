@@ -8,8 +8,6 @@ import PromiseState from '../PromiseState'
 import hoistStatics from 'hoist-non-react-statics'
 import invariant from 'invariant'
 import warning from 'warning'
-import hasIn from 'lodash/hasIn'
-import omit from 'lodash/fp/omit'
 
 const defaultMapPropsToRequestsToProps = () => ({})
 
@@ -61,7 +59,10 @@ export default connectFactory({
   }
 })
 
-const omitChildren = omit('children')
+const omitChildren = function omitChildren(obj) {
+  const { children, ...rest } = obj
+  return rest
+}
 
 function connect(mapPropsToRequestsToProps, defaults, options) {
   const finalMapPropsToRequestsToProps = mapPropsToRequestsToProps || defaultMapPropsToRequestsToProps
@@ -273,14 +274,13 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
         const initPS = this.createInitialPromiseState(prop, mapping)
         const onFulfillment = this.createPromiseStateOnFulfillment(prop, mapping, startedAt)
         const onRejection = this.createPromiseStateOnRejection(prop, mapping, startedAt)
-
         if (mapping.hasOwnProperty('value')) {
           let value = mapping.value
           if (typeof value === 'function') {
             value = value()
           }
 
-          if (hasIn(value, 'then')) {
+          if (value && typeof value.then === 'function') {
             this.setAtomicState(prop, startedAt, mapping, initPS(meta))
             return value.then(onFulfillment(meta), onRejection(meta))
           } else {
