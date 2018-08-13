@@ -330,7 +330,13 @@ describe('React', () => {
     })
 
     it('should passthrough value of function identity requests after invoking function', (done) => {
-      @connect(() => ({ testFetch: { value: () => Promise.resolve('foo'), meta: { test: 'voodoo' } } }))
+      @connect(() => ({
+        testFetch: {
+          value: () => Promise.resolve('foo'),
+          comparison: true,
+          meta: { test: 'voodoo' }
+        }
+      }))
       class Container extends Component {
         render() {
           return <Passthrough {...this.props} />
@@ -354,6 +360,23 @@ describe('React', () => {
 
         done()
       })
+    })
+
+    it('should require comparison be declared if value is a function', (done) => {
+      @connect(() => ({
+        testFetch: {
+          value: () => Promise.resolve('foo')
+        }
+      }))
+      class Container extends Component {
+        render() {
+          return <Passthrough {...this.props} />
+        }
+      }
+
+      expect(() => TestUtils.renderIntoDocument(<Container />)).toThrow('Request object with functional `value` must also declare `comparison`.')
+
+      done()
     })
 
     it('should invoke value() only if `comparison` changed', (done) => {

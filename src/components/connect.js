@@ -131,6 +131,7 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
     invariant(isPlainObject(mapping), 'Request for `%s` must be either a string or a plain object. Instead received %s', prop, mapping)
     invariant(mapping.hasOwnProperty('url') || mapping.hasOwnProperty('value'), 'Request object for `%s` must have `url` (or `value`) attribute.', prop)
     invariant(!(mapping.hasOwnProperty('url') && mapping.hasOwnProperty('value')), 'Request object for `%s` must not have both `url` and `value` attributes.', prop)
+    invariant(!(mapping.hasOwnProperty('value') && typeof mapping.value === 'function' && !mapping.hasOwnProperty('comparison')), 'Request object with functional `value` must also declare `comparison`.', mapping.value, mapping.comparison)
 
     checkTypes(mapping)
 
