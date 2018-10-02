@@ -67,8 +67,10 @@ const omitChildren = function omitChildren(obj) {
 function connect(mapPropsToRequestsToProps, defaults, options) {
   const finalMapPropsToRequestsToProps = mapPropsToRequestsToProps || defaultMapPropsToRequestsToProps
   const dependsOnProps = finalMapPropsToRequestsToProps.length >= 1
-  const dependsOnContext = finalMapPropsToRequestsToProps.length == 2
-
+  
+  warning(finalMapPropsToRequestsToProps.length < 2, 'Passing context to `mapPropsToRequestsToProps` is no longer supported.')
+  
+  
   let topFetch
   let topRequest
   if (typeof window !== 'undefined') {
@@ -192,23 +194,22 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
 
   return function wrapWithConnect(WrappedComponent) {
     class RefetchConnect extends Component {
-      constructor(props, context) {
-        super(props, context)
+      constructor(props) {
+        super(props)
         this.version = version
         this.state = { mappings: {}, startedAts: {}, data: {}, refreshTimeouts: {} }
       }
 
-      componentWillMount() {
+      componentDidMount() {
         this.refetchDataFromProps()
       }
 
-      componentWillReceiveProps(nextProps, nextContext) {
+      componentDidUpdate(prevProps) {
         if (
           !options.pure ||
-          (dependsOnProps && !shallowEqual(omitChildren(this.props), omitChildren(nextProps))) ||
-          (dependsOnContext && !shallowEqual(this.context, nextContext))
+          (dependsOnProps && !shallowEqual(omitChildren(this.props), omitChildren(prevProps))) 
         ) {
-          this.refetchDataFromProps(nextProps, nextContext)
+          this.refetchDataFromProps()
         }
       }
 
@@ -237,8 +238,8 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
         return this.refs.wrappedInstance
       }
 
-      refetchDataFromProps(props = this.props, context = this.context) {
-        this.refetchDataFromMappings(finalMapPropsToRequestsToProps(omitChildren(props), context) || {})
+      refetchDataFromProps(props = this.props) {
+        this.refetchDataFromMappings(finalMapPropsToRequestsToProps(omitChildren(props)) || {})
       }
 
       refetchDataFromMappings(mappings) {
@@ -413,13 +414,10 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
     RefetchConnect.displayName = `Refetch.connect(${getDisplayName(WrappedComponent)})`
     RefetchConnect.WrappedComponent = WrappedComponent
 
-    if (dependsOnContext && WrappedComponent.contextTypes) {
-      RefetchConnect.contextTypes = WrappedComponent.contextTypes
-    }
-
     if (process.env.NODE_ENV !== 'production') {
-      RefetchConnect.prototype.componentWillUpdate = function componentWillUpdate() {
+      RefetchConnect.prototype.componentDidUpdate = (previous => function componentDidUpdate() {
         if (this.version === version) {
+          previous.apply(this, arguments)
           return
         }
 
@@ -427,7 +425,7 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
         this.version = version
         this.clearAllRefreshTimeouts()
         this.refetchDataFromProps()
-      }
+      })(RefetchConnect.prototype.componentDidUpdate)
     }
 
     return hoistStatics(RefetchConnect, WrappedComponent)
