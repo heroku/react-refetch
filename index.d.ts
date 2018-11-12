@@ -1,0 +1,143 @@
+import {
+  Component,
+  ComponentClass,
+  ComponentState,
+  StatelessComponent,
+} from "react";
+
+////////////////////////
+// PromiseState
+////////////////////////
+
+// Similar to PromiseLike<T>
+export type PromiseStateLike<T> = T | PromiseState<T>;
+
+export interface PromiseStateStatic {
+  create<T = {}>(meta?: any): PromiseState<T>;
+  refresh<T = {}>(previous?: PromiseState<T>, meta?: any): PromiseState<T>;
+  resolve<T = {}>(value?: PromiseStateLike<T>, meta?: any): PromiseState<T>;
+  reject<T = {}>(reason?: any, meta?: any): PromiseState<T>;
+  all<T = {}>(iterable: Iterable<PromiseState<any>>): PromiseState<T[]>;
+  race<T = {}>(iterable: Iterable<PromiseState<any>>): PromiseState<T>;
+}
+
+export interface PromiseState<T = {}> {
+  readonly pending: boolean;
+  readonly refreshing: boolean;
+  readonly fulfilled: boolean;
+  readonly rejected: boolean;
+  readonly settled: boolean;
+  readonly value: T;
+  readonly reason: any;
+  readonly meta: any;
+  then: <TFulfilled = T, TRejected = T>(
+    onFulfilled?: (
+      value: PromiseStateLike<T>,
+    ) => PromiseStateLike<TFulfilled>,
+    onRejected?: (reason: any) => PromiseStateLike<TRejected>,
+  ) =>
+    | PromiseStateLike<T>
+    | PromiseStateLike<TFulfilled>
+    | PromiseStateLike<TRejected>;
+  catch: <TRejected = T>(
+    onRejected?: (reason: any) => PromiseStateLike<TRejected>,
+  ) => PromiseStateLike<T> | PromiseStateLike<TRejected>;
+}
+
+export const PromiseState: Readonly<PromiseStateStatic>;
+
+////////////////////////
+// connect
+////////////////////////
+
+interface RequestType {
+  prototype: Request;
+  new (input: RequestInfo, init?: RequestInit): Request;
+}
+
+export interface Connect {
+  <TProps = {}>(map: MapPropsToRequestsToProps<TProps>): (
+    component: ComponentClass<TProps> | StatelessComponent<TProps>,
+  ) => ComponentClass<TProps> & WithRefetch<TProps>;
+  defaults: <TProps = {}, T = {}>(newDefaults: Mapping<TProps, T>) => Connect;
+  options: (newOptions: ConnectOptions) => Connect;
+}
+
+export interface ConnectOptions {
+  withRef?: boolean;
+  pure?: boolean;
+}
+
+export type MapPropsToRequestsToProps<T> = (
+  props: T,
+  context: any,
+) => PropsMap<T>;
+
+// String or PromiseState
+type PromiseStateMapping<
+  TProps,
+  TProp extends keyof TProps
+> = TProps[TProp] extends PromiseState<infer TValue>
+  ? string | Mapping<TProps, TValue>
+  : never;
+
+// Function
+type FunctionMapping<
+  TProps,
+  TProp extends keyof TProps
+> = TProps[TProp] extends ((...args: infer TArgs) => void)
+  ? ((...args: TArgs) => PropsMap<TProps>)
+  : never;
+
+export type PropsMap<TProps> = {
+  [TProp in keyof TProps]?:
+    | PromiseStateMapping<TProps, TProp>
+    | FunctionMapping<TProps, TProp>
+};
+
+export interface Mapping<TProps, TValue> {
+  buildRequest?: (mapping: Mapping<TProps, TValue>) => any;
+  fetch?: (request: any) => any;
+  handleResponse?: (response: any) => Promise<TValue>;
+  Request?: RequestType;
+
+  url?: string;
+  method?: string;
+  headers?: { [key: string]: string | (() => string) };
+  credentials?: "omit" | "same-origin" | "include";
+  body?: object;
+  redirect?: "follow" | "error" | "manual";
+  mode?: "cors" | "no-cors" | "same-origin" | "navigate";
+  refreshInterval?: number;
+  refreshing?: boolean | ((value: TValue) => TValue);
+  force?: boolean;
+  comparison?: any;
+
+  then?: <TReturned>(
+    value: TValue,
+    meta: any,
+  ) => Mapping<TProps, TReturned> | void;
+  catch?: <TReturned>(reason: any) => Mapping<TProps, TReturned> | void;
+
+  andThen?: (value: TValue) => PropsMap<TProps>;
+  andCatch?: (rason: any) => PropsMap<TProps>;
+
+  value?: TValue | PromiseLike<TValue>;
+  meta?: any;
+
+  // Everything else is passed through unmodified
+  [key: string]: any;
+  [key: number]: any;
+}
+
+export interface WithRefetch<TProps> {
+  WrappedComponent: ComponentClass<TProps>;
+  new (props: TProps, context?: any): Component<TProps, ComponentState> &
+    WithRefetchInstance<TProps>;
+}
+
+export interface WithRefetchInstance<TProps> {
+  getWrappedInstance(): Component<TProps>;
+}
+
+export const connect: Connect;
