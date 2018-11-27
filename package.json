@@ -3,8 +3,9 @@
   "version": "2.0.1",
   "description": "A simple, declarative, and composable way to fetch data for React components.",
   "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
   "scripts": {
-    "build": "babel src --out-dir lib",
+    "build": "babel src --out-dir lib; cp src/*.d.ts lib",
     "clean": "rimraf lib dist coverage",
     "lint": "eslint src test",
     "prepublish": "npm run clean && npm run lint && npm run build",
