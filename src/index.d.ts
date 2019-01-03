@@ -105,7 +105,7 @@ export interface Mapping<TProps, TValue> {
   method?: string;
   headers?: { [key: string]: string | (() => string) };
   credentials?: "omit" | "same-origin" | "include";
-  body?: object;
+  body?: string;
   redirect?: "follow" | "error" | "manual";
   mode?: "cors" | "no-cors" | "same-origin" | "navigate";
   refreshInterval?: number;
