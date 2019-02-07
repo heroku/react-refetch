@@ -225,7 +225,7 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
       render() {
         const ref = options.withRef ? 'wrappedInstance' : null
         return (
-          <WrappedComponent { ...this.state.data } { ...this.props } ref={ref}/>
+          <WrappedComponent { ...this.props } { ...this.state.data } ref={ref}/>
         )
       }
 
