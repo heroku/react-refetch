@@ -35,7 +35,8 @@ describe('React', () => {
     }
 
     class ContainerWithSetters extends Component {
-      componentWillMount() {
+      constructor(props) {
+        super(props)
         this.state = {
           propsForChild: {}
         }
@@ -427,23 +428,23 @@ describe('React', () => {
         <OuterComponent ref={c => outerComponent = c} />
       )
 
-      expect(renderSpy.calls.length).toBe(1)
+      expect(renderSpy.calls.length).toBe(2) // Render is called twice, because of componentDidMount
       setImmediate(() => {
         expect(valueSpy.calls.length).toBe(1)
 
         outerComponent.setFoo('BAR')
-        expect(renderSpy.calls.length).toBe(2)
+        expect(renderSpy.calls.length).toBe(3)
         setImmediate(() => {
           expect(valueSpy.calls.length).toBe(2)
 
           // set BAR again, but will not be refetched
           outerComponent.setFoo('BAR')
-          expect(renderSpy.calls.length).toBe(3)
+          expect(renderSpy.calls.length).toBe(4)
           setImmediate(() => {
             expect(valueSpy.calls.length).toBe(2)
 
             outerComponent.setFoo('BAZ')
-            expect(renderSpy.calls.length).toBe(4)
+            expect(renderSpy.calls.length).toBe(5)
             setImmediate(() => {
               expect(valueSpy.calls.length).toBe(3)
 
@@ -1664,7 +1665,7 @@ describe('React', () => {
       ])
     })
 
-    it('should invoke mapPropsToRequestsToProps with context (used as function) (pure: false)', () => {
+    it('should deprecate mapPropsToRequestsToProps with context (used as function) (pure: false)', () => {
       let invocationCount = 0
       let contextPassedIn = []
       let propsPassedIn = []
@@ -1987,7 +1988,7 @@ describe('React', () => {
         render.reset()
 
         outerComponent.setFoo('BAR')
-        expect(render.calls.length).toBe(1)
+        expect(render.calls.length).toBe(2)
         render.reset()
 
         setImmediate(() => {
@@ -2006,7 +2007,7 @@ describe('React', () => {
             expect(render.calls.length).toBe(0)
 
             outerComponent.setFoo('BAZ')
-            expect(render.calls.length).toBe(1)
+            expect(render.calls.length).toBe(2)
             render.reset()
 
             setImmediate(() => {
@@ -2066,23 +2067,23 @@ describe('React', () => {
         <OuterComponent ref={c => outerComponent = c} />
       )
 
-      expect(renderSpy.calls.length).toBe(1)
+      expect(renderSpy.calls.length).toBe(2)
       setImmediate(() => {
         expect(window.fetch.calls.length).toBe(1)
 
         outerComponent.setFoo('BAR')
-        expect(renderSpy.calls.length).toBe(3)
+        expect(renderSpy.calls.length).toBe(5)
         setImmediate(() => {
           expect(window.fetch.calls.length).toBe(2)
 
           // set BAR again, but will not be refetched
           outerComponent.setFoo('BAR')
-          expect(renderSpy.calls.length).toBe(5)
+          expect(renderSpy.calls.length).toBe(7)
           setImmediate(() => {
             expect(window.fetch.calls.length).toBe(2)
 
             outerComponent.setFoo('BAZ')
-            expect(renderSpy.calls.length).toBe(6)
+            expect(renderSpy.calls.length).toBe(9)
             setImmediate(() => {
               expect(window.fetch.calls.length).toBe(3)
 
@@ -2138,24 +2139,24 @@ describe('React', () => {
         <OuterComponent ref={c => outerComponent = c} />
       )
 
-      expect(renderSpy.calls.length).toBe(1)
+      expect(renderSpy.calls.length).toBe(2)
       setImmediate(() => {
         expect(window.fetch.calls.length).toBe(1)
 
         outerComponent.setFoo('BAR')
         setImmediate(() => {
-          expect(renderSpy.calls.length).toBe(4)
+          expect(renderSpy.calls.length).toBe(6)
           setImmediate(() => {
             expect(window.fetch.calls.length).toBe(2)
 
             // set BAR again, but will not be refetched
             outerComponent.setFoo('BAR')
-            expect(renderSpy.calls.length).toBe(5)
+            expect(renderSpy.calls.length).toBe(7)
             setImmediate(() => {
               expect(window.fetch.calls.length).toBe(2)
 
               outerComponent.setFoo('BAZ')
-              expect(renderSpy.calls.length).toBe(6)
+              expect(renderSpy.calls.length).toBe(9)
               setImmediate(() => {
                 expect(window.fetch.calls.length).toBe(3)
 
@@ -2451,25 +2452,25 @@ describe('React', () => {
       container.setPropsForChild({ bar: 1 })
       expect(renderSpy.calls.length).toBe(2)
       container.setPropsForChild({ foo: 2 })
-      expect(renderSpy.calls.length).toBe(3)
+      expect(renderSpy.calls.length).toBe(4)
 
       return immediatePromise()
         .then(() => {
-          expect(renderSpy.calls.length).toBe(4)
-          container.setPropsForChild({ foo: 2 })
-          expect(renderSpy.calls.length).toBe(4)
-          container.setPropsForChild({ bar: 3 })
           expect(renderSpy.calls.length).toBe(5)
-          container.setPropsForChild({ bar: 3, children: fooDiv })
+          container.setPropsForChild({ foo: 2 })
+          expect(renderSpy.calls.length).toBe(5)
+          container.setPropsForChild({ bar: 3 })
           expect(renderSpy.calls.length).toBe(6)
           container.setPropsForChild({ bar: 3, children: fooDiv })
-          expect(renderSpy.calls.length).toBe(6)
-          container.setPropsForChild({ bar: 3, children: <div>foo</div> })
           expect(renderSpy.calls.length).toBe(7)
+          container.setPropsForChild({ bar: 3, children: fooDiv })
+          expect(renderSpy.calls.length).toBe(7)
+          container.setPropsForChild({ bar: 3, children: <div>foo</div> })
+          expect(renderSpy.calls.length).toBe(8)
         })
         .then(immediatePromise)
         .then(() => {
-          expect(renderSpy.calls.length).toBe(7)
+          expect(renderSpy.calls.length).toBe(8)
         })
     })
 
@@ -2486,25 +2487,25 @@ describe('React', () => {
       container.setPropsForChild({ bar: 1 })
       expect(renderSpy.calls.length).toBe(3)
       container.setPropsForChild({ foo: 2 })
-      expect(renderSpy.calls.length).toBe(4)
+      expect(renderSpy.calls.length).toBe(5)
 
       return immediatePromise()
         .then(() => {
-          expect(renderSpy.calls.length).toBe(5)
-          container.setPropsForChild({ foo: 2 })
           expect(renderSpy.calls.length).toBe(6)
-          container.setPropsForChild({ bar: 3 })
+          container.setPropsForChild({ foo: 2 })
           expect(renderSpy.calls.length).toBe(7)
-          container.setPropsForChild({ bar: 3, children: fooDiv })
+          container.setPropsForChild({ bar: 3 })
           expect(renderSpy.calls.length).toBe(8)
           container.setPropsForChild({ bar: 3, children: fooDiv })
           expect(renderSpy.calls.length).toBe(9)
-          container.setPropsForChild({ bar: 3, children: <div>foo</div> })
+          container.setPropsForChild({ bar: 3, children: fooDiv })
           expect(renderSpy.calls.length).toBe(10)
+          container.setPropsForChild({ bar: 3, children: <div>foo</div> })
+          expect(renderSpy.calls.length).toBe(11)
         })
         .then(immediatePromise)
         .then(() => {
-          expect(renderSpy.calls.length).toBe(10)
+          expect(renderSpy.calls.length).toBe(11)
         })
     })
 
