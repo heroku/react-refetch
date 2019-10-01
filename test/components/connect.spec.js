@@ -1459,7 +1459,7 @@ describe('React', () => {
         undefined,
         undefined,
         undefined,
-        undefined,
+        undefined
       ])
 
       expect(propsPassedIn).toEqual([
