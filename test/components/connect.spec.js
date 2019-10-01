@@ -428,23 +428,25 @@ describe('React', () => {
         <OuterComponent ref={c => outerComponent = c} />
       )
 
-      expect(renderSpy.calls.length).toBe(2) // Render is called twice, because of componentDidMount
+      // Render is called twice each time the value changes because of componentDidMount
+
+      expect(renderSpy.calls.length).toBe(2)
       setImmediate(() => {
         expect(valueSpy.calls.length).toBe(1)
 
         outerComponent.setFoo('BAR')
-        expect(renderSpy.calls.length).toBe(3)
+        expect(renderSpy.calls.length).toBe(4)
         setImmediate(() => {
           expect(valueSpy.calls.length).toBe(2)
 
           // set BAR again, but will not be refetched
           outerComponent.setFoo('BAR')
-          expect(renderSpy.calls.length).toBe(4)
+          expect(renderSpy.calls.length).toBe(5)
           setImmediate(() => {
             expect(valueSpy.calls.length).toBe(2)
 
             outerComponent.setFoo('BAZ')
-            expect(renderSpy.calls.length).toBe(5)
+            expect(renderSpy.calls.length).toBe(7)
             setImmediate(() => {
               expect(valueSpy.calls.length).toBe(3)
 
