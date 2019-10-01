@@ -1298,7 +1298,7 @@ describe('React', () => {
       })
     })
 
-    it("should not re-invoke mapPropsToRequestsToProps if it doesn't depend on props or context (pure: true) (default)", () => {
+    it("should not re-invoke mapPropsToRequestsToProps if it doesn't depend on props (pure: true) (default)", () => {
       let invocationCount = 0
 
       @connect(() => {
@@ -1340,7 +1340,7 @@ describe('React', () => {
       expect(invocationCount).toEqual(1)
     })
 
-    it("should re-invoke mapPropsToRequestsToProps even if it doesn't depend on props or context (pure: false)", () => {
+    it("should re-invoke mapPropsToRequestsToProps even if it doesn't depend on props (pure: false)", () => {
       let invocationCount = 0
 
       @connect.options({ pure: false })(() => {
@@ -1461,163 +1461,6 @@ describe('React', () => {
         undefined,
         undefined,
       ])
-
-      expect(propsPassedIn).toEqual([
-        {
-          bar: 'foo'
-        },
-        {
-          bar: 'foo'
-        },
-        {
-          bar: 'foo'
-        },
-        {
-          bar: 'baz'
-        },
-        {
-          bar: 'baz'
-        }
-      ])
-    })
-
-    it("should not re-invoke mapPropsToRequestsToProps when context changes if it doesn't depend on context (pure: true) (default)", () => {
-      let invocationCount = 0
-      let propsPassedIn = []
-
-      @connect((props) => {
-        invocationCount++
-        propsPassedIn.push(props)
-        return {}
-      })
-      class InnerComponent extends Component {
-        render() {
-          return <div />
-        }
-      }
-      InnerComponent.contextTypes = {
-        foo: React.PropTypes.string
-      }
-
-      class OuterComponent extends Component {
-        constructor(props) {
-          super(props)
-          this.state = {
-            foo: 'bar',
-            bar: 'foo'
-          }
-        }
-
-        getChildContext() {
-          return {
-            foo: this.state.foo
-          }
-        }
-
-        setContext(foo) {
-          this.setState({ foo })
-        }
-
-        setProp(bar) {
-          this.setState({ bar })
-        }
-
-        render() {
-          return <InnerComponent bar={this.state.bar} />
-        }
-      }
-      OuterComponent.childContextTypes = {
-        foo: React.PropTypes.string
-      }
-
-      let outerComponent
-      TestUtils.renderIntoDocument(
-        <OuterComponent ref={c => outerComponent = c} />
-      )
-
-      expect(invocationCount).toEqual(1)
-      outerComponent.setContext('baz')
-      expect(invocationCount).toEqual(1)
-      outerComponent.setContext('baz')
-      expect(invocationCount).toEqual(1)
-      outerComponent.setProp('baz')
-      expect(invocationCount).toEqual(2)
-      outerComponent.setProp('baz')
-      expect(invocationCount).toEqual(2)
-
-      expect(propsPassedIn).toEqual([
-        {
-          bar: 'foo'
-        },
-        {
-          bar: 'baz'
-        }
-      ])
-    })
-
-    it("should re-invoke mapPropsToRequestsToProps when context changes even if it doesn't depend on context (pure: false)", () => {
-      let invocationCount = 0
-      let propsPassedIn = []
-
-      @connect.options({ pure: false })((props) => {
-        invocationCount++
-        propsPassedIn.push(props)
-        return {}
-      })
-      class InnerComponent extends Component {
-        render() {
-          return <div />
-        }
-      }
-      InnerComponent.contextTypes = {
-        foo: React.PropTypes.string
-      }
-
-      class OuterComponent extends Component {
-        constructor(props) {
-          super(props)
-          this.state = {
-            foo: 'bar',
-            bar: 'foo'
-          }
-        }
-
-        getChildContext() {
-          return {
-            foo: this.state.foo
-          }
-        }
-
-        setContext(foo) {
-          this.setState({ foo })
-        }
-
-        setProp(bar) {
-          this.setState({ bar })
-        }
-
-        render() {
-          return <InnerComponent bar={this.state.bar} />
-        }
-      }
-      OuterComponent.childContextTypes = {
-        foo: React.PropTypes.string
-      }
-
-      let outerComponent
-      TestUtils.renderIntoDocument(
-        <OuterComponent ref={c => outerComponent = c} />
-      )
-
-      expect(invocationCount).toEqual(1)
-      outerComponent.setContext('baz')
-      expect(invocationCount).toEqual(2)
-      outerComponent.setContext('baz')
-      expect(invocationCount).toEqual(3)
-      outerComponent.setProp('baz')
-      expect(invocationCount).toEqual(4)
-      outerComponent.setProp('baz')
-      expect(invocationCount).toEqual(5)
 
       expect(propsPassedIn).toEqual([
         {
