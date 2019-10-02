@@ -201,8 +201,9 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
         // To avoid undefined data at mount, pre-populated pending PromiseStates
         const mappings = finalMapPropsToRequestsToProps(omitChildren(props)) || {}
         const initDate = Object.keys(mappings).reduce((data, prop) => {
-          if (!Function.prototype.isPrototypeOf(mappings[prop])) {
-            data[prop] = PromiseState.create()
+          const mapping = mappings[prop]
+          if (!Function.prototype.isPrototypeOf(mapping)) {
+            data[prop] = PromiseState.create(mapping.meta)
           }
           return data
         }, {})
