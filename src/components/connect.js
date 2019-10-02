@@ -197,7 +197,20 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
       constructor(props) {
         super(props)
         this.version = version
-        this.state = { mappings: {}, startedAts: {}, data: {}, refreshTimeouts: {} }
+
+        // To avoid undefined data at mount, pre-populated pending PromiseStates
+        const mappingKeys = Object.keys(finalMapPropsToRequestsToProps(omitChildren(props)) || {})
+        const initDate = mappingKeys.reduce((data, prop) => {
+          data[prop] = PromiseState.create()
+          return data
+        }, {})
+
+        this.state = {
+          mappings: {},
+          startedAts: {},
+          data: initDate,
+          refreshTimeouts: {}
+        }
       }
 
       componentDidMount() {
