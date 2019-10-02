@@ -199,10 +199,15 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
         this.version = version
 
         // To avoid undefined data at mount, pre-populated pending PromiseStates
+        // TODO: de-dupe with update code
         const mappings = finalMapPropsToRequestsToProps(omitChildren(props)) || {}
         const initDate = Object.keys(mappings).reduce((data, prop) => {
           const mapping = mappings[prop]
-          if (!Function.prototype.isPrototypeOf(mapping)) {
+          if (Function.prototype.isPrototypeOf(mapping)) {
+            data[prop] = (...args) => {
+              this.refetchDataFromMappings(mapping(...args))
+            }
+          } else {
             data[prop] = PromiseState.create(mapping.meta)
           }
           return data
