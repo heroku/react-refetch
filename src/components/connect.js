@@ -199,9 +199,11 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
         this.version = version
 
         // To avoid undefined data at mount, pre-populated pending PromiseStates
-        const mappingKeys = Object.keys(finalMapPropsToRequestsToProps(omitChildren(props)) || {})
-        const initDate = mappingKeys.reduce((data, prop) => {
-          data[prop] = PromiseState.create()
+        const mappings = finalMapPropsToRequestsToProps(omitChildren(props)) || {}
+        const initDate = Object.keys(mappings).reduce((data, prop) => {
+          if (!Function.prototype.isPrototypeOf(mappings[prop])) {
+            data[prop] = PromiseState.create()
+          }
           return data
         }, {})
 
@@ -218,17 +220,13 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
       }
 
       componentDidUpdate(prevProps) {
-        if (
-          !options.pure ||
-          (dependsOnProps && !shallowEqual(omitChildren(this.props), omitChildren(prevProps))) 
-        ) {
+        if (dependsOnProps && !shallowEqual(omitChildren(this.props), omitChildren(prevProps))) {
           this.refetchDataFromProps()
         }
       }
 
-      shouldComponentUpdate(nextProps, nextState) {
-        return !options.pure ||
-          this.state.data != nextState.data || !shallowEqual(this.props, nextProps)
+      shouldComponentUpdate(nextProps) {
+        return !options.pure || !shallowEqual(this.props, nextProps)
       }
 
       componentWillUnmount() {
