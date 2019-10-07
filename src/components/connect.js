@@ -67,10 +67,9 @@ const omitChildren = function omitChildren(obj) {
 function connect(mapPropsToRequestsToProps, defaults, options) {
   const finalMapPropsToRequestsToProps = mapPropsToRequestsToProps || defaultMapPropsToRequestsToProps
   const dependsOnProps = finalMapPropsToRequestsToProps.length >= 1
-  
+
   warning(finalMapPropsToRequestsToProps.length < 2, 'Passing context to `mapPropsToRequestsToProps` is no longer supported.')
-  
-  
+
   let topFetch
   let topRequest
   if (typeof window !== 'undefined') {
@@ -101,8 +100,7 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
   checkTypes(defaults)
 
   options = Object.assign({
-    withRef: false,
-    pure: true
+    withRef: false
   }, options)
 
   // Helps track hot reloading.
@@ -231,8 +229,8 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
         }
       }
 
-      shouldComponentUpdate(nextProps) {
-        return !options.pure || !shallowEqual(this.props, nextProps)
+      shouldComponentUpdate(nextProps, nextState) {
+        return this.state.data !== nextState.data || !shallowEqual(this.props, nextProps)
       }
 
       componentWillUnmount() {

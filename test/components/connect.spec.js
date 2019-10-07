@@ -1178,7 +1178,7 @@ describe('React', () => {
       expect('x' in propsAfter).toEqual(false, 'x prop must be removed')
     })
 
-    it('should invoke mapPropsToRequestsToProps if props changed (pure: true) (default)', () => {
+    it('should invoke mapPropsToRequestsToProps if props changed', () => {
       let propsPassedIn
       let invocationCount = 0
 
@@ -1221,69 +1221,9 @@ describe('React', () => {
 
       const obj = { blah: 2 }
 
-      expect(invocationCount).toEqual(1)
-      outerComponent.setFoo('BAR')
       expect(invocationCount).toEqual(2)
       outerComponent.setFoo('BAR')
-      expect(invocationCount).toEqual(2)
-      outerComponent.setFoo('BAZ')
       expect(invocationCount).toEqual(3)
-      outerComponent.setFoo(obj)
-      expect(invocationCount).toEqual(4)
-      outerComponent.setFoo({ blah: 2 })
-      expect(invocationCount).toEqual(5)
-
-      expect(propsPassedIn).toIncludeKeyValues({
-        foo: { blah: 2 }
-      })
-    })
-
-    it('should invoke mapPropsToRequestsToProps if props changed (pure: false)', () => {
-      let propsPassedIn
-      let invocationCount = 0
-
-      @connect.options({ pure: false })((props) => {
-        invocationCount++
-        propsPassedIn = props
-        return {}
-      })
-      class WithProps extends Component {
-        render() {
-          return <Passthrough {...this.props}/>
-        }
-      }
-
-      class OuterComponent extends Component {
-        constructor() {
-          super()
-          this.state = { foo: 'FOO' }
-        }
-
-        setFoo(foo) {
-          this.setState({ foo })
-        }
-
-        render() {
-          return (
-            <div>
-              <WithProps {...this.state}>
-                <span>children</span>
-              </WithProps>
-            </div>
-          )
-        }
-      }
-
-      let outerComponent
-      TestUtils.renderIntoDocument(
-        <OuterComponent ref={c => outerComponent = c} />
-      )
-
-      const obj = { blah: 2 }
-
-      expect(invocationCount).toEqual(1)
-      outerComponent.setFoo('BAR')
-      expect(invocationCount).toEqual(2)
       outerComponent.setFoo('BAR')
       expect(invocationCount).toEqual(3)
       outerComponent.setFoo('BAZ')
@@ -1298,7 +1238,7 @@ describe('React', () => {
       })
     })
 
-    it("should not re-invoke mapPropsToRequestsToProps if it doesn't depend on props (pure: true) (default)", () => {
+    it("should not re-invoke mapPropsToRequestsToProps if it doesn't depend on props", () => {
       let invocationCount = 0
 
       @connect(() => {
@@ -1335,49 +1275,7 @@ describe('React', () => {
         <OuterComponent ref={c => outerComponent = c} />
       )
 
-      expect(invocationCount).toEqual(1)
-      outerComponent.setFoo('BAR')
-      expect(invocationCount).toEqual(1)
-    })
-
-    it("should re-invoke mapPropsToRequestsToProps even if it doesn't depend on props (pure: false)", () => {
-      let invocationCount = 0
-
-      @connect.options({ pure: false })(() => {
-        invocationCount++
-        return {}
-      })
-      class WithProps extends Component {
-        render() {
-          return <Passthrough {...this.props}/>
-        }
-      }
-
-      class OuterComponent extends Component {
-        constructor() {
-          super()
-          this.state = { foo: 'FOO' }
-        }
-
-        setFoo(foo) {
-          this.setState({ foo })
-        }
-
-        render() {
-          return (
-            <div>
-              <WithProps {...this.state} />
-            </div>
-          )
-        }
-      }
-
-      let outerComponent
-      TestUtils.renderIntoDocument(
-        <OuterComponent ref={c => outerComponent = c} />
-      )
-
-      expect(invocationCount).toEqual(1)
+      expect(invocationCount).toEqual(2)
       outerComponent.setFoo('BAR')
       expect(invocationCount).toEqual(2)
     })
@@ -1386,12 +1284,11 @@ describe('React', () => {
     it('should deprecate mapPropsToRequestsToProps with context', () => {
       let consoleSpy = expect.spyOn(console, 'error')
 
-
       let invocationCount = 0
       let contextPassedIn = []
       let propsPassedIn = []
 
-      @connect.options({ pure: false })((props, context) => {
+      @connect((props, context) => {
         invocationCount++
         contextPassedIn.push(context)
         propsPassedIn.push(props)
@@ -1444,19 +1341,17 @@ describe('React', () => {
 
       expect(consoleSpy.calls[0].arguments[0]).toEqual('Warning: Passing context to `mapPropsToRequestsToProps` is no longer supported.')
 
-      expect(invocationCount).toEqual(1)
+      expect(invocationCount).toEqual(2)
       outerComponent.setContext('baz')
       expect(invocationCount).toEqual(2)
       outerComponent.setContext('baz')
+      expect(invocationCount).toEqual(2)
+      outerComponent.setProp('baz')
       expect(invocationCount).toEqual(3)
       outerComponent.setProp('baz')
-      expect(invocationCount).toEqual(4)
-      outerComponent.setProp('baz')
-      expect(invocationCount).toEqual(5)
+      expect(invocationCount).toEqual(3)
 
       expect(contextPassedIn).toEqual([
-        undefined,
-        undefined,
         undefined,
         undefined,
         undefined
@@ -1468,12 +1363,6 @@ describe('React', () => {
         },
         {
           bar: 'foo'
-        },
-        {
-          bar: 'foo'
-        },
-        {
-          bar: 'baz'
         },
         {
           bar: 'baz'
@@ -1995,7 +1884,7 @@ describe('React', () => {
       spy.restore()
     })
 
-    it('should re-render only when props or requests materially change (pure: true) (default)', () => {
+    it('should re-render only when props or requests materially change', () => {
       const Connected = connect(({ foo }) => foo ? { testFetch: `/resource/${foo}` } : {})(Passthrough)
       const renderSpy = expect.spyOn(Connected.prototype, 'render').andCallThrough()
       const fooDiv = <div>foo</div>
@@ -2027,41 +1916,6 @@ describe('React', () => {
         .then(immediatePromise)
         .then(() => {
           expect(renderSpy.calls.length).toBe(8)
-        })
-    })
-
-    it('should re-render every time props or requests change (pure: false)', () => {
-      const Connected = connect.options({ pure: false })(({ foo }) => foo ? { testFetch: `/resource/${foo}` } : {})(Passthrough)
-      const renderSpy = expect.spyOn(Connected.prototype, 'render').andCallThrough()
-      const fooDiv = <div>foo</div>
-
-      const container = TestUtils.renderIntoDocument(<ContainerWithSetters component={Connected} />)
-
-      expect(renderSpy.calls.length).toBe(1)
-      container.setPropsForChild({ bar: 1 })
-      expect(renderSpy.calls.length).toBe(2)
-      container.setPropsForChild({ bar: 1 })
-      expect(renderSpy.calls.length).toBe(3)
-      container.setPropsForChild({ foo: 2 })
-      expect(renderSpy.calls.length).toBe(5)
-
-      return immediatePromise()
-        .then(() => {
-          expect(renderSpy.calls.length).toBe(6)
-          container.setPropsForChild({ foo: 2 })
-          expect(renderSpy.calls.length).toBe(7)
-          container.setPropsForChild({ bar: 3 })
-          expect(renderSpy.calls.length).toBe(8)
-          container.setPropsForChild({ bar: 3, children: fooDiv })
-          expect(renderSpy.calls.length).toBe(9)
-          container.setPropsForChild({ bar: 3, children: fooDiv })
-          expect(renderSpy.calls.length).toBe(10)
-          container.setPropsForChild({ bar: 3, children: <div>foo</div> })
-          expect(renderSpy.calls.length).toBe(11)
-        })
-        .then(immediatePromise)
-        .then(() => {
-          expect(renderSpy.calls.length).toBe(11)
         })
     })
 
