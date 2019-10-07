@@ -32,6 +32,8 @@ function connectFactory(defaults = {}, options = {}) {
       'However, this custom Request would only be used in the default buildRequest.'
     )
 
+    warning(options.pure === undefined, '`pure` option is no longer supported')
+
     return connect(map, defaults, finalOptions)
   }
 

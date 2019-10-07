@@ -1280,7 +1280,6 @@ describe('React', () => {
       expect(invocationCount).toEqual(2)
     })
 
-    // TODO: clean up test
     it('should deprecate mapPropsToRequestsToProps with context', () => {
       let consoleSpy = expect.spyOn(console, 'error')
 
@@ -1368,6 +1367,25 @@ describe('React', () => {
           bar: 'baz'
         }
       ])
+    })
+
+    it('should warn if pure option is present', () => {
+      let consoleSpy = expect.spyOn(console, 'error')
+
+      @connect.options({ pure: false })(() => {
+        return {}
+      })
+      class C extends Component {
+        render() {
+          return <div />
+        }
+      }
+
+      TestUtils.renderIntoDocument(
+        <C />
+      )
+
+      expect(consoleSpy.calls[0].arguments[0]).toEqual('Warning: `pure` option is no longer supported')
     })
 
     it('should shallowly compare the requests to prevent unnecessary fetches', (done) => {
