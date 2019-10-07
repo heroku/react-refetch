@@ -1,6 +1,6 @@
 {
   "name": "react-refetch",
-  "version": "3.0.0-0",
+  "version": "3.0.0-1",
   "description": "A simple, declarative, and composable way to fetch data for React components.",
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
