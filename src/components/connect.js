@@ -32,6 +32,8 @@ function connectFactory(defaults = {}, options = {}) {
       'However, this custom Request would only be used in the default buildRequest.'
     )
 
+    warning(options.pure === undefined, '`pure` option is no longer supported')
+
     return connect(map, defaults, finalOptions)
   }
 
@@ -67,7 +69,8 @@ const omitChildren = function omitChildren(obj) {
 function connect(mapPropsToRequestsToProps, defaults, options) {
   const finalMapPropsToRequestsToProps = mapPropsToRequestsToProps || defaultMapPropsToRequestsToProps
   const dependsOnProps = finalMapPropsToRequestsToProps.length >= 1
-  const dependsOnContext = finalMapPropsToRequestsToProps.length == 2
+
+  warning(finalMapPropsToRequestsToProps.length < 2, 'Passing context to `mapPropsToRequestsToProps` is no longer supported.')
 
   let topFetch
   let topRequest
@@ -99,8 +102,7 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
   checkTypes(defaults)
 
   options = Object.assign({
-    withRef: false,
-    pure: true
+    withRef: false
   }, options)
 
   // Helps track hot reloading.
@@ -192,29 +194,45 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
 
   return function wrapWithConnect(WrappedComponent) {
     class RefetchConnect extends Component {
-      constructor(props, context) {
-        super(props, context)
+      constructor(props) {
+        super(props)
         this.version = version
-        this.state = { mappings: {}, startedAts: {}, data: {}, refreshTimeouts: {} }
+
+        // To avoid undefined data at mount, pre-populated pending PromiseStates
+        // TODO: de-dupe with update code
+        const mappings = finalMapPropsToRequestsToProps(omitChildren(props)) || {}
+        const initDate = Object.keys(mappings).reduce((data, prop) => {
+          const mapping = mappings[prop]
+          if (Function.prototype.isPrototypeOf(mapping)) {
+            data[prop] = (...args) => {
+              this.refetchDataFromMappings(mapping(...args))
+            }
+          } else {
+            data[prop] = PromiseState.create(mapping.meta)
+          }
+          return data
+        }, {})
+
+        this.state = {
+          mappings: {},
+          startedAts: {},
+          data: initDate,
+          refreshTimeouts: {}
+        }
       }
 
-      componentWillMount() {
+      componentDidMount() {
         this.refetchDataFromProps()
       }
 
-      componentWillReceiveProps(nextProps, nextContext) {
-        if (
-          !options.pure ||
-          (dependsOnProps && !shallowEqual(omitChildren(this.props), omitChildren(nextProps))) ||
-          (dependsOnContext && !shallowEqual(this.context, nextContext))
-        ) {
-          this.refetchDataFromProps(nextProps, nextContext)
+      componentDidUpdate(prevProps) {
+        if (dependsOnProps && !shallowEqual(omitChildren(this.props), omitChildren(prevProps))) {
+          this.refetchDataFromProps()
         }
       }
 
       shouldComponentUpdate(nextProps, nextState) {
-        return !options.pure ||
-          this.state.data != nextState.data || !shallowEqual(this.props, nextProps)
+        return this.state.data !== nextState.data || !shallowEqual(this.props, nextProps)
       }
 
       componentWillUnmount() {
@@ -237,8 +255,8 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
         return this.refs.wrappedInstance
       }
 
-      refetchDataFromProps(props = this.props, context = this.context) {
-        this.refetchDataFromMappings(finalMapPropsToRequestsToProps(omitChildren(props), context) || {})
+      refetchDataFromProps(props = this.props) {
+        this.refetchDataFromMappings(finalMapPropsToRequestsToProps(omitChildren(props)) || {})
       }
 
       refetchDataFromMappings(mappings) {
@@ -413,13 +431,10 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
     RefetchConnect.displayName = `Refetch.connect(${getDisplayName(WrappedComponent)})`
     RefetchConnect.WrappedComponent = WrappedComponent
 
-    if (dependsOnContext && WrappedComponent.contextTypes) {
-      RefetchConnect.contextTypes = WrappedComponent.contextTypes
-    }
-
     if (process.env.NODE_ENV !== 'production') {
-      RefetchConnect.prototype.componentWillUpdate = function componentWillUpdate() {
+      RefetchConnect.prototype.componentDidUpdate = (previous => function componentDidUpdate() {
         if (this.version === version) {
+          previous.apply(this, arguments)
           return
         }
 
@@ -427,7 +442,7 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
         this.version = version
         this.clearAllRefreshTimeouts()
         this.refetchDataFromProps()
-      }
+      })(RefetchConnect.prototype.componentDidUpdate)
     }
 
     return hoistStatics(RefetchConnect, WrappedComponent)

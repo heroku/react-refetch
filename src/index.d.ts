@@ -65,7 +65,6 @@ export interface Connect {
 
 export interface ConnectOptions {
   withRef?: boolean;
-  pure?: boolean;
 }
 
 export type MapPropsToRequestsToProps<T> = (

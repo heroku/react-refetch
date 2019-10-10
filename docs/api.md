@@ -126,7 +126,6 @@ const b = a.defaults({ withRef: false })
 
 * `[newOptions = {}]` *(Object)*: An object with any of the following keys:
     - `withRef` *(Boolean)*: If `true`, the connector will store a ref to the wrapped component instance and make it available via the `getWrappedInstance()` method. Defaults to `false`.
-    - `pure` *(Boolean)*: If `true`, the connector will treat the wrapped component and the mapPropsToRequestsToProps function as pure, recomputing requests and re-rendering only when props are shallowly different. If `false`, recompute and re-render every time props change. Defaults to `true`.
 
 ### `PromiseState`
 
