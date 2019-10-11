@@ -28,7 +28,7 @@ function connectFactory(defaults = {}, options = {}) {
 
     warning(!(Function.prototype.isPrototypeOf(defaults.buildRequest) &&
       Function.prototype.isPrototypeOf(defaults.Request)),
-      'Both buildRequest and Request were provided in `connect.defaults()`. ' +
+    'Both buildRequest and Request were provided in `connect.defaults()`. ' +
       'However, this custom Request would only be used in the default buildRequest.'
     )
 
@@ -62,6 +62,7 @@ export default connectFactory({
 })
 
 const omitChildren = function omitChildren(obj) {
+  // eslint-disable-next-line no-unused-vars
   const { children, ...rest } = obj
   return rest
 }
@@ -249,7 +250,7 @@ function connect(mapPropsToRequestsToProps, defaults, options) {
 
       getWrappedInstance() {
         invariant(options.withRef,
-          `To access the wrapped instance, you need to specify { withRef: true } in .options().`
+          'To access the wrapped instance, you need to specify { withRef: true } in .options().'
         )
 
         return this.refs.wrappedInstance
