@@ -1,7 +1,8 @@
 /* eslint-disable no-unused-vars */
 import expect from 'expect'
-import React, { createClass, Component } from 'react'
+import React, { Component } from 'react'
 import TestUtils from 'react-addons-test-utils'
+import PropTypes from 'prop-types'
 import { connect, PromiseState } from '../../src/index'
 import buildRequest from '../../src/utils/buildRequest'
 import handleResponse from '../../src/utils/handleResponse'
@@ -14,9 +15,9 @@ describe('React', () => {
     beforeEach(() => {
       expect.spyOn(window, 'fetch').andCall(request => {
         return new Promise((resolve, reject) => {
-          if (request.url == '/error') {
+          if (request.url === '/error') {
             resolve(new window.Response(JSON.stringify({ error: 'e', id: 'not_found' }), { status: 404 }))
-          } else if (request.url == '/reject') {
+          } else if (request.url === '/reject') {
             reject(new TypeError('response rejected'))
           } else {
             resolve(new window.Response(JSON.stringify({ T: 't' }), { status: 200, headers: { A: 'a', B: 'b' } }))
@@ -29,9 +30,15 @@ describe('React', () => {
       expect.restoreSpies()
     })
 
+    class Dummy extends Component {
+      render() {
+        return null
+      }
+    }
+
     class Passthrough extends Component {
       render() {
-        return <div {...this.props} />
+        return <Dummy {...this.props} />
       }
     }
 
@@ -1300,7 +1307,7 @@ describe('React', () => {
         }
       }
       InnerComponent.contextTypes = {
-        foo: React.PropTypes.string
+        foo: PropTypes.string
       }
 
       class OuterComponent extends Component {
@@ -1331,7 +1338,7 @@ describe('React', () => {
         }
       }
       OuterComponent.childContextTypes = {
-        foo: React.PropTypes.string
+        foo: PropTypes.string
       }
 
       let outerComponent
@@ -1672,23 +1679,6 @@ describe('React', () => {
           }
         }
       ).displayName).toBe('Refetch.connect(Foo)')
-
-      expect(connect(state => state)(
-        createClass({
-          displayName: 'Bar',
-          render() {
-            return <div />
-          }
-        })
-      ).displayName).toBe('Refetch.connect(Bar)')
-
-      expect(connect(state => state)(
-        createClass({
-          render() {
-            return <div />
-          }
-        })
-      ).displayName).toBe('Refetch.connect(Component)')
     })
 
     it('should expose the wrapped component as WrappedComponent', () => {

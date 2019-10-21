@@ -9,7 +9,7 @@
     "clean": "rimraf lib dist coverage",
     "lint": "eslint src test",
     "prepublish": "npm run clean && npm run lint && npm run build",
-    "test": "mocha --compilers js:babel-core/register --recursive --require ./test/setup.js",
+    "test": "mocha --require babel-core/register --recursive --require ./test/setup.js --exit",
     "test:watch": "npm test -- --watch",
     "test:cov": "babel-node ./node_modules/isparta/bin/isparta cover ./node_modules/mocha/bin/_mocha -- --recursive --require ./test/setup.js"
   },
@@ -53,8 +53,9 @@
     "expect": "^1.8.0",
     "isparta": "4.0.0",
     "istanbul": "^0.3.17",
-    "jsdom": "~5.4.3",
-    "mocha": "^2.2.5",
+    "jsdom": "^7.2.2",
+    "mocha": "^6.2.2",
+    "prop-types": "^15.7.2",
     "react": "^15.0.1",
     "react-addons-test-utils": "^15.0.1",
     "react-dom": "^15.0.1",
@@ -63,9 +64,9 @@
     "whatwg-fetch": "*"
   },
   "dependencies": {
-    "hoist-non-react-statics": "^2.2.1",
-    "invariant": "^2.0.0",
-    "warning": "^3.0.0"
+    "hoist-non-react-statics": "^3.3.0",
+    "invariant": "^2.2.4",
+    "warning": "^4.0.3"
   },
   "peerDependencies": {
     "react": "^0.14.0 || ^15.0.0-0 || ^16.0.0-0"
