@@ -30,9 +30,15 @@ describe('React', () => {
       expect.restoreSpies()
     })
 
+    class Dummy extends Component {
+      render() {
+        return null
+      }
+    }
+
     class Passthrough extends Component {
       render() {
-        return <div {...this.props} />
+        return <Dummy {...this.props} />
       }
     }
 
