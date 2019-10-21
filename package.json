@@ -55,6 +55,7 @@
     "istanbul": "^0.3.17",
     "jsdom": "~5.4.3",
     "mocha": "^6.2.2",
+    "prop-types": "^15.7.2",
     "react": "^15.0.1",
     "react-addons-test-utils": "^15.0.1",
     "react-dom": "^15.0.1",
