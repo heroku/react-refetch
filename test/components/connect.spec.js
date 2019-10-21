@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import expect from 'expect'
 import React, { createClass, Component } from 'react'
 import TestUtils from 'react-addons-test-utils'
@@ -67,8 +68,8 @@ describe('React', () => {
             test: 'voodoo'
           }
         },
-        errorFetch: `/error`,
-        rejectFetch: `/reject`,
+        errorFetch: '/error',
+        rejectFetch: '/reject',
         testFunc: (arg1, arg2) => ({
           deferredFetch: `/${foo}/${baz}/deferred/${arg1}/${arg2}`
         })
@@ -140,7 +141,7 @@ describe('React', () => {
     })
 
     it('should support refreshing on before first fulfillment', (done) => {
-      @connect(() => ({ testFetch: { url: `/example`, refreshing: true } }))
+      @connect(() => ({ testFetch: { url: '/example', refreshing: true } }))
       class Container extends Component {
         render() {
           return <Passthrough {...this.props} />
@@ -165,7 +166,7 @@ describe('React', () => {
     })
 
     it('should support refreshing function on before first fulfillment', (done) => {
-      @connect(() => ({ testFetch: { url: `/example`, refreshing: (value) => value } }))
+      @connect(() => ({ testFetch: { url: '/example', refreshing: (value) => value } }))
       class Container extends Component {
         render() {
           return <Passthrough {...this.props} />
@@ -190,7 +191,7 @@ describe('React', () => {
     })
 
     it('should set startedAt', (done) => {
-      @connect(() => ({ testFetch: `/example` }))
+      @connect(() => ({ testFetch: '/example' }))
       class Container extends Component {
         render() {
           return <Passthrough {...this.props} />
@@ -212,7 +213,7 @@ describe('React', () => {
     })
 
     it('should create default mapping and empty options if just URL is provided', () => {
-      @connect(() => ({ testFetch: `/example` }))
+      @connect(() => ({ testFetch: '/example' }))
       class Container extends Component {
         render() {
           return <Passthrough {...this.props} />
@@ -700,7 +701,7 @@ describe('React', () => {
 
       const DecoratedContainer = connectWithRef(() => ({
         someFetch: {
-          url: `/foo`,
+          url: '/foo',
           then: thenSpy
         }
       }))(Container)
@@ -725,11 +726,11 @@ describe('React', () => {
 
       @connect(({ baz }) => ({
         firstFetch: {
-          url: `/error`,
+          url: '/error',
           catch: (v) => `/second/${baz}/${v.cause.error}`
         },
         secondFetch: {
-          url: `/reject`,
+          url: '/reject',
           catch: () => `/second/${baz}/e`
         }
       }))
@@ -782,13 +783,13 @@ describe('React', () => {
 
       @connect(() => ({
         firstFetch: {
-          url: `/error`,
+          url: '/error',
           catch: () => {
             firstSideEffect()
           }
         },
         secondFetch: {
-          url: `/reject`,
+          url: '/reject',
           catch: secondSideEffect
         }
       }))
@@ -887,13 +888,13 @@ describe('React', () => {
 
       @connect(({ baz }) => ({
         firstFetch: {
-          url: `/error`,
+          url: '/error',
           andCatch: () => ({
             catchFetch: `/second/${baz}`
           })
         },
         secondFetch: {
-          url: `/reject`,
+          url: '/reject',
           andCatch: () => ({
             catchSecondFetch: `/second/${baz}`
           })
@@ -957,7 +958,7 @@ describe('React', () => {
     it('should refresh when refreshInterval is provided', (done) => {
       const interval = 100000 // set sufficiently far out to not happen during test
 
-      @connect(() => ({ testFetch: { url: `/example`, refreshInterval: interval } }))
+      @connect(() => ({ testFetch: { url: '/example', refreshInterval: interval } }))
       class Container extends Component {
         render() {
           return <Passthrough {...this.props} />
@@ -1013,7 +1014,7 @@ describe('React', () => {
     it('should not set refreshTimeouts when component is unmounted', (done) => {
       const interval = 100000 // set sufficiently far out to not happen during test
 
-      @connect(() => ({ testFetch: { url: `/example`, refreshInterval: interval } }))
+      @connect(() => ({ testFetch: { url: '/example', refreshInterval: interval } }))
       class WithProps extends Component {
         render() {
           return <Passthrough {...this.props}/>
@@ -1081,7 +1082,7 @@ describe('React', () => {
     })
 
     it('should not set refreshTimeouts when refreshInterval is not provided', (done) => {
-      @connect(() => ({ testFetch: `/example` }))
+      @connect(() => ({ testFetch: '/example' }))
       class Container extends Component {
         render() {
           return <Passthrough {...this.props} />
@@ -1102,10 +1103,10 @@ describe('React', () => {
 
     it('should support refreshing function to optimisticly update value before request', (done) => {
       @connect(() => ({
-        testFetch: `/example`,
+        testFetch: '/example',
         updateTestFetch: (body) => ({
           testFetch: {
-            url: `/example`,
+            url: '/example',
             method: 'PATCH',
             refreshing: (value) => ({ ...value, ...body })
           }
@@ -1372,17 +1373,15 @@ describe('React', () => {
     it('should warn if pure option is present', () => {
       let consoleSpy = expect.spyOn(console, 'error')
 
-      @connect.options({ pure: false })(() => {
-        return {}
-      })
       class C extends Component {
         render() {
           return <div />
         }
       }
+      const CC = connect.options({ pure: false })(() => {} )(C)
 
       TestUtils.renderIntoDocument(
-        <C />
+        <CC />
       )
 
       expect(consoleSpy.calls[0].arguments[0]).toEqual('Warning: `pure` option is no longer supported')
@@ -1654,13 +1653,13 @@ describe('React', () => {
 
       expect(() => {
         TestUtils.renderIntoDocument(
-            makeContainer(() => 'hey')
+          makeContainer(() => 'hey')
         )
       }).toThrow(/mapPropsToRequestsToProps/)
 
       expect(() => {
         TestUtils.renderIntoDocument(
-            makeContainer(() => new AwesomeMap())
+          makeContainer(() => new AwesomeMap())
         )
       }).toThrow(/mapPropsToRequestsToProps/)
     })
@@ -1830,7 +1829,7 @@ describe('React', () => {
         })
       })
 
-      @connect(() => ({ testFetch: `/empty` }))
+      @connect(() => ({ testFetch: '/empty' }))
       class Container extends Component {
         render() {
           return <Passthrough {...this.props} />
@@ -1862,7 +1861,7 @@ describe('React', () => {
         })
       })
 
-      @connect(() => ({ testFetch: `/empty` }))
+      @connect(() => ({ testFetch: '/empty' }))
       class Container extends Component {
         render() {
           return <Passthrough {...this.props} />
@@ -1941,6 +1940,7 @@ describe('React', () => {
       // Escape characters that have special meaning in RegExps, then create a
       // RegExp from the passed string.
       function regexpify(str) {
+        // eslint-disable-next-line no-useless-escape
         return new RegExp(str.replace(/([\[\]\{\}\(\)\.\-\,\+\?\*])/g, '\\$1'))
       }
 
@@ -2136,7 +2136,7 @@ describe('React', () => {
 
         const custom = connect.defaults({ fetch: customFetch })
 
-        @custom(() => ({ testFetch: `/example` }))
+        @custom(() => ({ testFetch: '/example' }))
         class Container extends Component {
           render() {
             return <Passthrough {...this.props} />
@@ -2162,7 +2162,7 @@ describe('React', () => {
 
         const headers = { 'X-Foo': 'bar' }
         const custom = connect.defaults({ fetch: customFetch, headers })
-        @custom(() => ({ testFetch: `/example` }))
+        @custom(() => ({ testFetch: '/example' }))
         class Container extends Component {
           render() {
             return <Passthrough {...this.props} />
@@ -2254,7 +2254,7 @@ describe('React', () => {
           .defaults({ headers: { 'X-Foo': false, 'X-Baz': 0, 'X-xx': '' } })
           .defaults({ headers: { 'Accept': null, 'Content-Type': undefined } })
         @custom(() => ({ testFetch: {
-          url: `/example`,
+          url: '/example',
           headers: {
             'Stay': 'there',
             'Be': null
@@ -2292,7 +2292,7 @@ describe('React', () => {
         }
 
         const custom = connect.defaults({ fetch: customFetch, method: 'PUT' })
-        @custom(() => ({ testFetch: `/example` }))
+        @custom(() => ({ testFetch: '/example' }))
         class Container extends Component {
           render() {
             return <Passthrough {...this.props} />
@@ -2317,7 +2317,7 @@ describe('React', () => {
         }
 
         const custom = connect.defaults({ Request })
-        @custom(() => ({ testFetch: `/example` }))
+        @custom(() => ({ testFetch: '/example' }))
         class Container extends Component {
           render() {
             return <Passthrough {...this.props} />
@@ -2341,7 +2341,7 @@ describe('React', () => {
         }
 
         const custom = connect.defaults({ Request, credentials: 'include' })
-        @custom(() => ({ testFetch: `/example` }))
+        @custom(() => ({ testFetch: '/example' }))
         class Container extends Component {
           render() {
             return <Passthrough {...this.props} />
@@ -2366,7 +2366,7 @@ describe('React', () => {
         }
 
         const custom = connect.defaults({ Request, redirect: 'error' })
-        @custom(() => ({ testFetch: `/example` }))
+        @custom(() => ({ testFetch: '/example' }))
         class Container extends Component {
           render() {
             return <Passthrough {...this.props} />
@@ -2385,7 +2385,7 @@ describe('React', () => {
         const spy = expect.createSpy().andCall(buildRequest)
 
         const custom = connect.defaults({ buildRequest: spy })
-        @custom(() => ({ testFetch: `/example` }))
+        @custom(() => ({ testFetch: '/example' }))
         class Container extends Component {
           render() {
             return <Passthrough {...this.props} />
@@ -2403,7 +2403,7 @@ describe('React', () => {
         const spy = expect.createSpy().andCall(handleResponse)
 
         const custom = connect.defaults({ handleResponse: spy })
-        @custom(() => ({ testFetch: `/example` }))
+        @custom(() => ({ testFetch: '/example' }))
         class Container extends Component {
           render() {
             return <Passthrough {...this.props} />
@@ -2421,7 +2421,7 @@ describe('React', () => {
         const interval = 100000 // set sufficently far out to not happen during test
 
         const custom = connect.defaults({ refreshInterval: interval })
-        @custom(() => ({ testFetch: { url: `/example` } }))
+        @custom(() => ({ testFetch: { url: '/example' } }))
         class Container extends Component {
           render() {
             return <Passthrough {...this.props} />
@@ -2442,7 +2442,7 @@ describe('React', () => {
 
       it('should set the default refreshing', () => {
         const custom = connect.defaults({ refreshing: true })
-        @custom(() => ({ testFetch: { url: `/example` } }))
+        @custom(() => ({ testFetch: { url: '/example' } }))
         class Container extends Component {
           render() {
             return <Passthrough {...this.props} />
@@ -2603,18 +2603,18 @@ describe('React', () => {
 
       it('should warn if both buildRequest and Request are customised', () => {
         const spy = expect.spyOn(console, 'error')
-        @connect.defaults({
-          buildRequest: () => {},
-          Request: () => {}
-        })()
         class Container extends Component {
           render() {
             return <Passthrough {...this.props} />
           }
         }
+        const CC = connect.defaults({
+          buildRequest: () => {},
+          Request: () => {}
+        })()(Container)
 
         spy.restore()
-        expect(Container).toExist()
+        expect(CC).toExist()
         expect(spy.calls.length).toEqual(1)
         expect(spy.calls[0].arguments[0]).toMatch(/Both buildRequest and Request were provided/)
       })
