@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 import expect from 'expect'
-import React, { createClass, Component } from 'react'
+import React, { Component } from 'react'
 import TestUtils from 'react-addons-test-utils'
 import PropTypes from 'prop-types'
 import { connect, PromiseState } from '../../src/index'
@@ -1679,23 +1679,6 @@ describe('React', () => {
           }
         }
       ).displayName).toBe('Refetch.connect(Foo)')
-
-      expect(connect(state => state)(
-        createClass({
-          displayName: 'Bar',
-          render() {
-            return <div />
-          }
-        })
-      ).displayName).toBe('Refetch.connect(Bar)')
-
-      expect(connect(state => state)(
-        createClass({
-          render() {
-            return <div />
-          }
-        })
-      ).displayName).toBe('Refetch.connect(Component)')
     })
 
     it('should expose the wrapped component as WrappedComponent', () => {
