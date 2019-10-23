@@ -77,7 +77,6 @@
     "react-addons-test-utils": "^15.0.1",
     "react-dom": "^15.0.1",
     "rimraf": "^2.3.4",
-    "webpack": "^1.11.0",
     "whatwg-fetch": "*"
   },
   "dependencies": {
