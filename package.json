@@ -8,7 +8,7 @@
     "build": "babel src --out-dir lib; cp src/*.d.ts lib",
     "clean": "rimraf lib dist coverage",
     "lint": "eslint src test",
-    "prepublish": "npm run clean && npm run lint && npm run build",
+    "prepare": "npm run clean && npm run lint && npm run build",
     "test": "mocha --require @babel/register --recursive --require ./test/setup.js --exit",
     "test:watch": "npm test -- --watch",
     "test:cov": "babel-node ./node_modules/isparta/bin/isparta cover ./node_modules/mocha/bin/_mocha -- --recursive --require ./test/setup.js"
