@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars */
 import expect from 'expect'
 import React, { Component } from 'react'
-import TestUtils from 'react-addons-test-utils'
+import TestUtils from 'react-dom/test-utils'
 import PropTypes from 'prop-types'
 import { connect, PromiseState } from '../../src/index'
 import buildRequest from '../../src/utils/buildRequest'
