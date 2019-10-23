@@ -10,7 +10,7 @@
     "curly": 2,
     "no-prototype-builtins": 0,
     "react/jsx-uses-react": 1,
-    "react/jsx-no-undef": 2,
+    "react/jsx-no-undef": 2
   },
   "plugins": [
     "react"
