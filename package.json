@@ -69,7 +69,6 @@
     "eslint-plugin-react": "^7.16.0",
     "expect": "^1.8.0",
     "isparta": "4.0.0",
-    "istanbul": "^0.3.17",
     "jsdom": "^7.2.2",
     "mocha": "^6.2.2",
     "prop-types": "^15.7.2",
