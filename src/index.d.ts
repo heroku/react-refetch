@@ -68,8 +68,7 @@ export interface ConnectOptions {
 }
 
 export type MapPropsToRequestsToProps<T> = (
-  props: T,
-  context: any,
+  props: T
 ) => PropsMap<T>;
 
 // String or PromiseState
@@ -131,7 +130,7 @@ export interface Mapping<TProps, TValue> {
 
 export interface WithRefetch<TProps> {
   WrappedComponent: ComponentClass<TProps>;
-  new (props: TProps, context?: any): Component<TProps, ComponentState> &
+  new (props: TProps): Component<TProps, ComponentState> &
     WithRefetchInstance<TProps>;
 }
 
