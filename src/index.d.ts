@@ -21,14 +21,12 @@ export interface PromiseStateStatic {
   race<T = {}>(iterable: Iterable<PromiseState<any>>): PromiseState<T>;
 }
 
-export interface PromiseState<T = {}> {
+interface PromiseStateBase<T = {}> {
   readonly pending: boolean;
   readonly refreshing: boolean;
   readonly fulfilled: boolean;
   readonly rejected: boolean;
   readonly settled: boolean;
-  readonly value: T;
-  readonly reason: any;
   readonly meta: any;
   then: <TFulfilled = T, TRejected = T>(
     onFulfilled?: (
@@ -43,6 +41,28 @@ export interface PromiseState<T = {}> {
     onRejected?: (reason: any) => PromiseStateLike<TRejected>,
   ) => PromiseStateLike<T> | PromiseStateLike<TRejected>;
 }
+
+export interface PendingPromiseState<T = {}> extends PromiseStateBase {
+  readonly pending: true;
+  readonly fulfilled: false;
+  readonly rejected: false;
+}
+
+export interface FulfilledPromiseState<T = {}> extends PromiseStateBase {
+  readonly pending: false;
+  readonly fulfilled: true;
+  readonly rejected: false;
+  readonly value: T;
+}
+
+export interface RejectedPromiseState<T = {}> extends PromiseStateBase {
+  readonly pending: false;
+  readonly fulfilled: false;
+  readonly rejected: true;
+  readonly reason: any;
+}
+
+export type PromiseState<T = {}> = PendingPromiseState<T>
 
 export const PromiseState: Readonly<PromiseStateStatic>;
 
