@@ -13,10 +13,11 @@ import {
 export type PromiseStateLike<T> = T | PromiseState<T>;
 
 export interface PromiseStateStatic {
-  create<T = {}>(meta?: any): PromiseState<T>;
-  refresh<T = {}>(previous?: PromiseState<T>, meta?: any): PromiseState<T>;
-  resolve<T = {}>(value?: PromiseStateLike<T>, meta?: any): PromiseState<T>;
-  reject<T = {}>(reason?: any, meta?: any): PromiseState<T>;
+  create<T = {}>(meta?: any): PendingPromiseState<T>;
+  refresh<T = {}>(previous: undefined, meta?: any): PendingPromiseState<T>;
+  refresh<T = {}, P extends PromiseState<T> = PromiseState<T>>(previous: P, meta?: any): P;
+  resolve<T = {}>(value?: PromiseStateLike<T>, meta?: any): FulfilledPromiseState<T>;
+  reject<T = {}>(reason?: any, meta?: any): RejectedPromiseState<T>;
   all<T = {}>(iterable: Iterable<PromiseState<any>>): PromiseState<T[]>;
   race<T = {}>(iterable: Iterable<PromiseState<any>>): PromiseState<T>;
 }
@@ -62,7 +63,7 @@ export interface RejectedPromiseState<T = {}> extends PromiseStateBase {
   readonly reason: any;
 }
 
-export type PromiseState<T = {}> = PendingPromiseState<T>
+export type PromiseState<T = {}> = PendingPromiseState<T> | FulfilledPromiseState<T> | RejectedPromiseState<T>;
 
 export const PromiseState: Readonly<PromiseStateStatic>;
 
