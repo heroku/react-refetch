@@ -141,7 +141,7 @@ export interface Mapping<TProps, TValue> {
   andThen?: (value: TValue) => PropsMap<TProps>;
   andCatch?: (rason: any) => PropsMap<TProps>;
 
-  value?: TValue | PromiseLike<TValue>;
+  value?: TValue | PromiseLike<TValue> | (() => PromiseLike<TValue>);
   meta?: any;
 
   // Everything else is passed through unmodified
