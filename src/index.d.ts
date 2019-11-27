@@ -2,7 +2,7 @@ import {
   Component,
   ComponentClass,
   ComponentState,
-  StatelessComponent,
+  FunctionComponent,
 } from "react";
 
 ////////////////////////
@@ -76,42 +76,43 @@ interface RequestType {
   new (input: RequestInfo, init?: RequestInit): Request;
 }
 
-export interface Connect {
-  <TProps = {}>(map: MapPropsToRequestsToProps<TProps>): (
-    component: ComponentClass<TProps> | StatelessComponent<TProps>,
-  ) => ComponentClass<TProps> & WithRefetch<TProps>;
-  defaults: <TProps = {}, T = {}>(newDefaults: Mapping<TProps, T>) => Connect;
-  options: (newOptions: ConnectOptions) => Connect;
-}
+// TODO: default and options!
+// export interface Connect {
+//   <TProps = {}>(map: MapPropsToRequestsToProps<TProps>): (
+//     component: ComponentClass<TProps> | StatelessComponent<TProps>,
+//   ) => ComponentClass<TProps> & WithRefetch<TProps>;
+//   defaults: <TProps = {}, T = {}>(newDefaults: Mapping<TProps, T>) => Connect;
+//   options: (newOptions: ConnectOptions) => Connect;
+// }
+
+export type Connect = <FetchProps, CompProps>(
+    map: MapPropsToRequestsToProps<FetchProps, CompProps>,
+) => (
+    component: ComponentClass<CompProps> | FunctionComponent<CompProps>,
+) => ComponentClass<Omit<CompProps, keyof FetchProps>> & WithRefetch<Omit<CompProps, keyof FetchProps>>;
 
 export interface ConnectOptions {
   withRef?: boolean;
 }
 
-export type MapPropsToRequestsToProps<T> = (
-  props: T
-) => PropsMap<T>;
+export type MapPropsToRequestsToProps<FProps, CProps> = (
+    props: Omit<CProps, keyof FProps>
+) => PropsMap<FProps>;
 
 // String or PromiseState
-type PromiseStateMapping<
-  TProps,
-  TProp extends keyof TProps
-> = TProps[TProp] extends PromiseState<infer TValue>
-  ? string | Mapping<TProps, TValue>
-  : never;
+type PromiseStateMapping<FProps> = string | Mapping<FProps, any>;
 
 // Function
-type FunctionMapping<
-  TProps,
-  TProp extends keyof TProps
-> = TProps[TProp] extends ((...args: infer TArgs) => void)
-  ? ((...args: TArgs) => PropsMap<TProps>)
-  : never;
+type FunctionMapping<FProps, FProp extends keyof FProps> = FProps[FProp] extends ((...args: infer FArgs) => void)
+    ? ((...args: FArgs) => PropsMapInner<FProps>)
+    : never;
 
 export type PropsMap<TProps> = {
-  [TProp in keyof TProps]?:
-    | PromiseStateMapping<TProps, TProp>
-    | FunctionMapping<TProps, TProp>
+    [TProp in keyof TProps]: PromiseStateMapping<TProps> | FunctionMapping<TProps, TProp>;
+};
+
+type PropsMapInner<TProps> = {
+    [TProp in keyof TProps]?: PromiseStateMapping<TProps> | FunctionMapping<TProps, TProp>;
 };
 
 export interface Mapping<TProps, TValue> {
