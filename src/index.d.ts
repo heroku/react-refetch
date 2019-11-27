@@ -76,20 +76,13 @@ interface RequestType {
   new (input: RequestInfo, init?: RequestInit): Request;
 }
 
-// TODO: default and options!
-// export interface Connect {
-//   <TProps = {}>(map: MapPropsToRequestsToProps<TProps>): (
-//     component: ComponentClass<TProps> | StatelessComponent<TProps>,
-//   ) => ComponentClass<TProps> & WithRefetch<TProps>;
-//   defaults: <TProps = {}, T = {}>(newDefaults: Mapping<TProps, T>) => Connect;
-//   options: (newOptions: ConnectOptions) => Connect;
-// }
-
-export type Connect = <FetchProps, CompProps>(
-    map: MapPropsToRequestsToProps<FetchProps, CompProps>,
-) => (
+export interface Connect {
+  <FetchProps, CompProps>(map: MapPropsToRequestsToProps<FetchProps, CompProps>): (
     component: ComponentClass<CompProps> | FunctionComponent<CompProps>,
-) => ComponentClass<Omit<CompProps, keyof FetchProps>> & WithRefetch<Omit<CompProps, keyof FetchProps>>;
+  ) => ComponentClass<Omit<CompProps, keyof FetchProps>> & WithRefetch<Omit<CompProps, keyof FetchProps>>;
+  defaults: <TProps = {}, T = {}>(newDefaults: Mapping<TProps, T>) => Connect;
+  options: (newOptions: ConnectOptions) => Connect;
+}
 
 export interface ConnectOptions {
   withRef?: boolean;
