@@ -9,7 +9,7 @@ export default class UserPage extends React.Component<Props> {
   render() {
     return (
       <div>
-        <UserWidget userId={'x'}/>
+        <UserWidget userId={this.props.userId}/>
       </div>
     )
   }
