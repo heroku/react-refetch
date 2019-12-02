@@ -77,9 +77,9 @@ interface RequestType {
 }
 
 export interface Connect {
-  <FetchProps, CompProps>(map: MapPropsToRequestsToProps<FetchProps, CompProps>): (
-    component: ComponentClass<CompProps> | FunctionComponent<CompProps>,
-  ) => ComponentClass<Omit<CompProps, keyof FetchProps>> & WithRefetch<Omit<CompProps, keyof FetchProps>>;
+  <CProps, FProps>(map: MapPropsToRequestsToProps<CProps, FProps>): (
+    component: ComponentClass<FProps> | FunctionComponent<FProps>,
+  ) => ComponentClass<CProps> & WithRefetch<CProps>;
   defaults: <TProps = {}, T = {}>(newDefaults: Mapping<TProps, T>) => Connect;
   options: (newOptions: ConnectOptions) => Connect;
 }
@@ -88,9 +88,9 @@ export interface ConnectOptions {
   withRef?: boolean;
 }
 
-export type MapPropsToRequestsToProps<FProps, CProps> = (
-    props: Omit<CProps, keyof FProps>
-) => PropsMap<FProps>;
+export type MapPropsToRequestsToProps<CProps, FProps> = (
+    props: CProps
+) => PropsMap<Omit<FProps, keyof CProps>>;
 
 // String or PromiseState
 type PromiseStateMapping<FProps> = string | Mapping<FProps, any>;
