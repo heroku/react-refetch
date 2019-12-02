@@ -2,15 +2,15 @@ import React from 'react'
 import { connect, PromiseState } from '../../src'
 import { User } from './types'
 
-interface CompProps {
+interface OuterProps {
     userId: string
 }
 
-interface FetchProps extends CompProps {
+interface InnerProps extends OuterProps {
     userFetch: PromiseState<User>
 }
 
-class UserWidget extends React.Component<FetchProps> {
+class UserWidget extends React.Component<InnerProps> {
   render() {
     return (
       <ul>
@@ -21,6 +21,6 @@ class UserWidget extends React.Component<FetchProps> {
   }
 }
 
-export default connect<CompProps, FetchProps>((props) => ({
+export default connect<OuterProps, InnerProps>((props) => ({
   userFetch: `/users/${props.userId}`
 }))(UserWidget)
