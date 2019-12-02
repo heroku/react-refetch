@@ -1,5 +1,6 @@
 import React from 'react'
-import UserWidget from './UserWidget'
+import UserWidgetComp from './UserWidgetComp'
+import UserWidgetFunc from './UserWidgetFunc'
 
 interface Props {
     userId: string,
@@ -9,7 +10,8 @@ export default class UserPage extends React.Component<Props> {
   render() {
     return (
       <div>
-        <UserWidget userId={this.props.userId}/>
+        <UserWidgetComp userId={this.props.userId}/>
+        <UserWidgetFunc userId={this.props.userId}/>
       </div>
     )
   }

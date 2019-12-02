@@ -10,7 +10,7 @@ interface InnerProps extends OuterProps {
     userFetch: PromiseState<User>
 }
 
-class UserWidget extends React.Component<InnerProps> {
+class UserWidgetComp extends React.Component<InnerProps> {
   render() {
     return (
       <ul>
@@ -23,4 +23,4 @@ class UserWidget extends React.Component<InnerProps> {
 
 export default connect<OuterProps, InnerProps>((props) => ({
   userFetch: `/users/${props.userId}`
-}))(UserWidget)
+}))(UserWidgetComp)
