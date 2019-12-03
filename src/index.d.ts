@@ -2,7 +2,7 @@ import {
   Component,
   ComponentClass,
   ComponentState,
-  StatelessComponent,
+  FunctionComponent,
 } from "react";
 
 ////////////////////////
@@ -77,9 +77,9 @@ interface RequestType {
 }
 
 export interface Connect {
-  <TProps = {}>(map: MapPropsToRequestsToProps<TProps>): (
-    component: ComponentClass<TProps> | StatelessComponent<TProps>,
-  ) => ComponentClass<TProps> & WithRefetch<TProps>;
+  <OuterProps, InnerProps>(map: MapPropsToRequestsToProps<OuterProps, InnerProps>): (
+    component: ComponentClass<InnerProps> | FunctionComponent<InnerProps>,
+  ) => ComponentClass<OuterProps> & WithRefetch<OuterProps>;
   defaults: <TProps = {}, T = {}>(newDefaults: Mapping<TProps, T>) => Connect;
   options: (newOptions: ConnectOptions) => Connect;
 }
@@ -88,30 +88,24 @@ export interface ConnectOptions {
   withRef?: boolean;
 }
 
-export type MapPropsToRequestsToProps<T> = (
-  props: T
-) => PropsMap<T>;
+export type MapPropsToRequestsToProps<OuterProps, InnerProps> = (
+    props: OuterProps
+) => PropsMap<Omit<InnerProps, keyof OuterProps>>;
 
 // String or PromiseState
-type PromiseStateMapping<
-  TProps,
-  TProp extends keyof TProps
-> = TProps[TProp] extends PromiseState<infer TValue>
-  ? string | Mapping<TProps, TValue>
-  : never;
+type PromiseStateMapping<FProps> = string | Mapping<FProps, any>;
 
 // Function
-type FunctionMapping<
-  TProps,
-  TProp extends keyof TProps
-> = TProps[TProp] extends ((...args: infer TArgs) => void)
-  ? ((...args: TArgs) => PropsMap<TProps>)
-  : never;
+type FunctionMapping<FProps, FProp extends keyof FProps> = FProps[FProp] extends ((...args: infer FArgs) => void)
+    ? ((...args: FArgs) => PropsMapInner<FProps>)
+    : never;
 
 export type PropsMap<TProps> = {
-  [TProp in keyof TProps]?:
-    | PromiseStateMapping<TProps, TProp>
-    | FunctionMapping<TProps, TProp>
+    [TProp in keyof TProps]: PromiseStateMapping<TProps> | FunctionMapping<TProps, TProp>;
+};
+
+type PropsMapInner<TProps> = {
+    [TProp in keyof TProps]?: PromiseStateMapping<TProps> | FunctionMapping<TProps, TProp>;
 };
 
 export interface Mapping<TProps, TValue> {
@@ -139,7 +133,7 @@ export interface Mapping<TProps, TValue> {
   catch?: <TReturned>(reason: any) => Mapping<TProps, TReturned> | void;
 
   andThen?: (value: TValue) => PropsMap<TProps>;
-  andCatch?: (rason: any) => PropsMap<TProps>;
+  andCatch?: (reason: any) => PropsMap<TProps>;
 
   value?: TValue | PromiseLike<TValue> | (() => PromiseLike<TValue>);
   meta?: any;

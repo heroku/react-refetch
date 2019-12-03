@@ -645,6 +645,37 @@ export default connect(props => {
 })(Profile)
 ```
 
+## TypeScript
+
+If you are using React Refetch in a project that is using TypeScript, this library ships with type definitions.
+
+Below is example connected component in TypeScript. Note how there is both an `OuterProps` and `InnerProps`. The `OuterProp` are the props the component receives from the outside. In this example, the `OuterProps` would just be `userId: string` the caller is expected to pass in (e.g. `<UserWidget userId="user-123"/>`). The `InnerProps` are the `PromiseState` props that the `connect()` function injects into the component when fetching data. Since the `InnerProps` include the `OuterProps`, they are defined as `InnerProps extends OuterProps` and then the component itself `extends React.Component<InnerProps>`. This allows the component to have access to both the `userId: string` and `userFetch: PromiseState<User>` internally. However, the `connect` function returns a component with only the `OuterProps` (e.g. `React.Component<OuterProps>`) so callers only need to pass in `userId: string`.
+
+```tsx
+interface OuterProps {
+    userId: string
+}
+
+interface InnerProps extends OuterProps {
+    userFetch: PromiseState<User>
+}
+
+class UserWidget extends React.Component<InnerProps> {
+  render() {
+    return (
+      <ul>
+        <li>{ this.props.userId }</li>
+        <li>{ this.props.userFetch.fulfilled && this.props.userFetch.value.name }</li>
+      </ul>
+    )
+  }
+}
+
+export default connect<OuterProps, InnerProps>((props) => ({
+  userFetch: `/users/${props.userId}`
+}))(UserWidget)
+```
+
 ## API Documentation
 
 - [`connect([mapPropsToRequestsToProps])`](https://github.com/heroku/react-refetch/blob/master/docs/api.md#connectmappropstorequeststoprops-options)
