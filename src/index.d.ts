@@ -47,6 +47,8 @@ export interface PendingPromiseState<T = {}> extends PromiseStateBase {
   readonly pending: true;
   readonly fulfilled: false;
   readonly rejected: false;
+  readonly value: undefined;
+  readonly reason: undefined;
 }
 
 export interface FulfilledPromiseState<T = {}> extends PromiseStateBase {
@@ -54,12 +56,14 @@ export interface FulfilledPromiseState<T = {}> extends PromiseStateBase {
   readonly fulfilled: true;
   readonly rejected: false;
   readonly value: T;
+  readonly reason: undefined;
 }
 
 export interface RejectedPromiseState<T = {}> extends PromiseStateBase {
   readonly pending: false;
   readonly fulfilled: false;
   readonly rejected: true;
+  readonly value: undefined;
   readonly reason: any;
 }
 
