@@ -1,5 +1,6 @@
 React Refetch
 =========================
+
 A simple, declarative, and composable way to fetch data for React components.
 
 ![React Refetch Logo](logo.png)
@@ -100,7 +101,7 @@ connect(props => ({
 }))(UsersList)
 ```
 
-Setting `force: true` should be avoid if at all possible because it could result in extraneous data fetching and rendering of the component. Try to use the default comparison or custom `comparison` option instead.
+Setting `force: true` should be avoided if at all possible because it could result in extraneous data fetching and rendering of the component. Try to use the default comparison or custom `comparison` option instead.
 
 ## Automatic Refreshing
 
@@ -113,7 +114,7 @@ connect(props => ({
 }))(Profile)
 ```
 
-When refreshing, the `PromiseState` will be the same as a the previous `fulfilled` state, but with the `refreshing` attribute set. That is, `pending` will remain unset and the existing `value` will be left in tact. When the refresh completes, `refreshing` will be unset and the `value` will be updated with the latest data. If the refresh is rejected, the `PromiseState` will move into a `rejected` and not attempt to refresh again.
+When refreshing, the `PromiseState` will be the same as the previous `fulfilled` state, but with the `refreshing` attribute set. That is, `pending` will remain unset and the existing `value` will be left intact. When the refresh completes, `refreshing` will be unset and the `value` will be updated with the latest data. If the refresh is rejected, the `PromiseState` will move into a `rejected` and not attempt to refresh again.
 
 ## Fetch Functions
 
@@ -191,7 +192,7 @@ Note, the example above sets `force: true` and `refreshing: true` on the request
 
 ### Posting + Refreshing Data
 
-The two examples above can be combined to post data to the server and refresh an existing `PromiseState`. This is a common pattern when a responding to a user action to update a resource and reflect that update in the component. For example, if `PATCH /users/:user_id` responds with the updated user, it can be used to overwrite the existing `userFetch` when the user updates her name:
+The two examples above can be combined to post data to the server and refresh an existing `PromiseState`. This is a common pattern when responding to a user action to update a resource and reflect that update in the component. For example, if `PATCH /users/:user_id` responds with the updated user, it can be used to overwrite the existing `userFetch` when the user updates her name:
 
 ```jsx
 connect(props => ({
@@ -331,7 +332,7 @@ Note, this form of transformation is similar to what is possible on the `Promise
 
 **Identity requests can also be provided a `Promise` (or any "thenable") or a `Function`.**
 If `value` is a `Promise`, the `PromiseState` will be `pending` until the `Promise` is resolved. This can be helpful for asynchronous, non-fetch operations (e.g. file i/o) that want to use a similar pattern as fetch operations.
-If `value` is a `Function`, it will be evaluated with no arguments and its return value will be used instead, as in cases described above. The `Function` will be only be called when `comparison` changes. This can be helpful for cases where you want to provide an identify request, but it is expensive to evaluate. By wrapping it in a function, it is only evaluated when something changes.
+If `value` is a `Function`, it will be evaluated with no arguments and its return value will be used instead, as in cases described above. The `Function` will only be called when `comparison` changes. This can be helpful for cases where you want to provide an identify request, but it is expensive to evaluate. By wrapping it in a function, it is only evaluated when something changes.
 
 ```jsx
 connect(props => ({
@@ -492,9 +493,9 @@ connect.defaults({ fetch: cachingFetch })(props => ({
 }))(Profile)
 ```
 
-When using this feature, make sure to read the [`fetch` API and interface documentation](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) and all related topics. Notably, you need to keep in mind that the `body` of a `Response` can _only be consumed once_, so if you need to read it in your custom `fetch`, you also need to recreate a brand new `Response` (or a `.clone()` of the original one if you're not modifying the body) so React Refetch can work properly.
+When using this feature, make sure to read the [`fetch` API and interface documentation](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) and all related topics. Notably, you need to keep in mind that the `body` of a `Response` can *only be consumed once*, so if you need to read it in your custom `fetch`, you also need to recreate a brand new `Response` (or a `.clone()` of the original one if you're not modifying the body) so React Refetch can work properly.
 
-This is an _advanced feature_. Use existing declarative functionality wherever possible. Customise `buildRequest` or `handleResponse` if these can work instead. Please be aware that changing the `fetch` (or `Request`) implementation could conflict with built-in current or future functionality.
+This is an *advanced feature*. Use existing declarative functionality wherever possible. Customise `buildRequest` or `handleResponse` if these can work instead. Please be aware that changing the `fetch` (or `Request`) implementation could conflict with built-in current or future functionality.
 
 ## Unit Testing Connected Components
 
@@ -553,7 +554,6 @@ const c = shallow(
 
 expect(c.find(ErrorBox).first().prop().error).toEqual(expectedError)
 ```
-
 
 ```jsx
 const user = new User()
@@ -649,7 +649,7 @@ export default connect(props => {
 
 If you are using React Refetch in a project that is using TypeScript, this library ships with type definitions.
 
-Below is example connected component in TypeScript. Note how there is both an `OuterProps` and `InnerProps`. The `OuterProp` are the props the component receives from the outside. In this example, the `OuterProps` would just be `userId: string` the caller is expected to pass in (e.g. `<UserWidget userId="user-123"/>`). The `InnerProps` are the `PromiseState` props that the `connect()` function injects into the component when fetching data. Since the `InnerProps` include the `OuterProps`, they are defined as `InnerProps extends OuterProps` and then the component itself `extends React.Component<InnerProps>`. This allows the component to have access to both the `userId: string` and `userFetch: PromiseState<User>` internally. However, the `connect` function returns a component with only the `OuterProps` (e.g. `React.Component<OuterProps>`) so callers only need to pass in `userId: string`.
+Below is an example connected component in TypeScript. Note how there is both an `OuterProps` and `InnerProps`. The `OuterProp` are the props the component receives from the outside. In this example, the `OuterProps` would just be `userId: string` the caller is expected to pass in (e.g. `<UserWidget userId="user-123"/>`). The `InnerProps` are the `PromiseState` props that the `connect()` function injects into the component when fetching data. Since the `InnerProps` include the `OuterProps`, they are defined as `InnerProps extends OuterProps` and then the component itself `extends React.Component<InnerProps>`. This allows the component to have access to both the `userId: string` and `userFetch: PromiseState<User>` internally. However, the `connect` function returns a component with only the `OuterProps` (e.g. `React.Component<OuterProps>`) so callers only need to pass in `userId: string`.
 
 ```tsx
 interface OuterProps {
