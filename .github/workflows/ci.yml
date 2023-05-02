@@ -7,17 +7,24 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    name: Node.js ${{ matrix.node-version }}
+    name: Node.js ${{ matrix.node-version }} / Typescript ${{ matrix.ts-version }}
     strategy:
       fail-fast: false
       matrix:
-        node-version: [14.x, 15.x, 16.x, 18.x, 19.x, 20.x]
+        node-version: [18.x, 20.x]
+        ts-version: ['3.9', '4.1', '5.0']
     steps:
       - uses: actions/checkout@v2
-      - name: Use Node.js ${{ matrix.node-version }}
+      - name: Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v1
         with:
           node-version: ${{ matrix.node-version }}
-      - run: npm ci
+      
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Install TypeScript ${{ matrix.ts-version }}
+        run: npm install typescript@${{ matrix.ts-version }}
+
       - run: npm run lint
       - run: npm test
