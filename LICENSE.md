@@ -1,6 +1,6 @@
 The MIT License (MIT)
 
-Copyright (c) 2015 Heroku
+Copyright (c) 2023 Heroku
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,7 +26,7 @@ License for portions of React Redux project from which this was derived:
 
 The MIT License (MIT)
 
-Copyright (c) 2015 Dan Abramov
+Copyright (c) 2023 Dan Abramov
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
