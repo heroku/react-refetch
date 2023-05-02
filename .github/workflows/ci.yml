@@ -7,12 +7,13 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    name: Node.js ${{ matrix.node-version }} / Typescript ${{ matrix.ts-version }}
+    name: Node ${{ matrix.node-version }} / TS ${{ matrix.ts-version }} / React ${{ matrix.react-version }}
     strategy:
       fail-fast: false
       matrix:
         node-version: [18.x, 20.x]
         ts-version: ['3.9', '4.1', '5.0']
+        react-version: ['16']
     steps:
       - uses: actions/checkout@v2
       - name: Node.js ${{ matrix.node-version }}
@@ -25,6 +26,9 @@ jobs:
 
       - name: Install TypeScript ${{ matrix.ts-version }}
         run: npm install typescript@${{ matrix.ts-version }}
+      
+      - name: Install React ${{ matrix.react-version }}
+        run: npm install react@${{ matrix.react-version }}
 
       - run: npm run lint
       - run: npm test
