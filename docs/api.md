@@ -115,10 +115,10 @@ It does not change the options of the original `connect` it was called on.
 Calls to `.options()` can be chained. If latter keys conflict with earlier ones, the latter ones will be used:
 
 ```js
-const a = connect.defaults({ withRef: true })
+const a = connect.options({ withRef: true })
 // Options are as documented, except `withRef` which is `true`
 
-const b = a.defaults({ withRef: false })
+const b = a.options({ withRef: false })
 // `withRef` is `false` (back to default value)
 ```
 
