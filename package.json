@@ -1,6 +1,6 @@
 {
   "name": "react-refetch",
-  "version": "4.0.1-0",
+  "version": "5.0.0-0",
   "description": "A simple, declarative, and composable way to fetch data for React components.",
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
@@ -11,7 +11,7 @@
     "prepare": "npm run clean && npm run lint && npm run build",
     "test": "mocha --require @babel/register --recursive --require ./test/setup.js --exit",
     "test:watch": "npm test -- --watch",
-    "test:cov": "babel-node ./node_modules/isparta/bin/isparta cover ./node_modules/mocha/bin/_mocha -- --recursive --require ./test/setup.js"
+    "test:cov": "nyc --reporter=lcov --reporter=text-summary --report-dir=./coverage npm run test"
   },
   "repository": {
     "type": "git",
@@ -68,9 +68,9 @@
     "eslint-config-rackt": "^1.1.1",
     "eslint-plugin-react": "^7.16.0",
     "expect": "^1.8.0",
-    "isparta": "4.0.0",
     "jsdom": "^7.2.2",
-    "mocha": "^6.2.2",
+    "mocha": "^10.0.0",
+    "nyc": "^15.1.0",
     "prop-types": "^15.7.2",
     "react": "^16.8.6",
     "react-dom": "^16.8.6",
