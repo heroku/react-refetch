@@ -1,5 +1,5 @@
 {
-  "name": "react-refetch",
+  "name": "@heroku/react-refetch",
   "version": "5.0.0-0",
   "description": "A simple, declarative, and composable way to fetch data for React components.",
   "main": "./lib/index.js",
@@ -15,7 +15,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/heroku/react-refetch.git"
+    "url": "git+https://github.com/heroku/react-refetch.git"
   },
   "files": [
     "lib"
@@ -85,5 +85,11 @@
   },
   "peerDependencies": {
     "react": "^0.14.0 || ^15.0.0-0 || ^16.0.0-0"
+  },
+  "directories": {
+    "doc": "docs",
+    "example": "examples",
+    "lib": "lib",
+    "test": "test"
   }
 }
