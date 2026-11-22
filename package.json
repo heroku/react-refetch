@@ -1,89 +1,56 @@
 {
   "name": "react-refetch",
-  "version": "5.0.0-0",
-  "description": "A simple, declarative, and composable way to fetch data for React components.",
-  "main": "./lib/index.js",
-  "types": "./lib/index.d.ts",
+  "version": "3.1.0",
+  "description": "A simple declarative request wrapper for React components",
+  "main": "lib/index.js",
+  "typings": "src/index.d.ts",
   "scripts": {
-    "build": "babel src --out-dir lib; cp src/*.d.ts lib",
-    "clean": "rimraf lib dist coverage",
+    "clean": "rimraf lib",
+    "build": "babel src --out-dir lib",
     "lint": "eslint src test",
-    "prepare": "npm run clean && npm run lint && npm run build",
-    "test": "mocha --require @babel/register --recursive --require ./test/setup.js --exit",
+    "test": "mocha --require @babel/register --require test/setup.js test/**/*.spec.js",
     "test:watch": "npm test -- --watch",
-    "test:cov": "nyc --reporter=lcov --reporter=text-summary --report-dir=./coverage npm run test"
+    "prepublish": "npm run clean && npm run build"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/heroku/react-refetch.git"
   },
-  "files": [
-    "lib"
-  ],
   "keywords": [
     "react",
-    "reactjs",
+    "refetch",
     "fetch",
+    "rest",
+    "api",
     "data",
-    "ajax",
-    "hot",
-    "reload",
-    "hmr",
-    "live",
-    "edit"
+    "flux",
+    "redux"
   ],
-  "author": "Heroku",
-  "license": "MIT",
+  "author": "Daniel Bukowski <dbukowski@salesforce.com>",
+  "license": "ISC",
   "bugs": {
     "url": "https://github.com/heroku/react-refetch/issues"
   },
-  "homepage": "https://github.com/heroku/react-refetch",
-  "devDependencies": {
-    "@babel/cli": "^7.0.0",
-    "@babel/core": "^7.0.0",
-    "@babel/node": "^7.0.0",
-    "@babel/plugin-proposal-class-properties": "^7.0.0",
-    "@babel/plugin-proposal-decorators": "^7.0.0",
-    "@babel/plugin-proposal-do-expressions": "^7.0.0",
-    "@babel/plugin-proposal-export-default-from": "^7.0.0",
-    "@babel/plugin-proposal-export-namespace-from": "^7.0.0",
-    "@babel/plugin-proposal-function-bind": "^7.0.0",
-    "@babel/plugin-proposal-function-sent": "^7.0.0",
-    "@babel/plugin-proposal-json-strings": "^7.0.0",
-    "@babel/plugin-proposal-logical-assignment-operators": "^7.0.0",
-    "@babel/plugin-proposal-nullish-coalescing-operator": "^7.0.0",
-    "@babel/plugin-proposal-numeric-separator": "^7.0.0",
-    "@babel/plugin-proposal-optional-chaining": "^7.0.0",
-    "@babel/plugin-proposal-pipeline-operator": "^7.0.0",
-    "@babel/plugin-proposal-throw-expressions": "^7.0.0",
-    "@babel/plugin-syntax-dynamic-import": "^7.0.0",
-    "@babel/plugin-syntax-import-meta": "^7.0.0",
-    "@babel/preset-env": "^7.0.0",
-    "@babel/preset-react": "^7.0.0",
-    "@types/node": "^12.12.14",
-    "@types/react": "^16.9.13",
-    "@types/react-dom": "^16.9.4",
-    "babel-eslint": "^10.0.3",
-    "eslint": "^6.5.1",
-    "eslint-config-rackt": "^1.1.1",
-    "eslint-plugin-react": "^7.16.0",
-    "expect": "^1.8.0",
-    "jsdom": "^7.2.2",
-    "mocha": "^10.0.0",
-    "nyc": "^15.1.0",
-    "prop-types": "^15.7.2",
-    "react": "^16.8.6",
-    "react-dom": "^16.8.6",
-    "rimraf": "^2.3.4",
-    "typescript": "^3.7.2",
-    "whatwg-fetch": "*"
-  },
+  "homepage": "https://github.com/heroku/react-refetch#readme",
   "dependencies": {
-    "hoist-non-react-statics": "^3.3.0",
+    "hoist-non-react-statics": "^3.3.2",
     "invariant": "^2.2.4",
     "warning": "^4.0.3"
   },
+  "devDependencies": {
+    "@babel/cli": "^7.12.10",
+    "@babel/core": "^7.12.10",
+    "@babel/preset-env": "^7.12.11",
+    "@babel/register": "^7.12.10",
+    "eslint": "^7.16.0",
+    "eslint-plugin-react": "^7.22.0",
+    "expect": "^1.20.2",
+    "jsdom": "^16.4.0",
+    "mocha": "^8.2.1",
+    "rimraf": "^3.0.2",
+    "whatwg-fetch": "^3.6.2"
+  },
   "peerDependencies": {
-    "react": "^0.14.0 || ^15.0.0-0 || ^16.0.0-0"
+    "react": "^0.14.0 || ^15.0.0-0 || ^16.0.0-0 || ^17.0.0-0"
   }
 }
