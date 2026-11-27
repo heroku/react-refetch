@@ -136,8 +136,8 @@ export interface Mapping<TProps, TValue> {
   ) => Mapping<TProps, TReturned> | void;
   catch?: <TReturned>(reason: any) => Mapping<TProps, TReturned> | void;
 
-  andThen?: (value: TValue) => PropsMap<TProps>;
-  andCatch?: (reason: any) => PropsMap<TProps>;
+  andThen?: (value: TValue) => PropsMapInner<TProps>;
+  andCatch?: (reason: any) => PropsMapInner<TProps>;
 
   value?: TValue | PromiseLike<TValue> | (() => PromiseLike<TValue>);
   meta?: any;
